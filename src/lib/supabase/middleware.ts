@@ -64,6 +64,7 @@ const publicRoutes = [
   '/business/pass-designer', // Temporary public access for development
   '/business/members', // Temporary public access for development
   '/business/settings', // Temporary public access for development
+  '/business/distribution', // Temporary public access for development
   '/agency/dashboard'    // Temporary public access for development
 ]
 
