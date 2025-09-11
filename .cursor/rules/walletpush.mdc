@@ -1,0 +1,101 @@
+---
+description: Development & Architecture
+alwaysApply: false
+---
+1. Development & Architecture
+
+Framework: Next.js (Vercel) + Supabase (Postgres, Auth, Storage).
+
+Design System: Tailwind + Shadcn UI (keep WalletPush UX consistent with HighLevel-style layout).
+
+Designer Canvas: SVG-based previews with drag-drop field editing (Apple + Google).
+
+Pass Compiler: Lives in backend routes; never expose signing keys to client.
+
+Multitenancy: enforced by Supabase RLS (Row Level Security) using tenant_id in JWT claims.
+
+2. Security & Compliance
+
+Secrets (Apple .p12, .p8, Google SA JSON) → stored only in Supabase private bucket, encrypted; never in client bundle.
+
+All API routes enforce:
+
+Tenant scope (tenant_id).
+
+Idempotency (transactions, redemptions).
+
+Audit trail: every action (earn/redeem, template publish, pass issue) writes to events table.
+
+PCI: Stripe handles all card payments; WalletPush never touches PANs.
+
+GDPR/CCPA: allow customer data export & deletion.
+
+3. Business Logic Rules
+
+Membership mode: requires active Stripe subscription before issuing pass.
+
+Loyalty mode: points earned on transactions (manual entry or POS integration).
+
+Store Card mode:
+
+Top-ups only through Stripe (no arbitrary balance injection except admin adjustments).
+
+Spends subtract from ledger balance; balances must never go negative.
+
+Offers:
+
+Points offers require sufficient balance at claim time.
+
+Cash offers require Stripe payment confirmation before marking claimed.
+
+Redeem flow must update both offer_claims and point_events/store_tx ledgers atomically.
+
+4. Notifications
+
+Resend: for transactional emails (welcome, receipts, reminders).
+
+APNs/Google Push: mandatory pass refresh on every update (points, balance, tier).
+
+Email/Push templates version-controlled in repo (no inline ad-hoc templates).
+
+5. Deployment & CI/CD
+
+Hosting: Vercel (frontend + backend API routes).
+
+DB Migrations: Supabase migration scripts in repo; run on deploy.
+
+Secrets Management: Vercel env for runtime; Supabase bucket for certs.
+
+Branching: main = production, dev = staging; feature branches → PRs.
+
+Testing:
+
+Unit: Template validation, compiler, ledger math.
+
+Integration: Stripe webhooks, APNs push flow, Google PATCH.
+
+E2E: pass issue → update → redeem in a staging tenant.
+
+6. Analytics & Reporting
+
+All KPIs derive from append-only ledgers (point_events, store_tx, offer_claims).
+
+Admin dashboard queries always aggregate from ledgers; cached counters allowed but must reconcile.
+
+No destructive edits — only append + corrections via adjust transactions.
+
+7. Governance & Change Management
+
+Pass Designer: Publishing a template creates an immutable version; cannot be edited, only cloned to new version.
+
+Store Card Balance: adjustments require reason in meta; logged to events.
+
+Points Adjustments: must record actor (staff/admin) + note.
+
+Deletion:
+
+Programs/templates: only Owner can delete; archived instead of hard delete.
+
+Contacts/members: anonymize instead of full delete (to keep ledger integrity).
+
+Audit Logs: exposed in admin UI for compliance (GDPR requests, refunds, etc.).
