@@ -81,16 +81,37 @@ Always include:
 
 Return ONLY the complete HTML code, no explanations.`
 
-      const userPrompt = `Business: ${business_name}
+      // Sanitize text to remove problematic Unicode characters
+      const sanitizeText = (text: string) => {
+        return text
+          .replace(/[\u2000-\u206F\u2E00-\u2E7F\u3000-\u303F]/g, ' ') // Remove special unicode spaces and punctuation
+          .replace(/[^\x00-\xFF]/g, ' ') // Remove any non-Latin characters that might cause encoding issues
+          .replace(/\s+/g, ' ') // Normalize multiple spaces
+          .trim()
+      }
+
+      const sanitizedPrompt = sanitizeText(prompt)
+      const sanitizedBusinessName = sanitizeText(business_name)
+
+      const userPrompt = `Business: ${sanitizedBusinessName}
 ${logo_url ? `Logo URL: ${logo_url}` : 'No logo provided'}
 ${background_image_url ? `Background Image URL: ${background_image_url}` : 'No background image provided'}
 
-User Requirements: ${prompt}`
+User Requirements: ${sanitizedPrompt}`
 
-      console.log('Calling OpenAI with model:', openaiConfig.model)
+      // Handle model fallback since GPT-5 might not be available yet
+      let modelToUse = openaiConfig.model
+      if (openaiConfig.model === 'gpt-5-mini' || openaiConfig.model === 'gpt-5') {
+        modelToUse = 'gpt-4o-mini' // Fallback to available model
+        console.log(`Falling back from ${openaiConfig.model} to ${modelToUse}`)
+      }
+
+      console.log('Calling OpenAI with model:', modelToUse)
+      console.log('Sanitized prompt length:', sanitizedPrompt.length)
+      console.log('Original prompt chars at 170-175:', prompt.slice(170, 175).split('').map(c => c.charCodeAt(0)))
 
       const completion = await openai.chat.completions.create({
-        model: openaiConfig.model,
+        model: modelToUse,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
