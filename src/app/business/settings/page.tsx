@@ -555,7 +555,7 @@ export default function SettingsPage() {
                           className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         >
                           <option value="gpt-5-mini">GPT-5 Mini (Recommended)</option>
-                          <option value="gpt-5">GPT-5</option>
+                          <option value="gpt-5">GPT-5 (Coming Soon)</option>
                           <option value="gpt-4o-mini">GPT-4o Mini</option>
                           <option value="gpt-4o">GPT-4o</option>
                           <option value="gpt-4-turbo">GPT-4 Turbo</option>

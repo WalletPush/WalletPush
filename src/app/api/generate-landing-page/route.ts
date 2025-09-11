@@ -84,8 +84,12 @@ Return ONLY the complete HTML code, no explanations.`
       // Sanitize text to remove problematic Unicode characters
       const sanitizeText = (text: string) => {
         return text
-          .replace(/[\u2000-\u206F\u2E00-\u2E7F\u3000-\u303F]/g, ' ') // Remove special unicode spaces and punctuation
-          .replace(/[^\x00-\xFF]/g, ' ') // Remove any non-Latin characters that might cause encoding issues
+          .replace(/\u2028/g, ' ') // Line separator (character 8232)
+          .replace(/\u2029/g, ' ') // Paragraph separator
+          .replace(/[\u2000-\u206F]/g, ' ') // All Unicode spaces and general punctuation
+          .replace(/[\u2E00-\u2E7F]/g, ' ') // Supplemental punctuation
+          .replace(/[\u3000-\u303F]/g, ' ') // CJK symbols and punctuation
+          .replace(/[^\x20-\x7E\x0A\x0D]/g, ' ') // Keep only basic ASCII printable chars, newlines, and carriage returns
           .replace(/\s+/g, ' ') // Normalize multiple spaces
           .trim()
       }
@@ -99,10 +103,13 @@ ${background_image_url ? `Background Image URL: ${background_image_url}` : 'No b
 
 User Requirements: ${sanitizedPrompt}`
 
-      // Handle model fallback since GPT-5 might not be available yet
+      // Handle model mapping for GPT-5
       let modelToUse = openaiConfig.model
-      if (openaiConfig.model === 'gpt-5-mini' || openaiConfig.model === 'gpt-5') {
-        modelToUse = 'gpt-4o-mini' // Fallback to available model
+      if (openaiConfig.model === 'gpt-5-mini') {
+        modelToUse = 'gpt-5-mini-2025-08-07' // Use the actual GPT-5 mini model name
+        console.log(`Mapping ${openaiConfig.model} to ${modelToUse}`)
+      } else if (openaiConfig.model === 'gpt-5') {
+        modelToUse = 'gpt-4o-mini' // Fallback until full GPT-5 is available
         console.log(`Falling back from ${openaiConfig.model} to ${modelToUse}`)
       }
 
@@ -113,8 +120,8 @@ User Requirements: ${sanitizedPrompt}`
       const completion = await openai.chat.completions.create({
         model: modelToUse,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
+          { role: "system", content: sanitizeText(systemPrompt) },
+          { role: "user", content: sanitizeText(userPrompt) }
         ],
         max_tokens: 4000,
         temperature: 0.7,
