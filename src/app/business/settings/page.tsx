@@ -82,6 +82,29 @@ export default function SettingsPage() {
     lastTested: null
   })
 
+  // Load existing settings on component mount
+  React.useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/business-settings?key=openai')
+        const result = await response.json()
+        
+        if (result.data && !result.error) {
+          setOpenAISettings({
+            apiKey: result.data.api_key || '',
+            model: result.data.model || 'gpt-5-mini',
+            enabled: result.data.enabled || false,
+            lastTested: result.data.last_tested || null
+          })
+        }
+      } catch (error) {
+        console.error('Error loading OpenAI settings:', error)
+      }
+    }
+    
+    loadSettings()
+  }, [])
+
   const handleAddDomain = async () => {
     if (!newDomain) return
     
@@ -120,10 +143,38 @@ export default function SettingsPage() {
 
   const handleSaveOpenAI = async () => {
     setIsLoading(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsLoading(false)
-    // Show success message
+    
+    try {
+      const response = await fetch('/api/business-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          setting_key: 'openai',
+          setting_value: {
+            api_key: openAISettings.apiKey,
+            model: openAISettings.model,
+            enabled: openAISettings.enabled,
+            last_tested: openAISettings.lastTested
+          }
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (result.error) {
+        throw new Error(result.error)
+      }
+      
+      alert('OpenAI settings saved successfully!')
+      
+    } catch (error) {
+      console.error('Error saving OpenAI settings:', error)
+      alert('Failed to save OpenAI settings. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleTestOpenAI = async () => {
