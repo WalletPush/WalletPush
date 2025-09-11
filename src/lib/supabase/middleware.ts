@@ -65,7 +65,11 @@ const publicRoutes = [
   '/business/members', // Temporary public access for development
   '/business/settings', // Temporary public access for development
   '/business/distribution', // Temporary public access for development
-  '/agency/dashboard'    // Temporary public access for development
+  '/agency/dashboard',    // Temporary public access for development
+  '/api/business-settings', // API routes for development
+  '/api/landing-pages', // API routes for development
+  '/api/generate-landing-page', // API routes for development
+  '/api/test-openai' // API routes for development
 ]
 
   const isPublicRoute = publicRoutes.some(route => 

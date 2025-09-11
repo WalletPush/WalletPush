@@ -164,10 +164,16 @@ export default function DistributionPage() {
     } catch (error) {
       console.error('Error generating landing page:', error)
       
+      let errorMsg = 'Sorry, I encountered an error generating your landing page. Please try again.'
+      
+      if (error instanceof Error) {
+        errorMsg += ` Error: ${error.message}`
+      }
+      
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: 'Sorry, I encountered an error generating your landing page. Please try again.',
+        content: errorMsg,
         timestamp: new Date().toISOString()
       }
       

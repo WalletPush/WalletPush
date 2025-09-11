@@ -25,9 +25,11 @@ export async function POST(request: NextRequest) {
           last_tested: new Date().toISOString()
         },
         updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'business_id,setting_key'
       })
       .select()
-      .single()
+      .maybeSingle()
     
     if (error) {
       console.error('Supabase error:', error)
@@ -63,7 +65,7 @@ export async function GET() {
       .select('*')
       .eq('business_id', business_id)
       .eq('setting_key', 'openai')
-      .single()
+      .maybeSingle()
     
     if (error) {
       console.error('Supabase error:', error)

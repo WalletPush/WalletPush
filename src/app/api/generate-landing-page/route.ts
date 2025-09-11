@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       .select('setting_value')
       .eq('business_id', business_id)
       .eq('setting_key', 'openai')
-      .single()
+      .maybeSingle()
     
     console.log('OpenAI settings query:', { settings, settingsError })
     
