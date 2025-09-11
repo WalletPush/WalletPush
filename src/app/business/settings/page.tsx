@@ -7,7 +7,8 @@ import {
   ShieldCheckIcon,
   CreditCardIcon,
   UserGroupIcon,
-  KeyIcon
+  KeyIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 
 type SettingsTab = 'domains' | 'smtp' | 'security' | 'billing' | 'team' | 'api'
@@ -29,6 +30,13 @@ interface SMTPSettings {
   fromEmail: string
   encryption: 'none' | 'tls' | 'ssl'
   enabled: boolean
+}
+
+interface OpenAISettings {
+  apiKey: string
+  model: string
+  enabled: boolean
+  lastTested: string | null
 }
 
 export default function SettingsPage() {
@@ -66,6 +74,14 @@ export default function SettingsPage() {
     enabled: false
   })
 
+  // OpenAI Settings State
+  const [openAISettings, setOpenAISettings] = useState<OpenAISettings>({
+    apiKey: '',
+    model: 'gpt-4o-mini',
+    enabled: false,
+    lastTested: null
+  })
+
   const handleAddDomain = async () => {
     if (!newDomain) return
     
@@ -100,6 +116,24 @@ export default function SettingsPage() {
     await new Promise(resolve => setTimeout(resolve, 2000))
     setIsLoading(false)
     alert('Test email sent successfully!')
+  }
+
+  const handleSaveOpenAI = async () => {
+    setIsLoading(true)
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    setIsLoading(false)
+    // Show success message
+  }
+
+  const handleTestOpenAI = async () => {
+    setIsLoading(true)
+    // Simulate OpenAI API test
+    await new Promise(resolve => setTimeout(resolve, 2500))
+    const now = new Date().toISOString()
+    setOpenAISettings({...openAISettings, lastTested: now})
+    setIsLoading(false)
+    alert('OpenAI API connection successful!')
   }
 
   const tabs = [
@@ -392,10 +426,147 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'api' && (
-            <div className="text-center py-12">
-              <KeyIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">API Keys</h3>
-              <p className="text-slate-600">Manage API keys and webhooks coming soon.</p>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">API Keys & Integrations</h3>
+                <p className="text-slate-600 mb-6">
+                  Manage your API keys for third-party integrations and AI-powered features.
+                </p>
+
+                {/* OpenAI API Settings */}
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6 border border-purple-200">
+                  <div className="flex items-center gap-3 mb-4">
+                    <SparklesIcon className="w-6 h-6 text-purple-600" />
+                    <h4 className="text-lg font-semibold text-slate-900">OpenAI API</h4>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      openAISettings.enabled 
+                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                        : 'bg-slate-100 text-slate-800 border border-slate-200'
+                    }`}>
+                      {openAISettings.enabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  
+                  <p className="text-slate-600 mb-6">
+                    Enable AI-powered features for generating HTML landing pages, email content, and more.
+                  </p>
+
+                  <div className="space-y-6">
+                    {/* API Key Status */}
+                    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-purple-100">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${openAISettings.enabled ? 'bg-green-500' : 'bg-slate-400'}`}></div>
+                        <span className="font-medium text-slate-900">
+                          OpenAI Integration {openAISettings.enabled ? 'Active' : 'Inactive'}
+                        </span>
+                        {openAISettings.lastTested && (
+                          <span className="text-sm text-slate-500">
+                            Last tested: {new Date(openAISettings.lastTested).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setOpenAISettings({...openAISettings, enabled: !openAISettings.enabled})}
+                        className={`px-4 py-2 rounded-md text-sm font-medium ${
+                          openAISettings.enabled 
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        }`}
+                      >
+                        {openAISettings.enabled ? 'Disable' : 'Enable'}
+                      </button>
+                    </div>
+
+                    {/* OpenAI Settings Form */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          OpenAI API Key
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={openAISettings.apiKey}
+                          onChange={(e) => setOpenAISettings({...openAISettings, apiKey: e.target.value})}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          placeholder="sk-..."
+                        />
+                        <p className="text-sm text-slate-500 mt-1">
+                          Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">OpenAI Platform</a>
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Model</label>
+                        <select
+                          value={openAISettings.model}
+                          onChange={(e) => setOpenAISettings({...openAISettings, model: e.target.value})}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <option value="gpt-4o-mini">GPT-4o Mini (Recommended)</option>
+                          <option value="gpt-4o">GPT-4o</option>
+                          <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-end">
+                        <div className="w-full">
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Features Enabled</label>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                              Landing Page Generation
+                            </span>
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                              Email Content Creation
+                            </span>
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                              Content Optimization
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-4">
+                      <button
+                        onClick={handleSaveOpenAI}
+                        disabled={isLoading}
+                        className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        {isLoading ? 'Saving...' : 'Save Settings'}
+                      </button>
+                      <button
+                        onClick={handleTestOpenAI}
+                        disabled={isLoading || !openAISettings.apiKey}
+                        className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {isLoading ? 'Testing...' : 'Test Connection'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Future API Integrations */}
+                <div className="mt-8 p-6 border border-slate-200 rounded-lg bg-slate-50">
+                  <h4 className="font-medium text-slate-900 mb-2">Coming Soon</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-3 bg-white rounded border">
+                      <h5 className="font-medium text-slate-700">Webhooks</h5>
+                      <p className="text-sm text-slate-500">Real-time notifications</p>
+                    </div>
+                    <div className="p-3 bg-white rounded border">
+                      <h5 className="font-medium text-slate-700">Zapier Integration</h5>
+                      <p className="text-sm text-slate-500">Workflow automation</p>
+                    </div>
+                    <div className="p-3 bg-white rounded border">
+                      <h5 className="font-medium text-slate-700">Analytics API</h5>
+                      <p className="text-sm text-slate-500">Custom reporting</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
