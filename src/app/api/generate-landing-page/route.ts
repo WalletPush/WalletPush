@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import OpenAI from 'openai'
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,6 +8,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     const { prompt, business_name, logo_url, background_image_url } = body
+    
+    console.log('Generate landing page request:', { prompt, business_name })
     
     // For testing, we'll use the Blue Karma business ID
     const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
@@ -19,8 +22,27 @@ export async function POST(request: NextRequest) {
       .eq('setting_key', 'openai')
       .single()
     
-    if (settingsError || !settings?.setting_value?.enabled) {
-      // For now, generate mock HTML without OpenAI
+    console.log('OpenAI settings query:', { settings, settingsError })
+    
+    if (settingsError) {
+      console.error('Settings error:', settingsError)
+      // Generate mock HTML when can't fetch settings
+      const mockHtml = generateMockHTML(prompt, business_name, logo_url, background_image_url)
+      
+      return NextResponse.json({ 
+        data: { 
+          html: mockHtml,
+          message: 'Generated with mock data (Settings not accessible)'
+        }, 
+        error: null 
+      })
+    }
+    
+    const openaiConfig = settings?.setting_value
+    console.log('OpenAI config:', { enabled: openaiConfig?.enabled, hasApiKey: !!openaiConfig?.api_key })
+    
+    if (!openaiConfig?.enabled || !openaiConfig?.api_key) {
+      // Generate mock HTML when OpenAI not configured
       const mockHtml = generateMockHTML(prompt, business_name, logo_url, background_image_url)
       
       return NextResponse.json({ 
@@ -32,16 +54,79 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    // TODO: Implement actual OpenAI integration when API key is configured
-    const mockHtml = generateMockHTML(prompt, business_name, logo_url, background_image_url)
-    
-    return NextResponse.json({ 
-      data: { 
-        html: mockHtml,
-        message: 'Generated successfully'
-      }, 
-      error: null 
-    })
+    // Use real OpenAI API
+    try {
+      const openai = new OpenAI({
+        apiKey: openaiConfig.api_key,
+      })
+
+      const systemPrompt = `You are an expert web developer and designer. Generate a complete, production-ready HTML landing page based on the user's requirements. The page should be:
+
+1. Fully responsive and mobile-optimized
+2. Include modern CSS styling with gradients, shadows, and animations
+3. Have a compelling hero section with the provided background image
+4. Include the business logo if provided
+5. Feature a signup form with the requested fields (full name, email, phone at minimum)
+6. Add trust indicators and feature highlights
+7. Include proper JavaScript for form handling
+8. Use the Inter font family
+9. Be visually appealing with good UX principles
+
+Always include:
+- Proper DOCTYPE and meta tags
+- Responsive design
+- Form validation
+- Modern CSS styling
+- Professional appearance
+
+Return ONLY the complete HTML code, no explanations.`
+
+      const userPrompt = `Business: ${business_name}
+${logo_url ? `Logo URL: ${logo_url}` : 'No logo provided'}
+${background_image_url ? `Background Image URL: ${background_image_url}` : 'No background image provided'}
+
+User Requirements: ${prompt}`
+
+      console.log('Calling OpenAI with model:', openaiConfig.model)
+
+      const completion = await openai.chat.completions.create({
+        model: openaiConfig.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: 4000,
+        temperature: 0.7,
+      })
+
+      const generatedHtml = completion.choices[0]?.message?.content
+
+      if (!generatedHtml) {
+        throw new Error('OpenAI returned empty response')
+      }
+
+      return NextResponse.json({ 
+        data: { 
+          html: generatedHtml,
+          message: `Generated with ${openaiConfig.model}`
+        }, 
+        error: null 
+      })
+
+    } catch (openaiError) {
+      console.error('OpenAI API error:', openaiError)
+      
+      // Fall back to mock HTML if OpenAI fails
+      const mockHtml = generateMockHTML(prompt, business_name, logo_url, background_image_url)
+      
+      return NextResponse.json({ 
+        data: { 
+          html: mockHtml,
+          message: `OpenAI failed, generated with mock data. Error: ${openaiError instanceof Error ? openaiError.message : 'Unknown error'}`
+        }, 
+        error: null 
+      })
+    }
   } catch (error) {
     console.error('Error generating landing page:', error)
     return NextResponse.json(

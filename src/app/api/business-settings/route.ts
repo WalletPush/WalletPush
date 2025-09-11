@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
     // For testing, we'll use the Blue Karma business ID
     const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
     
+    console.log('GET business-settings:', { business_id, settingKey })
+    
     let query = supabase
       .from('business_settings')
       .select('*')
