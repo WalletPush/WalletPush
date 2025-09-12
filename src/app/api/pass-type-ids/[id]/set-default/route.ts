@@ -12,7 +12,7 @@ export async function POST(
     const { id } = params
 
     // Set as default using store
-    const success = PassTypeIDStore.setDefault(id)
+    const success = await PassTypeIDStore.setDefault(id)
     
     if (!success) {
       return NextResponse.json(

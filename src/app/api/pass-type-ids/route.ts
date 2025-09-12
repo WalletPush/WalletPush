@@ -12,9 +12,10 @@ export async function GET() {
     // In development, return mock data
     // In production, this would query Supabase with proper authentication
     
+    const passTypeIDs = await PassTypeIDStore.getAll()
     return NextResponse.json({
       success: true,
-      passTypeIDs: PassTypeIDStore.getAll()
+      passTypeIDs
     })
   } catch (error) {
     console.error('Error fetching Pass Type IDs:', error)
@@ -161,7 +162,7 @@ export async function POST(request: Request) {
     }
 
     // Check if identifier already exists
-    const existingPassTypeID = PassTypeIDStore.findByIdentifier(identifier)
+    const existingPassTypeID = await PassTypeIDStore.findByIdentifier(identifier)
     if (existingPassTypeID) {
       return NextResponse.json(
         { success: false, error: 'Pass Type Identifier already exists' },
@@ -200,7 +201,7 @@ export async function POST(request: Request) {
     console.log(`Certificate stored: ${fileName} (${certificateBuffer.length} bytes)`)
 
     // Add to development store
-    PassTypeIDStore.add(newPassTypeID)
+    await PassTypeIDStore.add(newPassTypeID)
 
     return NextResponse.json({
       success: true,

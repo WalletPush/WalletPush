@@ -12,7 +12,7 @@ export async function DELETE(
     const { id } = params
 
     // Remove from store
-    const removed = PassTypeIDStore.remove(id)
+    const removed = await PassTypeIDStore.remove(id)
     
     if (!removed) {
       return NextResponse.json(

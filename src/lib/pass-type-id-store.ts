@@ -1,7 +1,9 @@
 /**
- * Temporary in-memory store for Pass Type IDs during development
+ * Persistent file-based store for Pass Type IDs during development
  * In production, this would be replaced with Supabase database operations
  */
+
+import { savePassTypeIDs, loadPassTypeIDs } from './dev-storage'
 
 interface PassTypeID {
   id: string
@@ -17,80 +19,78 @@ interface PassTypeID {
   business_id: string
 }
 
-// Global store that persists across API calls
-// In production, this would be replaced with Supabase database
-let globalPassTypeIDStore: PassTypeID[] = [
-  {
-    id: 'default-walletpush-1',
-    identifier: 'pass.com.walletpush.default',
-    description: 'WalletPush Default Certificate',
-    team_identifier: 'NC4W34D5LD',
-    certificate_file_name: 'walletpush_default.p12',
-    certificate_expiry: '2026-05-03T08:51:00Z',
-    status: 'active',
-    is_default: false,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    business_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191'
-  }
-]
+// Cache for the current session
+let cachedPassTypeIDs: PassTypeID[] | null = null
 
 export class PassTypeIDStore {
-  static getAll(): PassTypeID[] {
-    return [...globalPassTypeIDStore]
+  static async getAll(): Promise<PassTypeID[]> {
+    if (!cachedPassTypeIDs) {
+      cachedPassTypeIDs = await loadPassTypeIDs()
+    }
+    return [...cachedPassTypeIDs]
   }
 
-  static findById(id: string): PassTypeID | undefined {
-    return globalPassTypeIDStore.find(pt => pt.id === id)
+  static async findById(id: string): Promise<PassTypeID | undefined> {
+    const passTypeIDs = await this.getAll()
+    return passTypeIDs.find(pt => pt.id === id)
   }
 
-  static findByIdentifier(identifier: string): PassTypeID | undefined {
-    return globalPassTypeIDStore.find(pt => pt.identifier === identifier)
+  static async findByIdentifier(identifier: string): Promise<PassTypeID | undefined> {
+    const passTypeIDs = await this.getAll()
+    return passTypeIDs.find(pt => pt.identifier === identifier)
   }
 
-  static add(passTypeID: PassTypeID): void {
+  static async add(passTypeID: PassTypeID): Promise<void> {
+    const passTypeIDs = await this.getAll()
+    
     // If this is the first user-uploaded certificate, make it default
-    if (globalPassTypeIDStore.filter(pt => !pt.identifier.includes('walletpush.default')).length === 0) {
+    if (passTypeIDs.filter(pt => !pt.identifier.includes('walletpush.default')).length === 0) {
       // Set all existing as non-default
-      globalPassTypeIDStore.forEach(pt => pt.is_default = false)
+      passTypeIDs.forEach(pt => pt.is_default = false)
       passTypeID.is_default = true
     }
 
-    globalPassTypeIDStore.push(passTypeID)
+    passTypeIDs.push(passTypeID)
+    cachedPassTypeIDs = passTypeIDs
+    await savePassTypeIDs(passTypeIDs)
   }
 
-  static remove(id: string): boolean {
-    const index = globalPassTypeIDStore.findIndex(pt => pt.id === id)
+  static async remove(id: string): Promise<boolean> {
+    const passTypeIDs = await this.getAll()
+    const index = passTypeIDs.findIndex(pt => pt.id === id)
     
     if (index === -1) {
       return false
     }
 
-    const passTypeID = globalPassTypeIDStore[index]
+    const passTypeID = passTypeIDs[index]
 
     // Prevent deletion if it's the only one
-    if (globalPassTypeIDStore.length === 1) {
+    if (passTypeIDs.length === 1) {
       throw new Error('Cannot delete the only remaining Pass Type ID')
     }
 
     // If deleting the default, set another one as default
     if (passTypeID.is_default) {
-      const remaining = globalPassTypeIDStore.filter(pt => pt.id !== id)
+      const remaining = passTypeIDs.filter(pt => pt.id !== id)
       if (remaining.length > 0) {
-        const nextIndex = globalPassTypeIDStore.findIndex(pt => pt.id === remaining[0].id)
+        const nextIndex = passTypeIDs.findIndex(pt => pt.id === remaining[0].id)
         if (nextIndex !== -1) {
-          globalPassTypeIDStore[nextIndex].is_default = true
-          globalPassTypeIDStore[nextIndex].updated_at = new Date().toISOString()
+          passTypeIDs[nextIndex].is_default = true
+          passTypeIDs[nextIndex].updated_at = new Date().toISOString()
         }
       }
     }
 
-    globalPassTypeIDStore.splice(index, 1)
+    passTypeIDs.splice(index, 1)
+    cachedPassTypeIDs = passTypeIDs
+    await savePassTypeIDs(passTypeIDs)
     return true
   }
 
-  static setDefault(id: string): boolean {
-    const passTypeID = globalPassTypeIDStore.find(pt => pt.id === id)
+  static async setDefault(id: string): Promise<boolean> {
+    const passTypeIDs = await this.getAll()
+    const passTypeID = passTypeIDs.find(pt => pt.id === id)
     
     if (!passTypeID) {
       return false
@@ -101,7 +101,7 @@ export class PassTypeIDStore {
     }
 
     // Set all others as non-default
-    globalPassTypeIDStore.forEach(pt => {
+    passTypeIDs.forEach(pt => {
       pt.is_default = false
       pt.updated_at = new Date().toISOString()
     })
@@ -110,10 +110,13 @@ export class PassTypeIDStore {
     passTypeID.is_default = true
     passTypeID.updated_at = new Date().toISOString()
 
+    cachedPassTypeIDs = passTypeIDs
+    await savePassTypeIDs(passTypeIDs)
     return true
   }
 
-  static getDefault(): PassTypeID | undefined {
-    return globalPassTypeIDStore.find(pt => pt.is_default)
+  static async getDefault(): Promise<PassTypeID | undefined> {
+    const passTypeIDs = await this.getAll()
+    return passTypeIDs.find(pt => pt.is_default)
   }
 }
