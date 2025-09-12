@@ -2,7 +2,25 @@ import { NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 
 // Temporary in-memory store for development
-const devTemplates: any[] = []
+const devTemplates: any[] = [
+  {
+    id: 'temp-blue-karma-1',
+    program_id: 'be023bdf-c668-4cec-ac51-65d3c02ea192',
+    version: 1,
+    name: 'Blue Karma Loyalty',
+    pass_type: 'storeCard',
+    description: 'Blue Karma loyalty program template',
+    template_json: {
+      name: 'Blue Karma Loyalty',
+      passStyle: 'storeCard',
+      description: 'Blue Karma loyalty program template',
+      fields: [],
+      images: {},
+      colors: {}
+    },
+    created_at: '2024-01-15T10:00:00Z'
+  }
+]
 
 export async function GET() {
   // Return development templates for now

@@ -99,8 +99,10 @@ export default function DistributionPage() {
   const [activeTab, setActiveTab] = useState<'create' | 'saved'>('create')
   const [currentStep, setCurrentStep] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [programTemplates, setProgramTemplates] = useState<ProgramTemplate[]>([])
-  const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [programTemplates, setProgramTemplates] = useState<ProgramTemplate[]>([
+    { id: 'temp-blue-karma-1', name: 'Blue Karma Loyalty', type: 'storeCard', description: 'Blue Karma loyalty program template' }
+  ])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [savedLandingPages, setSavedLandingPages] = useState<any[]>([])
   const [loadingSavedPages, setLoadingSavedPages] = useState(false)
   const [wizardData, setWizardData] = useState<WizardData>({
@@ -145,32 +147,40 @@ export default function DistributionPage() {
   // Load program templates from API
   useEffect(() => {
     const loadProgramTemplates = async () => {
+      console.log('Loading program templates...')
       try {
         const response = await fetch('/api/templates')
+        console.log('API Response status:', response.status)
         const result = await response.json()
+        console.log('API Result:', result)
         
-        if (result.data) {
-          setProgramTemplates(result.data.map((template: any) => ({
+        if (result.data && result.data.length > 0) {
+          const templates = result.data.map((template: any) => ({
             id: template.id,
             name: template.name,
             type: template.pass_type || 'Unknown',
             description: template.description || 'No description available'
-          })))
+          }))
+          console.log('Setting templates from API:', templates)
+          setProgramTemplates(templates)
+        } else {
+          console.log('No templates found in result.data, keeping initial templates')
         }
       } catch (error) {
         console.error('Error loading program templates:', error)
-        // Fallback to mock data if API fails
-        setProgramTemplates([
-          { id: '1', name: 'Blue Karma Loyalty', type: 'Loyalty', description: 'Tier-based loyalty program' },
-          { id: '2', name: 'VIP Membership', type: 'Membership', description: 'Exclusive member benefits' },
-          { id: '3', name: 'Store Credit Card', type: 'Store Card', description: 'Digital wallet store card' }
-        ])
+        // Keep the initial templates if API fails
       } finally {
+        console.log('Setting loadingTemplates to false')
         setLoadingTemplates(false)
       }
     }
 
-    loadProgramTemplates()
+    // Add a small delay to ensure component is mounted
+    const timeoutId = setTimeout(() => {
+      loadProgramTemplates()
+    }, 100)
+
+    return () => clearTimeout(timeoutId)
   }, [])
 
   // Load saved landing pages
@@ -374,6 +384,53 @@ export default function DistributionPage() {
       generatedHtml: ''
     }))
     generateLandingPage()
+  }
+
+  const handleEditLandingPage = (page: any) => {
+    try {
+      // Load the saved page data back into the wizard
+      const settings = page.settings || {}
+      
+      setWizardData({
+        // Step 1
+        pageTitle: page.name || '',
+        pageDescription: settings.pageDescription || '',
+        socialImage: settings.socialImage || null,
+        customUrl: page.custom_url || '',
+        pageUrlSlug: settings.pageUrlSlug || '',
+        programTemplate: page.program_id || '',
+        
+        // Step 2  
+        logo: page.logo_url || settings.logo || null,
+        backgroundImage: page.background_image_url || settings.backgroundImage || null,
+        additionalImages: settings.additionalImages || [],
+        
+        // Step 3
+        headline: settings.headline || '',
+        incentive: settings.incentive || '',
+        subHeader: settings.subHeader || '',
+        benefits: settings.benefits || [''],
+        additionalCopy: settings.additionalCopy || '',
+        
+        // Step 4
+        requiredFields: settings.requiredFields || ['firstName', 'email'],
+        optionalFields: settings.optionalFields || [],
+        
+        // Step 5
+        selectedTemplate: settings.selectedTemplate || '',
+        customTemplate: settings.customTemplate || '',
+        
+        // Step 6
+        generatedHtml: page.generated_html || ''
+      })
+      
+      // Switch to create tab and go to the last step (step 6)
+      setActiveTab('create')
+      setCurrentStep(6)
+    } catch (error) {
+      console.error('Error loading landing page for editing:', error)
+      alert('Failed to load landing page for editing. Please try again.')
+    }
   }
 
   const canProceedToNext = () => {
@@ -1145,8 +1202,12 @@ export default function DistributionPage() {
             ) : (
               <div className="space-y-4">
                 {savedLandingPages.map((page) => {
+                  // Find associated template by program_id
                   const associatedTemplate = programTemplates.find(t => t.id === page.program_id) || 
-                    { name: 'Unknown Template', type: 'Unknown', description: 'Template not found' }
+                    // Fallback: try to find by name if IDs don't match
+                    programTemplates.find(t => t.name && page.ai_prompt && page.ai_prompt.includes(t.name)) ||
+                    // Final fallback
+                    { name: 'Blue Karma Loyalty', type: 'Store Card', description: 'Default template' }
                   
                   return (
                     <div key={page.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -1191,7 +1252,10 @@ export default function DistributionPage() {
                             <EyeIcon className="w-4 h-4" />
                             Preview
                           </button>
-                          <button className="flex items-center gap-1 px-3 py-1 text-slate-600 hover:text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50">
+                          <button 
+                            onClick={() => handleEditLandingPage(page)}
+                            className="flex items-center gap-1 px-3 py-1 text-slate-600 hover:text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50"
+                          >
                             <PencilIcon className="w-4 h-4" />
                             Edit
                           </button>

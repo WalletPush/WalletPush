@@ -339,7 +339,7 @@ function PassPreview({
 
               {/* Barcode Area - Centered and Larger */}
               <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
-                {passData.barcodes.length > 0 ? (
+                {passData.barcodes && passData.barcodes.length > 0 ? (
                   <div 
                     className="rounded p-2 cursor-pointer"
                     onClick={onBarcodeClick}
