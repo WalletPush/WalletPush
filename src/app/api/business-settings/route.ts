@@ -57,6 +57,8 @@ export async function POST(request: NextRequest) {
     // For testing, we'll use the Blue Karma business ID
     const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
     
+    console.log('POST business-settings:', { business_id, setting_key, setting_value })
+    
     const { data, error } = await supabase
       .from('business_settings')
       .upsert({
@@ -64,18 +66,21 @@ export async function POST(request: NextRequest) {
         setting_key,
         setting_value,
         updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'business_id,setting_key'
       })
       .select()
       .single()
     
     if (error) {
-      console.error('Supabase error:', error)
+      console.error('Supabase upsert error:', error)
       return NextResponse.json(
-        { data: null, error: 'Failed to update setting' },
+        { data: null, error: `Failed to update setting: ${error.message}` },
         { status: 500 }
       )
     }
     
+    console.log('Successfully saved setting:', data)
     return NextResponse.json({ data, error: null })
   } catch (error) {
     console.error('Error updating business setting:', error)

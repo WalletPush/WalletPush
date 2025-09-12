@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { 
   SparklesIcon,
   PhotoIcon,
@@ -8,586 +8,1200 @@ import {
   CodeBracketIcon,
   GlobeAltIcon,
   DocumentDuplicateIcon,
+  PencilIcon,
   ArrowPathIcon,
   CheckIcon,
   XMarkIcon,
   PaperAirplaneIcon,
-  ChatBubbleLeftRightIcon
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline'
 
-interface LandingPageData {
-  id: string
-  name: string
-  businessName: string
+// Types and interfaces
+interface WizardData {
+  // Step 1: Basic Information
+  pageTitle: string
+  pageDescription: string
+  socialImage: string | null
   customUrl: string
+  pageUrlSlug: string
+  programTemplate: string
+  
+  // Step 2: Brand Assets
   logo: string | null
   backgroundImage: string | null
-  prompt: string
-  htmlCode: string
-  isPublished: boolean
-  createdAt: string
-  lastModified: string
+  additionalImages: Array<{id: string, url: string, name: string}>
+  
+  // Step 3: Copy & Content
+  headline: string
+  incentive: string
+  subHeader: string
+  benefits: string[]
+  additionalCopy: string
+  
+  // Step 4: Form Requirements
+  requiredFields: string[]
+  optionalFields: string[]
+  
+  // Step 5: Template Style
+  selectedTemplate: string
+  customTemplate: string
+  
+  // Step 6: Generated Result
+  generatedHtml: string
 }
 
-interface ChatMessage {
+interface ProgramTemplate {
   id: string
-  type: 'user' | 'ai' | 'system'
-  content: string
-  timestamp: string
+  name: string
+  type: string
+  description: string
 }
+
+interface LandingPageTemplate {
+  id: string
+  name: string
+  preview: string
+  description: string
+  category: string
+}
+
+const STEPS = [
+  { id: 1, title: 'Basic Information', description: 'Page title, description & URL' },
+  { id: 2, title: 'Brand Assets', description: 'Logo, images & branding' },
+  { id: 3, title: 'Copy & Content', description: 'Headlines & benefits' },
+  { id: 4, title: 'Form Requirements', description: 'Signup form configuration' },
+  { id: 5, title: 'Template Style', description: 'Choose your design' },
+  { id: 6, title: 'AI Generation', description: 'Generate your landing page' }
+]
+
+const MOCK_LANDING_TEMPLATES: LandingPageTemplate[] = [
+  { id: '1', name: 'Modern Minimalist', preview: '/templates/modern.jpg', description: 'Clean, simple design', category: 'Modern' },
+  { id: '2', name: 'Bold & Colorful', preview: '/templates/bold.jpg', description: 'Eye-catching and vibrant', category: 'Creative' },
+  { id: '3', name: 'Elegant Luxury', preview: '/templates/luxury.jpg', description: 'Premium, sophisticated feel', category: 'Premium' },
+  { id: '4', name: 'Fun & Friendly', preview: '/templates/friendly.jpg', description: 'Playful and approachable', category: 'Casual' },
+  { id: '5', name: 'Professional', preview: '/templates/professional.jpg', description: 'Corporate and trustworthy', category: 'Business' }
+]
+
+const FORM_FIELDS = [
+  { id: 'firstName', label: 'First Name', required: true },
+  { id: 'lastName', label: 'Last Name', required: false },
+  { id: 'email', label: 'Email Address', required: true },
+  { id: 'phone', label: 'Phone Number', required: false },
+  { id: 'dateOfBirth', label: 'Date of Birth', required: false },
+  { id: 'address', label: 'Address', required: false },
+  { id: 'city', label: 'City', required: false },
+  { id: 'zipCode', label: 'ZIP Code', required: false },
+  { id: 'company', label: 'Company', required: false }
+]
 
 export default function DistributionPage() {
-  const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create')
+  const [activeTab, setActiveTab] = useState<'create' | 'saved'>('create')
+  const [currentStep, setCurrentStep] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const [generatedHtml, setGeneratedHtml] = useState('')
-  const [currentPrompt, setCurrentPrompt] = useState('')
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      type: 'system',
-      content: 'Welcome! I\'m your AI Landing Page Creator. Describe the landing page you\'d like me to build, and I\'ll create custom HTML using your uploaded assets.',
-      timestamp: new Date().toISOString()
-    }
-  ])
-  
-  const logoInputRef = useRef<HTMLInputElement>(null)
-  const backgroundInputRef = useRef<HTMLInputElement>(null)
-
-  const [formData, setFormData] = useState({
-    name: '',
-    businessName: '',
+  const [programTemplates, setProgramTemplates] = useState<ProgramTemplate[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [savedLandingPages, setSavedLandingPages] = useState<any[]>([])
+  const [loadingSavedPages, setLoadingSavedPages] = useState(false)
+  const [wizardData, setWizardData] = useState<WizardData>({
+    // Step 1
+    pageTitle: '',
+    pageDescription: '',
+    socialImage: null,
     customUrl: '',
-    logo: null as string | null,
-    backgroundImage: null as string | null
+    pageUrlSlug: '',
+    programTemplate: '',
+    
+    // Step 2
+    logo: null,
+    backgroundImage: null,
+    additionalImages: [],
+    
+    // Step 3
+    headline: '',
+    incentive: '',
+    subHeader: '',
+    benefits: [''],
+    additionalCopy: '',
+    
+    // Step 4
+    requiredFields: ['firstName', 'email'],
+    optionalFields: [],
+    
+    // Step 5
+    selectedTemplate: '',
+    customTemplate: '',
+    
+    // Step 6
+    generatedHtml: ''
   })
 
-  const [existingPages] = useState<LandingPageData[]>([
-    {
-      id: '1',
-      name: 'Monthly Wine Club',
-      businessName: 'Vintage Cellars',
-      customUrl: 'wine.vintagecellars.com/join',
-      logo: null,
-      backgroundImage: null,
-      prompt: 'Build me a landing page to promote our Monthly Wine club. Users will get a selection of our finest wines each month for $49.99 per month.',
-      htmlCode: '<html>...</html>',
-      isPublished: true,
-      createdAt: '2024-01-15',
-      lastModified: '2024-01-20'
-    },
-    {
-      id: '2',
-      name: 'Fitness Membership',
-      businessName: 'PowerFit Gym',
-      customUrl: 'join.powerfit.com/membership',
-      logo: null,
-      backgroundImage: null,
-      prompt: 'Create a landing page for our premium gym membership with personal training included for $99/month.',
-      htmlCode: '<html>...</html>',
-      isPublished: false,
-      createdAt: '2024-01-18',
-      lastModified: '2024-01-22'
-    }
-  ])
+  // File input refs
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const backgroundInputRef = useRef<HTMLInputElement>(null)
+  const socialImageInputRef = useRef<HTMLInputElement>(null)
+  const additionalImagesInputRef = useRef<HTMLInputElement>(null)
 
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setFormData({ ...formData, logo: e.target?.result as string })
+  // Load program templates from API
+  useEffect(() => {
+    const loadProgramTemplates = async () => {
+      try {
+        const response = await fetch('/api/templates')
+        const result = await response.json()
+        
+        if (result.data) {
+          setProgramTemplates(result.data.map((template: any) => ({
+            id: template.id,
+            name: template.name,
+            type: template.pass_type || 'Unknown',
+            description: template.description || 'No description available'
+          })))
+        }
+      } catch (error) {
+        console.error('Error loading program templates:', error)
+        // Fallback to mock data if API fails
+        setProgramTemplates([
+          { id: '1', name: 'Blue Karma Loyalty', type: 'Loyalty', description: 'Tier-based loyalty program' },
+          { id: '2', name: 'VIP Membership', type: 'Membership', description: 'Exclusive member benefits' },
+          { id: '3', name: 'Store Credit Card', type: 'Store Card', description: 'Digital wallet store card' }
+        ])
+      } finally {
+        setLoadingTemplates(false)
       }
-      reader.readAsDataURL(file)
     }
-  }
 
-  const handleBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setFormData({ ...formData, backgroundImage: e.target?.result as string })
-      }
-      reader.readAsDataURL(file)
-    }
-  }
+    loadProgramTemplates()
+  }, [])
 
-  const handleSendPrompt = async () => {
-    if (!currentPrompt.trim()) return
-    
-    // Add user message
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: currentPrompt,
-      timestamp: new Date().toISOString()
-    }
-    
-    setChatMessages(prev => [...prev, userMessage])
-    setCurrentPrompt('')
-    setIsGenerating(true)
-    
+  // Load saved landing pages
+  const loadSavedLandingPages = async () => {
+    setLoadingSavedPages(true)
     try {
-      // Call the API to generate the landing page
+      const response = await fetch('/api/landing-pages')
+      const result = await response.json()
+      
+      if (result.data) {
+        setSavedLandingPages(result.data)
+      }
+    } catch (error) {
+      console.error('Error loading saved landing pages:', error)
+    } finally {
+      setLoadingSavedPages(false)
+    }
+  }
+
+  // Load saved pages when switching to saved tab
+  useEffect(() => {
+    if (activeTab === 'saved') {
+      loadSavedLandingPages()
+    }
+  }, [activeTab])
+
+  const handleImageUpload = async (file: File, type: 'logo' | 'background' | 'social' | 'additional') => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!response.ok) throw new Error('Upload failed')
+      
+      const result = await response.json()
+      
+      if (type === 'logo') {
+        setWizardData(prev => ({
+          ...prev,
+          logo: result.url
+        }))
+      } else if (type === 'background') {
+        setWizardData(prev => ({
+          ...prev,
+          backgroundImage: result.url
+        }))
+      } else if (type === 'social') {
+        setWizardData(prev => ({
+          ...prev,
+          socialImage: result.url
+        }))
+      } else if (type === 'additional') {
+        setWizardData(prev => ({
+          ...prev,
+          additionalImages: [...prev.additionalImages, {
+            id: Date.now().toString(),
+            url: result.url,
+            name: file.name
+          }]
+        }))
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      alert('Failed to upload image. Please try again.')
+    }
+  }
+
+  const removeAdditionalImage = (id: string) => {
+    setWizardData(prev => ({
+      ...prev,
+      additionalImages: prev.additionalImages.filter(img => img.id !== id)
+    }))
+  }
+
+  const addBenefit = () => {
+    setWizardData(prev => ({
+      ...prev,
+      benefits: [...prev.benefits, '']
+    }))
+  }
+
+  const updateBenefit = (index: number, value: string) => {
+    setWizardData(prev => ({
+      ...prev,
+      benefits: prev.benefits.map((benefit, i) => i === index ? value : benefit)
+    }))
+  }
+
+  const removeBenefit = (index: number) => {
+    setWizardData(prev => ({
+      ...prev,
+      benefits: prev.benefits.filter((_, i) => i !== index)
+    }))
+  }
+
+  const toggleFormField = (fieldId: string, isRequired: boolean) => {
+    setWizardData(prev => {
+      if (isRequired) {
+        return {
+          ...prev,
+          requiredFields: prev.requiredFields.includes(fieldId) 
+            ? prev.requiredFields.filter(f => f !== fieldId)
+            : [...prev.requiredFields, fieldId],
+          optionalFields: prev.optionalFields.filter(f => f !== fieldId)
+        }
+      } else {
+        return {
+          ...prev,
+          optionalFields: prev.optionalFields.includes(fieldId)
+            ? prev.optionalFields.filter(f => f !== fieldId)
+            : [...prev.optionalFields, fieldId],
+          requiredFields: prev.requiredFields.filter(f => f !== fieldId)
+        }
+      }
+    })
+  }
+
+  const generateLandingPage = async () => {
+    setIsGenerating(true)
+    try {
       const response = await fetch('/api/generate-landing-page', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          prompt: currentPrompt,
-          business_name: formData.businessName || 'Your Business',
-          logo_url: formData.logo,
-          background_image_url: formData.backgroundImage
-        })
+        body: JSON.stringify(wizardData)
       })
-      
+
       const result = await response.json()
       
       if (result.error) {
         throw new Error(result.error)
       }
-      
-      // Add AI response
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: result.data.message || 'Perfect! I\'ve created a beautiful landing page based on your requirements. The page includes your assets, compelling copy, and an integrated signup form. Check out the preview below!',
-        timestamp: new Date().toISOString()
-      }
-      
-      setChatMessages(prev => [...prev, aiMessage])
-      setGeneratedHtml(result.data.html)
-      setShowPreview(true)
-      
+
+      setWizardData(prev => ({
+        ...prev,
+        generatedHtml: result.data?.html || 'Generated with mock data'
+      }))
+
     } catch (error) {
       console.error('Error generating landing page:', error)
-      
-      let errorMsg = 'Sorry, I encountered an error generating your landing page. Please try again.'
-      
-      if (error instanceof Error) {
-        errorMsg += ` Error: ${error.message}`
-      }
-      
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: errorMsg,
-        timestamp: new Date().toISOString()
-      }
-      
-      setChatMessages(prev => [...prev, errorMessage])
+      alert('Failed to generate landing page. Please try again.')
     } finally {
       setIsGenerating(false)
     }
   }
 
-  const handleSaveLandingPage = async () => {
-    if (!generatedHtml || !formData.name) {
-      alert('Please generate a landing page and provide a name before saving.')
+  const handlePreview = () => {
+    if (wizardData.generatedHtml) {
+      const newWindow = window.open('', '_blank')
+      if (newWindow) {
+        newWindow.document.write(wizardData.generatedHtml)
+        newWindow.document.close()
+      }
+    }
+  }
+
+  const handleSaveAndPublish = async () => {
+    if (!wizardData.generatedHtml) {
+      alert('Please generate a landing page first.')
       return
     }
-    
+
     try {
       const response = await fetch('/api/landing-pages', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          name: formData.name,
-          custom_url: formData.customUrl,
-          logo_url: formData.logo,
-          background_image_url: formData.backgroundImage,
-          ai_prompt: chatMessages.find(m => m.type === 'user')?.content || '',
-          generated_html: generatedHtml
+          name: wizardData.pageTitle || 'Untitled Landing Page',
+          title: wizardData.pageTitle,
+          description: wizardData.pageDescription,
+          custom_url: wizardData.customUrl,
+          html_content: wizardData.generatedHtml,
+          settings: wizardData,
+          status: 'published'
         })
       })
-      
+
       const result = await response.json()
       
       if (result.error) {
         throw new Error(result.error)
       }
-      
-      alert('Landing page saved successfully!')
-      
+
+      alert(`Landing page "${wizardData.pageTitle}" saved and published successfully!`)
     } catch (error) {
       console.error('Error saving landing page:', error)
       alert('Failed to save landing page. Please try again.')
     }
   }
 
+  const handleRegenerate = () => {
+    setWizardData(prev => ({
+      ...prev,
+      generatedHtml: ''
+    }))
+    generateLandingPage()
+  }
+
+  const canProceedToNext = () => {
+    switch (currentStep) {
+      case 1:
+        return wizardData.pageTitle && wizardData.pageDescription && wizardData.customUrl && wizardData.programTemplate
+      case 2:
+        return wizardData.logo && wizardData.backgroundImage
+      case 3:
+        return wizardData.headline && wizardData.incentive && wizardData.subHeader && wizardData.benefits.some(b => b.trim())
+      case 4:
+        return wizardData.requiredFields.length > 0
+      case 5:
+        return wizardData.selectedTemplate || wizardData.customTemplate
+      case 6:
+        return true
+      default:
+        return false
+    }
+  }
+
+  const nextStep = () => {
+    if (currentStep < 6 && canProceedToNext()) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Welcome to the AI Landing Page Builder</h2>
+              <p className="text-slate-600">Please fill in each of the fields and then click next to continue</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Page Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="The title of your landing page"
+                  value={wizardData.pageTitle}
+                  onChange={(e) => setWizardData(prev => ({ ...prev, pageTitle: e.target.value }))}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Page Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  placeholder="Description of your landing page"
+                  rows={3}
+                  value={wizardData.pageDescription}
+                  onChange={(e) => setWizardData(prev => ({ ...prev, pageDescription: e.target.value }))}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Social Image
+                </label>
+                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                  {wizardData.socialImage ? (
+                    <div className="space-y-3">
+                      <img src={wizardData.socialImage} alt="Social preview" className="w-full h-32 object-cover rounded-lg" />
+                      <button
+                        onClick={() => setWizardData(prev => ({ ...prev, socialImage: null }))}
+                        className="text-red-600 hover:text-red-700 text-sm"
+                      >
+                        Remove Image
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <PhotoIcon className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                      <p className="text-slate-600 mb-3">Upload a social image for sharing</p>
+                      <input
+                        ref={socialImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleImageUpload(e.target.files[0], 'social')
+                            e.target.value = ''
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => socialImageInputRef.current?.click()}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                      >
+                        Choose Image
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Page URL <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="loyalty.xyz.com/join"
+                  value={wizardData.customUrl}
+                  onChange={(e) => setWizardData(prev => ({ ...prev, customUrl: e.target.value }))}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Program Template <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={wizardData.programTemplate}
+                onChange={(e) => setWizardData(prev => ({ ...prev, programTemplate: e.target.value }))}
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select a program template</option>
+                {loadingTemplates ? (
+                  <option disabled>Loading templates...</option>
+                ) : (
+                  programTemplates.map(template => (
+                    <option key={template.id} value={template.id}>
+                      {template.name} ({template.type}) - {template.description}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+          </div>
+        )
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Upload Your Brand Assets</h2>
+              <p className="text-slate-600">Add your logo, background image, and any additional images you'd like to use</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Logo for Header <span className="text-red-500">*</span>
+                </label>
+                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                  {wizardData.logo ? (
+                    <div className="space-y-3">
+                      <img src={wizardData.logo} alt="Logo preview" className="w-full h-32 object-contain rounded-lg" />
+                      <button
+                        onClick={() => setWizardData(prev => ({ ...prev, logo: null }))}
+                        className="text-red-600 hover:text-red-700 text-sm"
+                      >
+                        Remove Logo
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <PhotoIcon className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                      <p className="text-slate-600 mb-3">Upload your logo</p>
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleImageUpload(e.target.files[0], 'logo')
+                            e.target.value = ''
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => logoInputRef.current?.click()}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                      >
+                        Choose Logo
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Background Image <span className="text-red-500">*</span>
+                </label>
+                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                  {wizardData.backgroundImage ? (
+                    <div className="space-y-3">
+                      <img src={wizardData.backgroundImage} alt="Background preview" className="w-full h-32 object-cover rounded-lg" />
+                      <button
+                        onClick={() => setWizardData(prev => ({ ...prev, backgroundImage: null }))}
+                        className="text-red-600 hover:text-red-700 text-sm"
+                      >
+                        Remove Background
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <PhotoIcon className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                      <p className="text-slate-600 mb-3">Upload background image</p>
+                      <input
+                        ref={backgroundInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleImageUpload(e.target.files[0], 'background')
+                            e.target.value = ''
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => backgroundInputRef.current?.click()}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                      >
+                        Choose Background
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Additional Images (Max 5)
+              </label>
+              <div className="space-y-4">
+                {wizardData.additionalImages.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {wizardData.additionalImages.map((image) => (
+                      <div key={image.id} className="relative">
+                        <img src={image.url} alt={image.name} className="w-full h-24 object-cover rounded-lg" />
+                        <button
+                          onClick={() => removeAdditionalImage(image.id)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          <XMarkIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {wizardData.additionalImages.length < 5 && (
+                  <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                    <SparklesIcon className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                    <p className="text-slate-600 mb-3">Add additional images</p>
+                    <input
+                      ref={additionalImagesInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          handleImageUpload(e.target.files[0], 'additional')
+                          e.target.value = ''
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => additionalImagesInputRef.current?.click()}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    >
+                      Add Image
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Copy & Content</h2>
+              <p className="text-slate-600">Create compelling headlines and messaging for your landing page</p>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Headline Copy <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="EX: Join our membership program today"
+                  value={wizardData.headline}
+                  onChange={(e) => setWizardData(prev => ({ ...prev, headline: e.target.value }))}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Incentive <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="EX: 20% Discount on your next visit"
+                  value={wizardData.incentive}
+                  onChange={(e) => setWizardData(prev => ({ ...prev, incentive: e.target.value }))}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Sub Header <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  placeholder="Description of what users will gain by joining"
+                  rows={3}
+                  value={wizardData.subHeader}
+                  onChange={(e) => setWizardData(prev => ({ ...prev, subHeader: e.target.value }))}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Benefits <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-3">
+                  {wizardData.benefits.map((benefit, index) => (
+                    <div key={index} className="flex gap-3">
+                      <input
+                        type="text"
+                        placeholder="Enter a benefit"
+                        value={benefit}
+                        onChange={(e) => updateBenefit(index, e.target.value)}
+                        className="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      {wizardData.benefits.length > 1 && (
+                        <button
+                          onClick={() => removeBenefit(index)}
+                          className="p-3 text-red-600 hover:text-red-700 border border-red-300 rounded-lg hover:bg-red-50"
+                        >
+                          <XMarkIcon className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    onClick={addBenefit}
+                    className="w-full p-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-600 hover:border-slate-400 hover:text-slate-700 flex items-center justify-center gap-2"
+                  >
+                    <SparklesIcon className="w-5 h-5" />
+                    Add Another Benefit
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Additional Copy
+                </label>
+                <textarea
+                  placeholder="Write any additional copy you desire"
+                  rows={4}
+                  value={wizardData.additionalCopy}
+                  onChange={(e) => setWizardData(prev => ({ ...prev, additionalCopy: e.target.value }))}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Sign Up Form Requirements</h2>
+              <p className="text-slate-600">Choose which fields to include in your signup form</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Form Fields</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {FORM_FIELDS.map((field) => {
+                    const isRequired = wizardData.requiredFields.includes(field.id)
+                    const isOptional = wizardData.optionalFields.includes(field.id)
+                    const isIncluded = isRequired || isOptional
+                    const isLocked = field.id === 'firstName' || field.id === 'email'
+
+                    return (
+                      <div key={field.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
+                        <div>
+                          <span className="font-medium text-slate-900">{field.label}</span>
+                          {isLocked && <span className="text-xs text-slate-500 ml-2">(Required)</span>}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => !isLocked && toggleFormField(field.id, !isRequired)}
+                            disabled={isLocked && isRequired}
+                            className={`px-3 py-1 rounded text-xs font-medium ${
+                              isRequired 
+                                ? 'bg-red-100 text-red-700 border border-red-200' 
+                                : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-red-50 hover:text-red-600'
+                            } ${isLocked && isRequired ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                          >
+                            Required
+                          </button>
+                          <button
+                            onClick={() => !isLocked && toggleFormField(field.id, !isOptional)}
+                            disabled={isLocked}
+                            className={`px-3 py-1 rounded text-xs font-medium ${
+                              isOptional 
+                                ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                                : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-blue-50 hover:text-blue-600'
+                            } ${isLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                          >
+                            Optional
+                          </button>
+                          {!isIncluded && !isLocked && (
+                            <span className="px-3 py-1 rounded text-xs font-medium bg-slate-200 text-slate-500">
+                              Not Included
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-900 mb-2">Selected Fields Summary:</h4>
+                <div className="text-sm text-blue-800">
+                  <p><strong>Required:</strong> {wizardData.requiredFields.map(id => FORM_FIELDS.find(f => f.id === id)?.label).join(', ')}</p>
+                  {wizardData.optionalFields.length > 0 && (
+                    <p><strong>Optional:</strong> {wizardData.optionalFields.map(id => FORM_FIELDS.find(f => f.id === id)?.label).join(', ')}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Pick a Template Style</h2>
+              <p className="text-slate-600">Choose a design template or create a custom style</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {MOCK_LANDING_TEMPLATES.map((template) => (
+                <div
+                  key={template.id}
+                  onClick={() => setWizardData(prev => ({ ...prev, selectedTemplate: template.id, customTemplate: '' }))}
+                  className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
+                    wizardData.selectedTemplate === template.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="aspect-video bg-slate-100 rounded-lg mb-3 flex items-center justify-center">
+                    <span className="text-slate-500 text-sm">Template Preview</span>
+                  </div>
+                  <h3 className="font-semibold text-slate-900 mb-1">{template.name}</h3>
+                  <p className="text-sm text-slate-600 mb-2">{template.description}</p>
+                  <span className="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded">
+                    {template.category}
+                  </span>
+                </div>
+              ))}
+
+              <div
+                onClick={() => setWizardData(prev => ({ ...prev, customTemplate: 'custom', selectedTemplate: '' }))}
+                className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
+                  wizardData.customTemplate === 'custom'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="aspect-video bg-slate-100 rounded-lg mb-3 flex items-center justify-center">
+                  <SparklesIcon className="w-12 h-12 text-slate-400" />
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-1">Custom Template</h3>
+                <p className="text-sm text-slate-600 mb-2">Let AI create a unique design based on your content</p>
+                <span className="inline-block bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded">
+                  AI Generated
+                </span>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 6:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Generate Your Landing Page</h2>
+              <p className="text-slate-600">Review your settings and generate your AI-powered landing page</p>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-6 space-y-4">
+              <h3 className="font-semibold text-slate-900 mb-4">Summary</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p><strong>Page Title:</strong> {wizardData.pageTitle}</p>
+                  <p><strong>URL:</strong> {wizardData.customUrl}</p>
+                  <p><strong>Headline:</strong> {wizardData.headline}</p>
+                  <p><strong>Incentive:</strong> {wizardData.incentive}</p>
+                </div>
+                <div>
+                  <p><strong>Program:</strong> {programTemplates.find(t => t.id === wizardData.programTemplate)?.name || 'None'}</p>
+                  <p><strong>Form Fields:</strong> {wizardData.requiredFields.length + wizardData.optionalFields.length} fields</p>
+                  <p><strong>Benefits:</strong> {wizardData.benefits.filter(b => b.trim()).length} items</p>
+                  <p><strong>Template:</strong> {wizardData.customTemplate === 'custom' ? 'Custom AI Template' : MOCK_LANDING_TEMPLATES.find(t => t.id === wizardData.selectedTemplate)?.name || 'None'}</p>
+                </div>
+              </div>
+            </div>
+
+            {!wizardData.generatedHtml ? (
+              <div className="text-center">
+                <button
+                  onClick={generateLandingPage}
+                  disabled={isGenerating}
+                  className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
+                >
+                  {isGenerating ? (
+                    <>
+                      <ArrowPathIcon className="w-5 h-5 animate-spin" />
+                      Generating Landing Page...
+                    </>
+                  ) : (
+                    <>
+                      <SparklesIcon className="w-5 h-5" />
+                      Generate Landing Page
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-slate-900">Generated Landing Page</h3>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handlePreview}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                      <EyeIcon className="w-4 h-4" />
+                      Preview
+                    </button>
+                    <button 
+                      onClick={handleRegenerate}
+                      disabled={isGenerating}
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ArrowPathIcon className="w-4 h-4" />
+                      Regenerate
+                    </button>
+                    <button 
+                      onClick={handleSaveAndPublish}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      <DocumentDuplicateIcon className="w-4 h-4" />
+                      Save & Publish
+                    </button>
+                  </div>
+                </div>
+                <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
+                  {wizardData.generatedHtml ? (
+                    <iframe
+                      srcDoc={wizardData.generatedHtml}
+                      className="w-full h-full rounded-lg"
+                      title="Generated Landing Page Preview"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-slate-500">
+                      Landing page preview will appear here
+                    </div>
+                  )}
+                </div>
+                
+                {/* Chat with Claude for Edits */}
+                <div className="mt-6 border border-slate-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-slate-900 mb-3">Chat with Claude for Edits</h4>
+                  <div className="space-y-3">
+                    <div className="bg-slate-50 rounded-lg p-3 min-h-[100px] max-h-[200px] overflow-y-auto">
+                      <p className="text-sm text-slate-600">
+                        Ask Claude to make changes to your landing page. For example:
+                        "Make the headline larger", "Change the background color to blue", "Add a testimonials section"
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Ask Claude to make changes..."
+                        className="flex-1 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Send
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      
+      default:
+        return null
+    }
+  }
 
   return (
     <div className="dashboard-header">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Distribution</h1>
-          <p className="text-slate-600 mt-1">Create AI-powered landing pages with custom prompts</p>
+          <p className="text-slate-600 mt-1">AI-powered landing page builder</p>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div className="mb-6">
         <div className="border-b border-slate-200">
-          <nav className="flex space-x-0">
+          <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setActiveTab('create')}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'create'
-                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
-              <ChatBubbleLeftRightIcon className="w-4 h-4" />
-              AI Landing Page Creator
+              Create New Landing Page
             </button>
             <button
-              onClick={() => setActiveTab('manage')}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'manage'
-                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+              onClick={() => setActiveTab('saved')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === 'saved'
+                  ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
-              <GlobeAltIcon className="w-4 h-4" />
-              Manage Pages
+              Saved Landing Pages
             </button>
           </nav>
         </div>
       </div>
 
-      {/* Create Landing Page Tab */}
       {activeTab === 'create' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Configuration & Chat */}
-          <div className="space-y-6">
-            {/* Basic Information */}
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Basic Information</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Page Name</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., Monthly Wine Club Landing Page"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Business Name</label>
-                    <input
-                      type="text"
-                      value={formData.businessName}
-                      onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., Vintage Cellars"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Custom URL</label>
-                    <input
-                      type="text"
-                      value={formData.customUrl}
-                      onChange={(e) => setFormData({ ...formData, customUrl: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="wine.yourbusiness.com/join"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Brand Assets */}
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Brand Assets</h3>
-              <div className="space-y-4">
-                {/* Logo Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Business Logo</label>
-                  <div className="flex items-center space-x-4">
-                    {formData.logo ? (
-                      <div className="relative">
-                        <img src={formData.logo} alt="Logo" className="w-20 h-20 object-contain border border-slate-200 rounded-lg" />
-                        <button
-                          onClick={() => setFormData({ ...formData, logo: null })}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
-                        >
-                          <XMarkIcon className="w-4 h-4" />
-                        </button>
-                      </div>
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+          {/* Progress Steps */}
+          <div className="p-6 border-b border-slate-200">
+            <div className="flex justify-between items-center">
+              {STEPS.map((step, index) => (
+                <div key={step.id} className="flex items-center">
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                    currentStep === step.id 
+                      ? 'border-blue-500 bg-blue-500 text-white' 
+                      : currentStep > step.id
+                      ? 'border-green-500 bg-green-500 text-white'
+                      : 'border-slate-300 text-slate-500'
+                  }`}>
+                    {currentStep > step.id ? (
+                      <CheckIcon className="w-5 h-5" />
                     ) : (
-                      <div className="w-20 h-20 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center">
-                        <PhotoIcon className="w-8 h-8 text-slate-400" />
-                      </div>
+                      <span className="text-sm font-semibold">{step.id}</span>
                     )}
-                    <div>
-                      <button
-                        onClick={() => logoInputRef.current?.click()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
-                      >
-                        Upload Logo
-                      </button>
-                      <p className="text-xs text-slate-500 mt-1">PNG, JPG up to 2MB</p>
-                    </div>
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                    />
                   </div>
+                  <div className="ml-3 hidden md:block">
+                    <p className={`text-sm font-semibold ${currentStep === step.id ? 'text-blue-600' : currentStep > step.id ? 'text-green-600' : 'text-slate-500'}`}>
+                      {step.title}
+                    </p>
+                    <p className="text-xs text-slate-500">{step.description}</p>
+                  </div>
+                  {index < STEPS.length - 1 && (
+                    <div className={`hidden md:block w-16 h-0.5 ml-4 ${currentStep > step.id ? 'bg-green-500' : 'bg-slate-300'}`} />
+                  )}
                 </div>
-
-                {/* Background Image Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Background Image (1200x600)</label>
-                  <div className="flex items-center space-x-4">
-                    {formData.backgroundImage ? (
-                      <div className="relative">
-                        <img src={formData.backgroundImage} alt="Background" className="w-32 h-16 object-cover border border-slate-200 rounded-lg" />
-                        <button
-                          onClick={() => setFormData({ ...formData, backgroundImage: null })}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"
-                        >
-                          <XMarkIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="w-32 h-16 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center">
-                        <PhotoIcon className="w-8 h-8 text-slate-400" />
-                      </div>
-                    )}
-                    <div>
-                      <button
-                        onClick={() => backgroundInputRef.current?.click()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
-                      >
-                        Upload Background
-                      </button>
-                      <p className="text-xs text-slate-500 mt-1">1200x600px recommended</p>
-                    </div>
-                    <input
-                      ref={backgroundInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleBackgroundUpload}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* AI Chat Interface */}
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <SparklesIcon className="w-5 h-5" />
-                  AI Landing Page Creator
-                </h3>
-                <p className="text-purple-100 text-sm mt-1">Describe your landing page and I'll build it for you</p>
-              </div>
-              
-              {/* Chat Messages */}
-              <div className="h-80 overflow-y-auto p-4 space-y-4">
-                {chatMessages.map((message) => (
-                  <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      message.type === 'user' 
-                        ? 'bg-blue-600 text-white'
-                        : message.type === 'ai'
-                        ? 'bg-slate-100 text-slate-900'
-                        : 'bg-purple-100 text-purple-900'
-                    }`}>
-                      <p className="text-sm">{message.content}</p>
-                      <span className="text-xs opacity-70 mt-1 block">
-                        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                
-                {isGenerating && (
-                  <div className="flex justify-start">
-                    <div className="bg-slate-100 text-slate-900 px-4 py-2 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                        <span className="text-sm">AI is creating your landing page...</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Chat Input */}
-              <div className="border-t border-slate-200 p-4">
-                <div className="flex space-x-2">
-                  <textarea
-                    value={currentPrompt}
-                    onChange={(e) => setCurrentPrompt(e.target.value)}
-                    placeholder="e.g., Build me a landing page to promote our Monthly Wine club. Users will get a selection of our finest wines each month for $49.99 per month. Please use my logo and background image. The join form should collect their full name, email and phone..."
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    rows={3}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSendPrompt()
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={handleSendPrompt}
-                    disabled={!currentPrompt.trim() || isGenerating}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed self-end"
-                  >
-                    <PaperAirplaneIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Right Column - Preview & Actions */}
-          <div className="space-y-6">
-            {generatedHtml && (
-              <>
-                {/* Preview */}
-                <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
-                  <div className="flex items-center justify-between p-4 border-b border-slate-200">
-                    <h3 className="text-lg font-semibold text-slate-900">Live Preview</h3>
-                    <button
-                      onClick={() => setShowPreview(!showPreview)}
-                      className="flex items-center gap-2 px-3 py-1 text-sm bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200"
-                    >
-                      <EyeIcon className="w-4 h-4" />
-                      {showPreview ? 'Hide' : 'Show'}
-                    </button>
-                  </div>
-                  {showPreview && (
-                    <div className="p-4">
-                      <div className="border border-slate-200 rounded-lg overflow-hidden">
-                        <iframe
-                          srcDoc={generatedHtml}
-                          className="w-full h-96"
-                          title="Landing Page Preview"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+          {/* Step Content */}
+          <div className="p-6">
+            {renderStepContent()}
+          </div>
 
-                {/* Actions */}
-                <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Actions</h3>
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => navigator.clipboard.writeText(generatedHtml)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
-                    >
-                      <DocumentDuplicateIcon className="w-5 h-5" />
-                      Copy HTML Code
-                    </button>
+          {/* Navigation */}
+          <div className="p-6 border-t border-slate-200 flex justify-between">
+            <button
+              onClick={prevStep}
+              disabled={currentStep === 1}
+              className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+              Previous
+            </button>
 
-                    <button
-                      onClick={() => {
-                        const blob = new Blob([generatedHtml], { type: 'text/html' })
-                        const url = URL.createObjectURL(blob)
-                        const a = document.createElement('a')
-                        a.href = url
-                        a.download = `${formData.name || 'landing-page'}.html`
-                        a.click()
-                        URL.revokeObjectURL(url)
-                      }}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
-                    >
-                      <CodeBracketIcon className="w-5 h-5" />
-                      Download HTML
-                    </button>
+            <div className="text-sm text-slate-500">
+              Step {currentStep} of {STEPS.length}
+            </div>
 
-                    <button 
-                      onClick={handleSaveLandingPage}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
-                    >
-                      <CheckIcon className="w-5 h-5" />
-                      Save Landing Page
-                    </button>
-
-                    <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700">
-                      <GlobeAltIcon className="w-5 h-5" />
-                      Publish to {formData.customUrl || 'Custom URL'}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {!generatedHtml && (
-              <div className="bg-slate-50 rounded-lg border-2 border-dashed border-slate-300 p-8 text-center">
-                <SparklesIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-600 mb-2">Ready to Create</h3>
-                <p className="text-slate-500 text-sm">Upload your assets and describe your landing page in the chat to get started.</p>
-              </div>
-            )}
+            <button
+              onClick={nextStep}
+              disabled={currentStep === 6 || !canProceedToNext()}
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <ChevronRightIcon className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
 
-      {/* Manage Pages Tab */}
-      {activeTab === 'manage' && (
+      {activeTab === 'saved' && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
           <div className="p-6 border-b border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-900">Existing Landing Pages</h3>
-            <p className="text-slate-600 mt-1">Manage your AI-generated landing pages</p>
+            <h3 className="text-lg font-semibold text-slate-900">Saved Landing Pages</h3>
+            <p className="text-slate-600 mt-1">Manage your previously created landing pages</p>
           </div>
           
-          <div className="divide-y divide-slate-200">
-            {existingPages.map((page) => (
-              <div key={page.id} className="p-6 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h4 className="font-semibold text-slate-900">{page.name}</h4>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        page.isPublished 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {page.isPublished ? 'Published' : 'Draft'}
-                      </span>
-                    </div>
-                    <p className="text-slate-600 text-sm mb-2">{page.businessName}</p>
-                    <div className="flex items-center space-x-4 text-sm text-slate-500 mb-2">
-                      <span className="flex items-center space-x-1">
-                        <GlobeAltIcon className="w-4 h-4" />
-                        <span>{page.customUrl}</span>
-                      </span>
-                      <span>Modified {page.lastModified}</span>
-                    </div>
-                    <div className="bg-slate-100 rounded-md p-2 text-xs text-slate-600">
-                      <span className="font-medium">AI Prompt:</span> {page.prompt}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button className="p-2 text-slate-400 hover:text-slate-600" title="Preview">
-                      <EyeIcon className="w-5 h-5" />
-                    </button>
-                    <button className="p-2 text-slate-400 hover:text-slate-600" title="View Code">
-                      <CodeBracketIcon className="w-5 h-5" />
-                    </button>
-                    <button className="p-2 text-slate-400 hover:text-slate-600" title="Edit with AI">
-                      <SparklesIcon className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
+          <div className="p-6">
+            {loadingSavedPages ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="text-slate-600 mt-2">Loading saved pages...</p>
               </div>
-            ))}
+            ) : savedLandingPages.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">No saved landing pages</h3>
+                <p className="text-slate-600 mb-4">Create your first landing page to see it here</p>
+                <button
+                  onClick={() => setActiveTab('create')}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Create Landing Page
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {savedLandingPages.map((page) => {
+                  const associatedTemplate = programTemplates.find(t => t.id === page.program_id) || 
+                    { name: 'Unknown Template', type: 'Unknown', description: 'Template not found' }
+                  
+                  return (
+                    <div key={page.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-slate-900 mb-2">{page.name}</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <span className="text-slate-500">URL:</span>
+                              <p className="font-medium text-blue-600">{page.custom_url}</p>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Pass Template:</span>
+                              <p className="font-medium">{associatedTemplate.name}</p>
+                              <p className="text-xs text-slate-500">{associatedTemplate.type}</p>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Status:</span>
+                              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                                page.is_published ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {page.is_published ? 'Published' : 'Draft'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Created:</span>
+                              <p className="font-medium">{new Date(page.created_at).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <button 
+                            onClick={() => {
+                              const newWindow = window.open('', '_blank')
+                              if (newWindow && page.generated_html) {
+                                newWindow.document.write(page.generated_html)
+                                newWindow.document.close()
+                              }
+                            }}
+                            className="flex items-center gap-1 px-3 py-1 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-md hover:bg-blue-50"
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                            Preview
+                          </button>
+                          <button className="flex items-center gap-1 px-3 py-1 text-slate-600 hover:text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50">
+                            <PencilIcon className="w-4 h-4" />
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

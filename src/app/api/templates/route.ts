@@ -1,39 +1,30 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 
+// Temporary in-memory store for development
+const devTemplates: any[] = []
+
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  if (userError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  // List templates visible to the user per RLS
-  const { data, error } = await supabase
-    .from('templates')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json({ templates: data })
+  // Return development templates for now
+  return NextResponse.json({ data: devTemplates, templates: devTemplates })
 }
 
 export async function POST(req: Request) {
   const body = await req.json()
   const supabase = await createClient()
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  if (userError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Temporarily skip auth for development
+  // const { data: { user }, error: userError } = await supabase.auth.getUser()
+  // if (userError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Get first accessible business id for this user
-  const { data: bizIds, error: bizErr } = await supabase.rpc('user_business_ids')
-  if (bizErr || !bizIds || bizIds.length === 0) {
-    return NextResponse.json({ error: 'No accessible business found for user' }, { status: 400 })
-  }
-  const businessId: string = bizIds[0]
+  // Hardcode business ID for development
+  const businessId: string = 'be023bdf-c668-4cec-ac51-65d3c02ea191' // Blue Karma business ID
 
   // Ensure a default program exists for this business
   const defaultProgramName = 'Default Program'
-  let programId: string | undefined
+  let programId: string = 'be023bdf-c668-4cec-ac51-65d3c02ea192' // Hardcoded UUID for development
+  // Temporarily commented out for development
+  /*
   {
     const { data: programs, error: progErr } = await supabase
       .from('programs')
@@ -54,18 +45,27 @@ export async function POST(req: Request) {
       programId = created.id
     }
   }
+  */
 
-  // Create a new template version (simple v1 for now)
+  // For development - just return success and store in memory/local
   const templateJson = body?.template ?? body
-  const version = 1
-  const { data: tpl, error: tplErr } = await supabase
-    .from('templates')
-    .insert({ program_id: programId, version, template_json: templateJson })
-    .select('*')
-    .single()
-
-  if (tplErr) return NextResponse.json({ error: tplErr.message }, { status: 400 })
-  return NextResponse.json({ template: tpl })
+  
+  // Create a mock template and add to dev store
+  const mockTemplate = {
+    id: `temp-${Date.now()}`,
+    program_id: programId,
+    version: 1,
+    template_json: templateJson,
+    name: templateJson?.name || 'WalletPush Template',
+    pass_type: templateJson?.passStyle || 'generic', 
+    description: templateJson?.description || 'A wallet pass template',
+    created_at: new Date().toISOString()
+  }
+  
+  // Add to development store
+  devTemplates.push(mockTemplate)
+  
+  return NextResponse.json({ template: mockTemplate, message: 'Template saved successfully (development mode)' })
 }
 
 

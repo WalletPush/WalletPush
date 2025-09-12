@@ -5,81 +5,87 @@ import OpenAI from 'openai'
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const body = await request.json()
-    
-    const { prompt, business_name, logo_url, background_image_url } = body
+    const { prompt, business_name, logo_url, background_image_url, project_state } = await request.json()
     
     console.log('Generate landing page request:', { prompt, business_name })
     
     // For testing, we'll use the Blue Karma business ID
     const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
     
-    // Get OpenAI settings for the business
+    // Get OpenRouter settings for the business
     const { data: settings, error: settingsError } = await supabase
       .from('business_settings')
       .select('setting_value')
       .eq('business_id', business_id)
-      .eq('setting_key', 'openai')
+      .eq('setting_key', 'openrouter')
       .maybeSingle()
     
-    console.log('OpenAI settings query:', { settings, settingsError })
+    console.log('OpenRouter settings query:', { settings, settingsError })
     
     if (settingsError) {
       console.error('Settings error:', settingsError)
-      // Generate mock HTML when can't fetch settings
+      return NextResponse.json(
+        { data: null, error: 'Failed to fetch OpenRouter settings' },
+        { status: 500 }
+      )
+    }
+    
+    const openrouterConfig = settings?.setting_value
+    console.log('OpenRouter config:', { enabled: openrouterConfig?.enabled, hasApiKey: !!openrouterConfig?.api_key })
+    
+    if (!openrouterConfig?.enabled || !openrouterConfig?.api_key) {
+      // Generate mock HTML when OpenRouter not configured
       const mockHtml = generateMockHTML(prompt, business_name, logo_url, background_image_url)
       
       return NextResponse.json({ 
         data: { 
           html: mockHtml,
-          message: 'Generated with mock data (Settings not accessible)'
+          message: 'Generated with mock data (OpenRouter not configured)'
         }, 
         error: null 
       })
     }
     
-    const openaiConfig = settings?.setting_value
-    console.log('OpenAI config:', { enabled: openaiConfig?.enabled, hasApiKey: !!openaiConfig?.api_key })
-    
-    if (!openaiConfig?.enabled || !openaiConfig?.api_key) {
-      // Generate mock HTML when OpenAI not configured
-      const mockHtml = generateMockHTML(prompt, business_name, logo_url, background_image_url)
-      
-      return NextResponse.json({ 
-        data: { 
-          html: mockHtml,
-          message: 'Generated with mock data (OpenAI not configured)'
-        }, 
-        error: null 
-      })
-    }
-    
-    // Use real OpenAI API
+    // Use real OpenRouter API
     try {
       const openai = new OpenAI({
-        apiKey: openaiConfig.api_key,
+        apiKey: openrouterConfig.api_key,
+        baseURL: "https://openrouter.ai/api/v1",
+        defaultHeaders: {
+          "HTTP-Referer": "https://walletpush.com",
+          "X-Title": "WalletPush"
+        }
       })
 
-      const systemPrompt = `You are an expert web developer and designer. Generate a complete, production-ready HTML landing page based on the user's requirements. The page should be:
+      const systemPrompt = `You are an expert web developer creating landing pages for WalletPush.
 
-1. Fully responsive and mobile-optimized
-2. Include modern CSS styling with gradients, shadows, and animations
-3. Have a compelling hero section with the provided background image
-4. Include the business logo if provided
-5. Feature a signup form with the requested fields (full name, email, phone at minimum)
-6. Add trust indicators and feature highlights
-7. Include proper JavaScript for form handling
-8. Use the Inter font family
-9. Be visually appealing with good UX principles
+TASK: Create a complete, responsive HTML landing page based on the provided requirements.
 
-Always include:
-- Proper DOCTYPE and meta tags
-- Responsive design
-- Form validation
-- Modern CSS styling
-- Professional appearance
+OUTPUT FORMAT:
+1. Brief acknowledgment (1-2 sentences)
+2. Add separator: ---HTML---
+3. Complete HTML code
 
-Return ONLY the complete HTML code, no explanations.`
+REQUIREMENTS:
+- Use Tailwind CSS via CDN
+- Form posts to /api/public/join with method="POST"
+- Include hidden fields: <input type="hidden" name="tenant_id" value="{{TENANT_ID}}"> and <input type="hidden" name="program_id" value="{{PROGRAM_ID}}">
+- Use provided branding assets (logo, background image)
+- Include all specified form fields as <input> elements
+- Professional, conversion-optimized design
+- Prominently display the incentive offer
+- Clear benefits section with bullet points
+- Mobile responsive design
+- Include client-side form validation
+
+STRUCTURE:
+- Header with logo
+- Hero section with headline and incentive
+- Benefits section with bullet points
+- Signup form with specified fields
+- Footer
+
+Do not ask questions. Build immediately using all provided information.`
 
       // Sanitize text to remove problematic Unicode characters
       const sanitizeText = (text: string) => {
@@ -94,67 +100,118 @@ Return ONLY the complete HTML code, no explanations.`
           .trim()
       }
 
-      const sanitizedPrompt = sanitizeText(prompt)
-      const sanitizedBusinessName = sanitizeText(business_name)
+      const sanitizedPrompt = sanitizeText(prompt).slice(0, 2000) // Limit prompt to 2000 chars
+      const sanitizedBusinessName = business_name ? sanitizeText(business_name) : ''
+
+      // Convert relative URLs to absolute URLs for the HTML generation
+      const logoFullUrl = logo_url ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}` : null
+      const backgroundFullUrl = background_image_url ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${background_image_url}` : null
 
       const userPrompt = `Business: ${sanitizedBusinessName}
-${logo_url ? `Logo URL: ${logo_url}` : 'No logo provided'}
-${background_image_url ? `Background Image URL: ${background_image_url}` : 'No background image provided'}
+${logoFullUrl ? `Logo URL: ${logoFullUrl}` : ''}
+${backgroundFullUrl ? `Background Image URL: ${backgroundFullUrl}` : ''}
 
-User Requirements: ${sanitizedPrompt}`
+Requirements: ${sanitizedPrompt}`
 
-      // Handle model mapping for GPT-5
-      let modelToUse = openaiConfig.model
-      if (openaiConfig.model === 'gpt-5-mini') {
-        modelToUse = 'gpt-5-mini-2025-08-07' // Use the actual GPT-5 mini model name
-        console.log(`Mapping ${openaiConfig.model} to ${modelToUse}`)
-      } else if (openaiConfig.model === 'gpt-5') {
-        modelToUse = 'gpt-4o-mini' // Fallback until full GPT-5 is available
-        console.log(`Falling back from ${openaiConfig.model} to ${modelToUse}`)
-      }
+      console.log('=== DEBUG TOKEN COUNT ===')
+      console.log('Original prompt length:', prompt.length)
+      console.log('Logo URL length:', logo_url?.length || 0)
+      console.log('Background URL length:', background_image_url?.length || 0)
+      console.log('Business name length:', business_name?.length || 0)
+      console.log('Using model:', openrouterConfig.model)
+      console.log('=========================')
 
-      console.log('Calling OpenAI with model:', modelToUse)
-      console.log('Sanitized prompt length:', sanitizedPrompt.length)
-      console.log('Original prompt chars at 170-175:', prompt.slice(170, 175).split('').map(c => c.charCodeAt(0)))
-
-      const completion = await openai.chat.completions.create({
-        model: modelToUse,
+      const apiParams = {
+        model: openrouterConfig.model,
         messages: [
-          { role: "system", content: sanitizeText(systemPrompt) },
-          { role: "user", content: sanitizeText(userPrompt) }
+          { role: "system" as const, content: sanitizeText(systemPrompt) },
+          { role: "user" as const, content: sanitizeText(userPrompt) }
         ],
         max_tokens: 4000,
-        temperature: 0.7,
-      })
-
-      const generatedHtml = completion.choices[0]?.message?.content
-
-      if (!generatedHtml) {
-        throw new Error('OpenAI returned empty response')
+        temperature: 0.7
       }
+
+      console.log('Calling OpenRouter with params:', JSON.stringify(apiParams, null, 2))
+      
+      const completion = await openai.chat.completions.create(apiParams)
+      
+      console.log('OpenRouter response:', JSON.stringify(completion, null, 2))
+
+      // Check for API errors
+      if (completion.choices[0]?.error) {
+        const error = completion.choices[0].error
+        console.error('API Error:', error)
+        throw new Error(`API Error: ${error.message} (${error.code})`)
+      }
+
+      const fullResponse = completion.choices[0]?.message?.content
+
+      if (!fullResponse) {
+        console.error('OpenRouter returned empty response - full completion object:', completion)
+        throw new Error('OpenRouter returned empty response')
+      }
+
+      // Check if response was cut off
+      const finishReason = completion.choices[0]?.finish_reason
+      if (finishReason === 'length') {
+        console.warn('Response was truncated due to length limit')
+        // Continue processing but note it was truncated
+      }
+
+      // Simple extraction using the ---HTML--- separator
+      const parts = fullResponse.split('---HTML---')
+      
+      let conversationalMessage = ''
+      let extractedHtml = ''
+      
+      if (parts.length >= 2) {
+        conversationalMessage = parts[0].trim()
+        extractedHtml = parts[1].trim()
+        console.log('SUCCESS: Split on ---HTML--- separator')
+      } else {
+        // Fallback: Check if this is a partial/conversational response without HTML
+        if (fullResponse.includes('<!DOCTYPE html>')) {
+          const doctypeIndex = fullResponse.indexOf('<!DOCTYPE html>')
+          conversationalMessage = fullResponse.substring(0, doctypeIndex).trim()
+          extractedHtml = fullResponse.substring(doctypeIndex).trim()
+          console.log('FALLBACK: Used DOCTYPE detection')
+        } else {
+          // This appears to be a conversational-only response (no HTML yet)
+          conversationalMessage = fullResponse.trim()
+          extractedHtml = '' // No HTML to extract
+          console.log('CONVERSATIONAL ONLY: No HTML in this response')
+        }
+      }
+
+      console.log('Conversational message length:', conversationalMessage.length)
+      console.log('Extracted HTML length:', extractedHtml.length)
+      console.log('First 200 chars of message:', conversationalMessage.substring(0, 200))
 
       return NextResponse.json({ 
         data: { 
-          html: generatedHtml,
-          message: `Generated with ${openaiConfig.model}`
+          html: extractedHtml || null, // Can be null for conversational-only responses
+          message: conversationalMessage, // Clean conversational response only
+          model: openrouterConfig.model,
+          hasHtml: !!extractedHtml
         }, 
         error: null 
       })
 
-    } catch (openaiError) {
-      console.error('OpenAI API error:', openaiError)
+    } catch (error) {
+      console.error('OpenRouter API error:', error)
       
-      // Fall back to mock HTML if OpenAI fails
+      // Generate mock HTML as fallback
       const mockHtml = generateMockHTML(prompt, business_name, logo_url, background_image_url)
       
       return NextResponse.json({ 
         data: { 
           html: mockHtml,
-          message: `OpenAI failed, generated with mock data. Error: ${openaiError instanceof Error ? openaiError.message : 'Unknown error'}`
+          message: `OpenRouter failed, generated with mock data. Error: ${error.message}`
         }, 
         error: null 
       })
     }
+    
   } catch (error) {
     console.error('Error generating landing page:', error)
     return NextResponse.json(
@@ -164,209 +221,54 @@ User Requirements: ${sanitizedPrompt}`
   }
 }
 
-function generateMockHTML(prompt: string, businessName: string, logoUrl?: string, backgroundImageUrl?: string): string {
-  // Extract key information from prompt for better mock generation
-  const isPriceMatch = prompt.match(/\$(\d+(?:\.\d{2})?)/g)
-  const price = isPriceMatch ? isPriceMatch[0] : '$49.99'
-  
-  const isWineClub = prompt.toLowerCase().includes('wine')
-  const isMembership = prompt.toLowerCase().includes('membership')
-  const isSubscription = prompt.toLowerCase().includes('month')
-  
-  const defaultBackground = backgroundImageUrl || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" fill="%23667eea"><rect width="100%" height="100%"/></svg>'
-  
-  return `
-<!DOCTYPE html>
+function generateMockHTML(prompt: string, businessName: string, logoUrl?: string, backgroundUrl?: string): string {
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${businessName} - ${isWineClub ? 'Wine Club' : isMembership ? 'Membership' : 'Sign Up'}</title>
+    <title>${businessName} - Join Today</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            line-height: 1.6;
-            color: #333;
-        }
-        .hero {
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${defaultBackground}');
-            background-size: cover;
+        body { font-family: 'Inter', sans-serif; line-height: 1.6; }
+        .hero { 
+            min-height: 100vh; 
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${backgroundUrl || '/api/placeholder/1200/600'}');
+            background-size: cover; 
             background-position: center;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            color: white;
-            text-align: center;
-            padding: 20px;
-        }
-        .container { 
-            max-width: 800px; 
-            margin: 0 auto; 
-            width: 100%;
-        }
-        .logo { 
-            max-width: 150px; 
-            margin-bottom: 30px;
-            ${logoUrl ? '' : 'display: none;'}
-        }
-        h1 { 
-            font-size: 3rem; 
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-        .subtitle {
-            font-size: 1.5rem;
-            margin-bottom: 40px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-        .signup-form {
-            background: white;
-            border-radius: 12px;
-            padding: 40px;
-            margin: 40px auto;
-            max-width: 500px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-        input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        .price {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #667eea;
-            margin: 20px 0;
-        }
-        .cta-button {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 16px 40px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.2rem;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.2s;
-        }
-        .cta-button:hover { 
-            transform: translateY(-2px); 
-        }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-        .feature {
-            text-align: center;
-            padding: 20px;
-        }
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        .trust-badges {
-            display: flex;
+            display: flex; 
+            align-items: center; 
             justify-content: center;
-            align-items: center;
-            gap: 20px;
-            margin-top: 20px;
-            font-size: 0.9rem;
-            color: #666;
+            color: white;
+            text-align: center;
+            padding: 2rem;
         }
+        .container { max-width: 500px; }
+        .logo { width: 120px; height: 120px; margin: 0 auto 2rem; border-radius: 50%; }
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; font-weight: 700; }
+        p { font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9; }
+        .form { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 2rem; border-radius: 10px; }
+        input { width: 100%; padding: 12px; margin-bottom: 1rem; border: none; border-radius: 5px; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #4F46E5; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        button:hover { background: #4338CA; }
     </style>
 </head>
 <body>
     <div class="hero">
         <div class="container">
-            ${logoUrl ? `<img src="${logoUrl}" alt="${businessName}" class="logo">` : ''}
-            <h1>${isWineClub ? 'Join Our Exclusive Wine Club' : isMembership ? `Join ${businessName} Membership` : `Welcome to ${businessName}`}</h1>
-            <p class="subtitle">${isWineClub ? 'Curated selections of premium wines delivered monthly' : isMembership ? 'Unlock exclusive benefits and rewards' : 'Experience something special'}</p>
-            
-            <div class="signup-form">
-                <h3 style="margin-bottom: 20px; text-align: center;">${isSubscription ? 'Start Your Journey' : 'Sign Up Today'}</h3>
-                <div class="price">${price}${isSubscription ? '/month' : ''}</div>
-                
-                <form>
-                    <div class="form-group">
-                        <label for="fullName">Full Name</label>
-                        <input type="text" id="fullName" name="fullName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="phone">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" required>
-                    </div>
-                    <button type="submit" class="cta-button">Join Now & Pay ${price}</button>
-                </form>
-                
-                <div class="features">
-                    <div class="feature">
-                        <div class="feature-icon">${isWineClub ? '🍷' : '✨'}</div>
-                        <h4>${isWineClub ? 'Premium Selection' : 'Exclusive Access'}</h4>
-                        <p>${isWineClub ? 'Hand-picked wines from award-winning vineyards' : 'Member-only perks and benefits'}</p>
-                    </div>
-                    <div class="feature">
-                        <div class="feature-icon">${isWineClub ? '🚚' : '🎁'}</div>
-                        <h4>${isWineClub ? 'Free Delivery' : 'Special Rewards'}</h4>
-                        <p>${isWineClub ? 'Delivered right to your door every month' : 'Earn points and redeem rewards'}</p>
-                    </div>
-                    <div class="feature">
-                        <div class="feature-icon">${isWineClub ? '📚' : '💫'}</div>
-                        <h4>${isWineClub ? 'Tasting Notes' : 'VIP Treatment'}</h4>
-                        <p>${isWineClub ? 'Detailed guides and pairing suggestions' : 'Priority service and support'}</p>
-                    </div>
-                </div>
-                
-                <div class="trust-badges">
-                    <span>🔒 Secure Payment</span>
-                    <span>📱 Mobile Wallet Pass</span>
-                    <span>✅ Cancel Anytime</span>
-                </div>
-            </div>
+            ${logoUrl ? `<img src="${logoUrl}" alt="Logo" class="logo">` : ''}
+            <h1>Welcome to ${businessName}</h1>
+            <p>Join our exclusive membership program and unlock amazing benefits!</p>
+            <form class="form" onsubmit="alert('Thank you for joining!'); return false;">
+                <input type="text" placeholder="First Name" required>
+                <input type="text" placeholder="Last Name" required>
+                <input type="email" placeholder="Email Address" required>
+                <input type="tel" placeholder="Phone Number" required>
+                <button type="submit">Join Now - It's Free!</button>
+            </form>
         </div>
     </div>
-
-    <script>
-        // Handle form submission
-        document.querySelector('form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData);
-            
-            // Here you would normally send to your backend
-            console.log('Form submitted:', data);
-            
-            // Show success message
-            alert('Welcome to ${businessName}! Your mobile wallet pass will be sent to your email shortly.');
-        });
-    </script>
 </body>
 </html>`
 }

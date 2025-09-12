@@ -74,10 +74,10 @@ export default function SettingsPage() {
     enabled: false
   })
 
-  // OpenAI Settings State
-  const [openAISettings, setOpenAISettings] = useState<OpenAISettings>({
+  // OpenRouter Settings State
+  const [openRouterSettings, setOpenRouterSettings] = useState<OpenAISettings>({
     apiKey: '',
-    model: 'gpt-5-mini',
+    model: 'anthropic/claude-sonnet-4',
     enabled: false,
     lastTested: null
   })
@@ -86,19 +86,19 @@ export default function SettingsPage() {
   React.useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch('/api/business-settings?key=openai')
+        const response = await fetch('/api/business-settings?key=openrouter')
         const result = await response.json()
         
         if (result.data && !result.error) {
-          setOpenAISettings({
+          setOpenRouterSettings({
             apiKey: result.data.api_key || '',
-            model: result.data.model || 'gpt-5-mini',
+            model: result.data.model || 'anthropic/claude-sonnet-4',
             enabled: result.data.enabled || false,
             lastTested: result.data.last_tested || null
           })
         }
       } catch (error) {
-        console.error('Error loading OpenAI settings:', error)
+        console.error('Error loading OpenRouter settings:', error)
       }
     }
     
@@ -141,7 +141,7 @@ export default function SettingsPage() {
     alert('Test email sent successfully!')
   }
 
-  const handleSaveOpenAI = async () => {
+  const handleSaveOpenRouter = async () => {
     setIsLoading(true)
     
     try {
@@ -151,12 +151,12 @@ export default function SettingsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          setting_key: 'openai',
+          setting_key: 'openrouter',
           setting_value: {
-            api_key: openAISettings.apiKey,
-            model: openAISettings.model,
-            enabled: openAISettings.enabled,
-            last_tested: openAISettings.lastTested
+            api_key: openRouterSettings.apiKey,
+            model: openRouterSettings.model,
+            enabled: openRouterSettings.enabled,
+            last_tested: openRouterSettings.lastTested
           }
         })
       })
@@ -167,24 +167,24 @@ export default function SettingsPage() {
         throw new Error(result.error)
       }
       
-      alert('OpenAI settings saved successfully!')
+      alert('OpenRouter settings saved successfully!')
       
     } catch (error) {
-      console.error('Error saving OpenAI settings:', error)
-      alert('Failed to save OpenAI settings. Please try again.')
+      console.error('Error saving OpenRouter settings:', error)
+      alert('Failed to save OpenRouter settings. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleTestOpenAI = async () => {
+  const handleTestOpenRouter = async () => {
     setIsLoading(true)
-    // Simulate OpenAI API test
+    // Simulate OpenRouter API test
     await new Promise(resolve => setTimeout(resolve, 2500))
     const now = new Date().toISOString()
-    setOpenAISettings({...openAISettings, lastTested: now})
+    setOpenRouterSettings({...openRouterSettings, lastTested: now})
     setIsLoading(false)
-    alert('OpenAI API connection successful!')
+    alert('OpenRouter API connection successful!')
   }
 
   const tabs = [
@@ -484,17 +484,17 @@ export default function SettingsPage() {
                   Manage your API keys for third-party integrations and AI-powered features.
                 </p>
 
-                {/* OpenAI API Settings */}
+                {/* OpenRouter API Settings */}
                 <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6 border border-purple-200">
                   <div className="flex items-center gap-3 mb-4">
                     <SparklesIcon className="w-6 h-6 text-purple-600" />
-                    <h4 className="text-lg font-semibold text-slate-900">OpenAI API</h4>
+                    <h4 className="text-lg font-semibold text-slate-900">OpenRouter API</h4>
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      openAISettings.enabled 
+                      openRouterSettings.enabled 
                         ? 'bg-green-100 text-green-800 border border-green-200' 
                         : 'bg-slate-100 text-slate-800 border border-slate-200'
                     }`}>
-                      {openAISettings.enabled ? 'Enabled' : 'Disabled'}
+                      {openRouterSettings.enabled ? 'Enabled' : 'Disabled'}
                     </span>
                   </div>
                   
@@ -506,59 +506,62 @@ export default function SettingsPage() {
                     {/* API Key Status */}
                     <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-purple-100">
                       <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${openAISettings.enabled ? 'bg-green-500' : 'bg-slate-400'}`}></div>
+                        <div className={`w-3 h-3 rounded-full ${openRouterSettings.enabled ? 'bg-green-500' : 'bg-slate-400'}`}></div>
                         <span className="font-medium text-slate-900">
-                          OpenAI Integration {openAISettings.enabled ? 'Active' : 'Inactive'}
+                          OpenRouter Integration {openRouterSettings.enabled ? 'Active' : 'Inactive'}
                         </span>
-                        {openAISettings.lastTested && (
+                        {openRouterSettings.lastTested && (
                           <span className="text-sm text-slate-500">
-                            Last tested: {new Date(openAISettings.lastTested).toLocaleString()}
+                            Last tested: {new Date(openRouterSettings.lastTested).toLocaleString()}
                           </span>
                         )}
                       </div>
                       <button
-                        onClick={() => setOpenAISettings({...openAISettings, enabled: !openAISettings.enabled})}
+                        onClick={() => setOpenRouterSettings({...openRouterSettings, enabled: !openRouterSettings.enabled})}
                         className={`px-4 py-2 rounded-md text-sm font-medium ${
-                          openAISettings.enabled 
+                          openRouterSettings.enabled 
                             ? 'bg-red-100 text-red-700 hover:bg-red-200' 
                             : 'bg-green-100 text-green-700 hover:bg-green-200'
                         }`}
                       >
-                        {openAISettings.enabled ? 'Disable' : 'Enable'}
+                        {openRouterSettings.enabled ? 'Disable' : 'Enable'}
                       </button>
                     </div>
 
-                    {/* OpenAI Settings Form */}
+                    {/* OpenRouter Settings Form */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                          OpenAI API Key
+                          OpenRouter API Key
                           <span className="text-red-500 ml-1">*</span>
                         </label>
                         <input
                           type="password"
-                          value={openAISettings.apiKey}
-                          onChange={(e) => setOpenAISettings({...openAISettings, apiKey: e.target.value})}
+                          value={openRouterSettings.apiKey}
+                          onChange={(e) => setOpenRouterSettings({...openRouterSettings, apiKey: e.target.value})}
                           className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                          placeholder="sk-..."
+                          placeholder="sk-or-v1-..."
                         />
                         <p className="text-sm text-slate-500 mt-1">
-                          Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">OpenAI Platform</a>
+                          Get your API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">OpenRouter Dashboard</a>
                         </p>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Model</label>
                         <select
-                          value={openAISettings.model}
-                          onChange={(e) => setOpenAISettings({...openAISettings, model: e.target.value})}
+                          value={openRouterSettings.model}
+                          onChange={(e) => setOpenRouterSettings({...openRouterSettings, model: e.target.value})}
                           className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         >
-                          <option value="gpt-5-mini">GPT-5 Mini (Recommended)</option>
-                          <option value="gpt-5">GPT-5 (Coming Soon)</option>
-                          <option value="gpt-4o-mini">GPT-4o Mini</option>
-                          <option value="gpt-4o">GPT-4o</option>
-                          <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                          <option value="anthropic/claude-sonnet-4">Claude Sonnet 4 (Latest & Best)</option>
+                          <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                          <option value="anthropic/claude-3-haiku">Claude 3 Haiku (Fast)</option>
+                          <option value="anthropic/claude-3-opus">Claude 3 Opus</option>
+                          <option value="openai/gpt-4o">GPT-4o</option>
+                          <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                          <option value="meta-llama/llama-3.1-405b-instruct">Llama 3.1 405B</option>
+                          <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
                         </select>
                       </div>
 
@@ -583,15 +586,15 @@ export default function SettingsPage() {
                     {/* Action Buttons */}
                     <div className="flex gap-3 pt-4">
                       <button
-                        onClick={handleSaveOpenAI}
+                        onClick={handleSaveOpenRouter}
                         disabled={isLoading}
                         className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
                       >
                         {isLoading ? 'Saving...' : 'Save Settings'}
                       </button>
                       <button
-                        onClick={handleTestOpenAI}
-                        disabled={isLoading || !openAISettings.apiKey}
+                        onClick={handleTestOpenRouter}
+                        disabled={isLoading || !openRouterSettings.apiKey}
                         className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                       >
                         {isLoading ? 'Testing...' : 'Test Connection'}
