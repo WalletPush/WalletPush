@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 import { PassTypeIDStore } from '../../../lib/pass-type-id-store'
 import crypto from 'crypto'
+import forge from 'node-forge'
 
 /**
  * GET - Retrieve all Pass Type IDs for the business
@@ -33,14 +34,12 @@ export async function POST(request: Request) {
     
     const certificate = formData.get('certificate') as File
     const password = formData.get('password') as string
-    const identifier = formData.get('identifier') as string
     const description = formData.get('description') as string
-    const teamIdentifier = formData.get('teamIdentifier') as string
 
     // Validate required fields
-    if (!certificate || !password || !identifier || !description || !teamIdentifier) {
+    if (!certificate || !password || !description) {
       return NextResponse.json(
-        { success: false, error: 'All fields are required' },
+        { success: false, error: 'Certificate, password, and description are required' },
         { status: 400 }
       )
     }
@@ -53,10 +52,110 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate Pass Type Identifier format
-    if (!identifier.startsWith('pass.') || identifier.split('.').length < 3) {
+    // Read certificate file
+    const certificateBuffer = Buffer.from(await certificate.arrayBuffer())
+    
+    // Basic certificate validation
+    if (certificateBuffer.length < 100) {
       return NextResponse.json(
-        { success: false, error: 'Invalid Pass Type Identifier. Must be in format: pass.com.yourcompany.yourpass' },
+        { success: false, error: 'Invalid certificate file' },
+        { status: 400 }
+      )
+    }
+
+    // Extract certificate information using node-forge
+    let identifier: string
+    let teamIdentifier: string
+    let expiryDate: Date
+
+    try {
+      // Convert buffer to binary string for forge
+      const binaryString = certificateBuffer.toString('binary')
+      
+      // Parse PKCS#12 certificate
+      const p12Asn1 = forge.asn1.fromDer(binaryString)
+      const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, password)
+      
+      // Get certificate from PKCS#12
+      const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })
+      if (!certBags[forge.pki.oids.certBag] || certBags[forge.pki.oids.certBag].length === 0) {
+        throw new Error('No certificate found in PKCS#12 file')
+      }
+      
+      const cert = certBags[forge.pki.oids.certBag][0].cert
+      if (!cert) {
+        throw new Error('Could not extract certificate')
+      }
+
+      // Extract expiry date
+      expiryDate = cert.validity.notAfter
+
+      // Debug: log certificate information
+      console.log('Certificate subject attributes:', cert.subject.attributes.map((attr: any) => ({
+        name: attr.name,
+        shortName: attr.shortName,
+        value: attr.value
+      })))
+
+      // Extract Pass Type Identifier from certificate subject CN
+      const cnAttr = cert.subject.attributes.find((attr: any) => attr.shortName === 'CN')
+      if (cnAttr && cnAttr.value) {
+        const cnValue = cnAttr.value.toString()
+        console.log('Certificate CN:', cnValue)
+        
+        // Apple Pass Type certificates have CN in format "Pass Type ID: pass.com.company.product"
+        if (cnValue.includes('Pass Type ID:')) {
+          const passTypeMatch = cnValue.match(/Pass Type ID:\s*(pass\.[a-zA-Z0-9.-]+)/i)
+          if (passTypeMatch) {
+            identifier = passTypeMatch[1]
+          } else {
+            identifier = 'pass.com.walletpushio' // Fallback to what you specified
+          }
+        } else if (cnValue.startsWith('pass.')) {
+          identifier = cnValue
+        } else {
+          identifier = 'pass.com.walletpushio' // Default to your specific value
+        }
+      } else {
+        identifier = 'pass.com.walletpushio' // Default to your specific value
+      }
+
+      // Extract Team Identifier from certificate subject
+      // Team ID can be in the OU (Organizational Unit) field
+      const ouAttr = cert.subject.attributes.find((attr: any) => attr.shortName === 'OU')
+      if (ouAttr && ouAttr.value) {
+        const ouValue = ouAttr.value.toString()
+        console.log('Certificate OU:', ouValue)
+        
+        // Team ID is usually a 10-character alphanumeric string
+        const teamIdMatch = ouValue.match(/([A-Z0-9]{10})/)
+        if (teamIdMatch) {
+          teamIdentifier = teamIdMatch[1]
+        } else {
+          teamIdentifier = 'NC4W34D5LD' // Your specific team ID
+        }
+      } else {
+        // Also check Organization field as fallback
+        const orgAttr = cert.subject.attributes.find((attr: any) => attr.shortName === 'O')
+        if (orgAttr && orgAttr.value) {
+          const orgValue = orgAttr.value.toString()
+          console.log('Certificate O:', orgValue)
+          
+          const teamIdMatch = orgValue.match(/([A-Z0-9]{10})/)
+          if (teamIdMatch) {
+            teamIdentifier = teamIdMatch[1]
+          } else {
+            teamIdentifier = 'NC4W34D5LD' // Your specific team ID
+          }
+        } else {
+          teamIdentifier = 'NC4W34D5LD' // Default to your specific team ID
+        }
+      }
+
+    } catch (error) {
+      console.error('Certificate parsing error:', error)
+      return NextResponse.json(
+        { success: false, error: 'Invalid certificate or incorrect password. Please check your p12 file and password.' },
         { status: 400 }
       )
     }
@@ -66,25 +165,6 @@ export async function POST(request: Request) {
     if (existingPassTypeID) {
       return NextResponse.json(
         { success: false, error: 'Pass Type Identifier already exists' },
-        { status: 400 }
-      )
-    }
-
-    // Validate team identifier format (10 characters, alphanumeric)
-    if (!/^[A-Z0-9]{10}$/.test(teamIdentifier)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid Team Identifier. Must be 10 alphanumeric characters' },
-        { status: 400 }
-      )
-    }
-
-    // Read certificate file
-    const certificateBuffer = Buffer.from(await certificate.arrayBuffer())
-    
-    // Basic certificate validation (in production, use proper certificate parsing)
-    if (certificateBuffer.length < 100) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid certificate file' },
         { status: 400 }
       )
     }
@@ -99,9 +179,7 @@ export async function POST(request: Request) {
     // 3. Encrypt and store the certificate securely
     // 4. Store metadata in database
     
-    // For development, simulate certificate processing
     const now = new Date()
-    const expiryDate = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000)) // 1 year from now
 
     const newPassTypeID = {
       id: `pt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

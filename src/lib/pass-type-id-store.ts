@@ -17,8 +17,9 @@ interface PassTypeID {
   business_id: string
 }
 
-// Development store with default WalletPush certificate
-const devPassTypeIDs: PassTypeID[] = [
+// Global store that persists across API calls
+// In production, this would be replaced with Supabase database
+let globalPassTypeIDStore: PassTypeID[] = [
   {
     id: 'default-walletpush-1',
     identifier: 'pass.com.walletpush.default',
@@ -27,7 +28,7 @@ const devPassTypeIDs: PassTypeID[] = [
     certificate_file_name: 'walletpush_default.p12',
     certificate_expiry: '2026-05-03T08:51:00Z',
     status: 'active',
-    is_default: true,
+    is_default: false,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
     business_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191'
@@ -36,60 +37,60 @@ const devPassTypeIDs: PassTypeID[] = [
 
 export class PassTypeIDStore {
   static getAll(): PassTypeID[] {
-    return [...devPassTypeIDs]
+    return [...globalPassTypeIDStore]
   }
 
   static findById(id: string): PassTypeID | undefined {
-    return devPassTypeIDs.find(pt => pt.id === id)
+    return globalPassTypeIDStore.find(pt => pt.id === id)
   }
 
   static findByIdentifier(identifier: string): PassTypeID | undefined {
-    return devPassTypeIDs.find(pt => pt.identifier === identifier)
+    return globalPassTypeIDStore.find(pt => pt.identifier === identifier)
   }
 
   static add(passTypeID: PassTypeID): void {
     // If this is the first user-uploaded certificate, make it default
-    if (devPassTypeIDs.filter(pt => !pt.identifier.includes('walletpush.default')).length === 0) {
+    if (globalPassTypeIDStore.filter(pt => !pt.identifier.includes('walletpush.default')).length === 0) {
       // Set all existing as non-default
-      devPassTypeIDs.forEach(pt => pt.is_default = false)
+      globalPassTypeIDStore.forEach(pt => pt.is_default = false)
       passTypeID.is_default = true
     }
 
-    devPassTypeIDs.push(passTypeID)
+    globalPassTypeIDStore.push(passTypeID)
   }
 
   static remove(id: string): boolean {
-    const index = devPassTypeIDs.findIndex(pt => pt.id === id)
+    const index = globalPassTypeIDStore.findIndex(pt => pt.id === id)
     
     if (index === -1) {
       return false
     }
 
-    const passTypeID = devPassTypeIDs[index]
+    const passTypeID = globalPassTypeIDStore[index]
 
     // Prevent deletion if it's the only one
-    if (devPassTypeIDs.length === 1) {
+    if (globalPassTypeIDStore.length === 1) {
       throw new Error('Cannot delete the only remaining Pass Type ID')
     }
 
     // If deleting the default, set another one as default
     if (passTypeID.is_default) {
-      const remaining = devPassTypeIDs.filter(pt => pt.id !== id)
+      const remaining = globalPassTypeIDStore.filter(pt => pt.id !== id)
       if (remaining.length > 0) {
-        const nextIndex = devPassTypeIDs.findIndex(pt => pt.id === remaining[0].id)
+        const nextIndex = globalPassTypeIDStore.findIndex(pt => pt.id === remaining[0].id)
         if (nextIndex !== -1) {
-          devPassTypeIDs[nextIndex].is_default = true
-          devPassTypeIDs[nextIndex].updated_at = new Date().toISOString()
+          globalPassTypeIDStore[nextIndex].is_default = true
+          globalPassTypeIDStore[nextIndex].updated_at = new Date().toISOString()
         }
       }
     }
 
-    devPassTypeIDs.splice(index, 1)
+    globalPassTypeIDStore.splice(index, 1)
     return true
   }
 
   static setDefault(id: string): boolean {
-    const passTypeID = devPassTypeIDs.find(pt => pt.id === id)
+    const passTypeID = globalPassTypeIDStore.find(pt => pt.id === id)
     
     if (!passTypeID) {
       return false
@@ -100,7 +101,7 @@ export class PassTypeIDStore {
     }
 
     // Set all others as non-default
-    devPassTypeIDs.forEach(pt => {
+    globalPassTypeIDStore.forEach(pt => {
       pt.is_default = false
       pt.updated_at = new Date().toISOString()
     })
@@ -113,6 +114,6 @@ export class PassTypeIDStore {
   }
 
   static getDefault(): PassTypeID | undefined {
-    return devPassTypeIDs.find(pt => pt.is_default)
+    return globalPassTypeIDStore.find(pt => pt.is_default)
   }
 }

@@ -79,7 +79,8 @@ const publicRoutes = [
 
   const isPublicRoute = publicRoutes.some(route => 
     request.nextUrl.pathname === route || 
-    request.nextUrl.pathname.startsWith('/auth/')
+    request.nextUrl.pathname.startsWith('/auth/') ||
+    request.nextUrl.pathname.startsWith('/api/pass-type-ids/')
   )
 
   // Only redirect to login if it's not a public route and user is not authenticated

@@ -19,9 +19,7 @@ interface PassTypeID {
 interface CertificateUpload {
   file: File | null
   password: string
-  identifier: string
   description: string
-  teamIdentifier: string
 }
 
 export default function PassTypeIDsPage() {
@@ -31,9 +29,7 @@ export default function PassTypeIDsPage() {
   const [uploadData, setUploadData] = useState<CertificateUpload>({
     file: null,
     password: '',
-    identifier: '',
-    description: '',
-    teamIdentifier: ''
+    description: ''
   })
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -84,18 +80,8 @@ export default function PassTypeIDsPage() {
       return
     }
 
-    if (!uploadData.identifier) {
-      setUploadError('Please enter the Pass Type Identifier')
-      return
-    }
-
     if (!uploadData.description) {
       setUploadError('Please enter a description')
-      return
-    }
-
-    if (!uploadData.teamIdentifier) {
-      setUploadError('Please enter your Apple Team Identifier')
       return
     }
 
@@ -106,9 +92,7 @@ export default function PassTypeIDsPage() {
       const formData = new FormData()
       formData.append('certificate', uploadData.file)
       formData.append('password', uploadData.password)
-      formData.append('identifier', uploadData.identifier)
       formData.append('description', uploadData.description)
-      formData.append('teamIdentifier', uploadData.teamIdentifier)
 
       const response = await fetch('/api/pass-type-ids', {
         method: 'POST',
@@ -123,9 +107,7 @@ export default function PassTypeIDsPage() {
         setUploadData({
           file: null,
           password: '',
-          identifier: '',
-          description: '',
-          teamIdentifier: ''
+          description: ''
         })
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
@@ -210,7 +192,7 @@ export default function PassTypeIDsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -228,17 +210,14 @@ export default function PassTypeIDsPage() {
         </button>
       </div>
 
-      {/* Warning Message */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      {/* Info Message */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex">
-          <ExclamationTriangleIcon className="w-5 h-5 text-amber-400 mt-0.5" />
+          <ExclamationTriangleIcon className="w-5 h-5 text-blue-400 mt-0.5" />
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-amber-800">Important Notice</h3>
-            <div className="mt-2 text-sm text-amber-700">
-              <p>For production use, you are strongly encouraged to use your own Pass Type ID. You need an iOS Developer Account.</p>
-              <p className="mt-1">
-                <strong>You have reached the maximum amount of pass type ids you can manage.</strong> Please contact support if you need to manage more certificates.
-              </p>
+            <h3 className="text-sm font-medium text-blue-800">iOS Developer Account Required</h3>
+            <div className="mt-2 text-sm text-blue-700">
+              <p>For production use, you need your own Pass Type ID from your Apple Developer Account. Upload your certificate to get started.</p>
             </div>
           </div>
         </div>
@@ -406,20 +385,6 @@ export default function PassTypeIDsPage() {
                 />
               </div>
 
-              {/* Pass Type Identifier */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Pass Type Identifier
-                </label>
-                <input
-                  type="text"
-                  value={uploadData.identifier}
-                  onChange={(e) => setUploadData(prev => ({ ...prev, identifier: e.target.value }))}
-                  placeholder="pass.com.yourcompany.yourpass"
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
               {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -432,22 +397,8 @@ export default function PassTypeIDsPage() {
                   placeholder="e.g., Loyalty Program Pass"
                   className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
-              </div>
-
-              {/* Team Identifier */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Apple Team Identifier
-                </label>
-                <input
-                  type="text"
-                  value={uploadData.teamIdentifier}
-                  onChange={(e) => setUploadData(prev => ({ ...prev, teamIdentifier: e.target.value }))}
-                  placeholder="ABC123DEF4"
-                  className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
                 <p className="text-xs text-slate-500 mt-1">
-                  Find this in your Apple Developer account under Membership
+                  Pass Type ID and Team Identifier will be automatically extracted from your certificate
                 </p>
               </div>
 
