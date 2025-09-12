@@ -65,13 +65,16 @@ const publicRoutes = [
   '/business/members', // Temporary public access for development
   '/business/settings', // Temporary public access for development
   '/business/distribution', // Temporary public access for development
+  '/business/pass-type-ids', // Temporary public access for development
   '/agency/dashboard',    // Temporary public access for development
   '/api/business-settings', // API routes for development
   '/api/landing-pages', // API routes for development
   '/api/generate-landing-page', // API routes for development
   '/api/test-openai', // API routes for development
   '/api/upload-image', // Image upload API
-  '/api/templates' // Pass Designer templates API
+  '/api/templates', // Pass Designer templates API
+  '/api/create-pass', // Pass creation API for landing pages
+  '/api/pass-type-ids' // Pass Type IDs management API
 ]
 
   const isPublicRoute = publicRoutes.some(route => 

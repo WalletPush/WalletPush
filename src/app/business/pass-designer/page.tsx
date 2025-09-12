@@ -692,7 +692,7 @@ export default function PassDesigner() {
     setCurrentPass(passToSave)
   }, [currentPass])
 
-  // Save to Supabase (creates a template row)
+  // Save template to database
   const handleSaveToSupabase = useCallback(async () => {
     setIsSaving(true)
     try {
@@ -815,7 +815,7 @@ export default function PassDesigner() {
               </div>
             )}
             <div className="mt-3 flex gap-2">
-              <Button onClick={handleSaveToSupabase} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700">Save to Supabase</Button>
+              <Button onClick={handleSaveToSupabase} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700">Save Template</Button>
             </div>
           </div>
         </div>
