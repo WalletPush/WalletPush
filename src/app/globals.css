@@ -15,14 +15,14 @@
     --popover-foreground: 15 23 42;
     
     /* Brand Colors */
-    --primary: 99 102 241; /* Modern indigo */
+    --primary: 55 65 81; /* Charcoal gray-700 */
     --primary-foreground: 255 255 255;
     --secondary: 248 250 252;
     --secondary-foreground: 15 23 42;
     
     /* Accent Colors */
-    --accent: 239 246 255;
-    --accent-foreground: 59 130 246;
+    --accent: 243 244 246;
+    --accent-foreground: 55 65 81;
     --muted: 248 250 252;
     --muted-foreground: 100 116 139;
     
@@ -35,13 +35,13 @@
     /* UI Elements */
     --border: 226 232 240;
     --input: 226 232 240;
-    --ring: 99 102 241;
+    --ring: 55 65 81;
     --radius: 0.75rem;
     
     /* Dashboard specific */
     --sidebar-bg: 15 23 42;
     --sidebar-foreground: 203 213 225;
-    --sidebar-active: 99 102 241;
+    --sidebar-active: 55 65 81;
   }
   
   .dark {
@@ -52,13 +52,13 @@
     --popover: 30 41 59;
     --popover-foreground: 248 250 252;
     
-    --primary: 99 102 241;
+    --primary: 55 65 81;
     --primary-foreground: 255 255 255;
     --secondary: 30 41 59;
     --secondary-foreground: 248 250 252;
     
-    --accent: 30 41 59;
-    --accent-foreground: 148 163 184;
+    --accent: 55 65 81;
+    --accent-foreground: 209 213 219;
     --muted: 30 41 59;
     --muted-foreground: 148 163 184;
     
@@ -69,11 +69,11 @@
     
     --border: 51 65 85;
     --input: 51 65 85;
-    --ring: 99 102 241;
+    --ring: 55 65 81;
     
     --sidebar-bg: 15 23 42;
     --sidebar-foreground: 148 163 184;
-    --sidebar-active: 99 102 241;
+    --sidebar-active: 55 65 81;
   }
 }
 
@@ -95,10 +95,10 @@
 
   /* High-contrast, modern form defaults */
   input, select, textarea {
-    @apply bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500;
+    @apply bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-700 focus:border-gray-700;
   }
   label { @apply text-slate-700 text-sm font-medium; }
-  a { @apply text-indigo-600 hover:text-indigo-700; }
+  a { @apply text-gray-700 hover:text-gray-900; }
 }
 
 @layer components {
@@ -135,7 +135,7 @@
   }
   
   .btn-primary {
-    @apply btn-modern bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500;
+    @apply btn-modern bg-gray-700 text-white hover:bg-gray-800 focus:ring-gray-600;
   }
   
   .btn-secondary {
