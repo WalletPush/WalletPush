@@ -1293,7 +1293,7 @@ export default function PassDesigner() {
                       {t.template_json?.name || 'WalletPush Template'}
                       <span className="text-xs bg-slate-100 px-2 py-1 rounded">{new Date(t.created_at).toLocaleString()}</span>
                     </CardTitle>
-                    <CardDescription>{t.template_json?.description || 'Digital wallet pass template'}</CardDescription>
+                    <CardDescription className="text-slate-600">{t.template_json?.description || 'Digital wallet pass template'}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex gap-2">
@@ -2213,7 +2213,7 @@ export default function PassDesigner() {
                                     }))
                                   }
                                 }}
-                                className="text-blue-500 hover:text-blue-700 text-sm"
+                                className="text-gray-600 hover:text-gray-800 text-sm"
                                 title="Rename placeholder"
                               >
                                 ✏️
