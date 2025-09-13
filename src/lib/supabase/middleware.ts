@@ -74,13 +74,28 @@ const publicRoutes = [
   '/api/upload-image', // Image upload API
   '/api/templates', // Pass Designer templates API
   '/api/create-pass', // Pass creation API for landing pages
-  '/api/pass-type-ids' // Pass Type IDs management API
+  '/api/pass-type-ids', // Pass Type IDs management API
+  '/api/generate-pass', // PassKit generation API
+  '/api/test-pass', // Test PassKit generation
+  '/api/apple-pass', // Apple PassKit generation API
+  '/api/passkit', // Apple PassKit web service
+  '/api/passes', // Pass download API
+  '/api/validate-pass', // Pass validation API
+  '/admin/global-pass-type-id', // Admin page for global Pass Type ID management
+  '/api/admin/global-pass-type-id', // API for global Pass Type ID management
+  '/api/admin/wwdr-certificate' // API for WWDR certificate upload
 ]
 
   const isPublicRoute = publicRoutes.some(route => 
     request.nextUrl.pathname === route || 
     request.nextUrl.pathname.startsWith('/auth/') ||
-    request.nextUrl.pathname.startsWith('/api/pass-type-ids/')
+    request.nextUrl.pathname.startsWith('/api/pass-type-ids/') ||
+    request.nextUrl.pathname.startsWith('/api/passes/') ||
+    request.nextUrl.pathname.startsWith('/api/test-pass/') ||
+    request.nextUrl.pathname.startsWith('/api/apple-pass/') ||
+    request.nextUrl.pathname.startsWith('/api/passkit/') ||
+    request.nextUrl.pathname.startsWith('/api/validate-pass/') ||
+    request.nextUrl.pathname.startsWith('/api/admin/')
   )
 
   // Only redirect to login if it's not a public route and user is not authenticated

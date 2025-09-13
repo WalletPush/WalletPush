@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import { ChromePicker } from 'react-color'
+import toast, { Toaster } from 'react-hot-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -584,7 +585,6 @@ export default function PassDesigner() {
   const [passView, setPassView] = useState<'front' | 'back'>('front')
   const [selectedField, setSelectedField] = useState<PassField | null>(null)
   const [showColorPicker, setShowColorPicker] = useState<string | null>(null)
-  const [savedPasses, setSavedPasses] = useState<PassData[]>([])
   const [currentPass, setCurrentPass] = useState<PassData>({
     templateName: '',
     description: '',
@@ -601,6 +601,8 @@ export default function PassDesigner() {
   })
   const [supabaseTemplates, setSupabaseTemplates] = useState<any[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [passTypeIds, setPassTypeIds] = useState<{id: string, label: string, pass_type_identifier: string}[]>([])
+  const [loadingPassTypeIds, setLoadingPassTypeIds] = useState(false)
 
   // Load from localStorage once on mount
   useEffect(() => {
@@ -622,6 +624,22 @@ export default function PassDesigner() {
           setSupabaseTemplates(json.templates || [])
         }
       } catch {}
+    })()
+    
+    // Load Pass Type IDs
+    ;(async () => {
+      setLoadingPassTypeIds(true)
+      try {
+        const res = await fetch('/api/pass-type-ids', { cache: 'no-store' })
+        if (res.ok) {
+          const json = await res.json()
+          setPassTypeIds(json.passTypeIds || [])
+        }
+      } catch (error) {
+        console.error('Failed to load Pass Type IDs:', error)
+      } finally {
+        setLoadingPassTypeIds(false)
+      }
     })()
   }, [])
 
@@ -692,34 +710,342 @@ export default function PassDesigner() {
     setCurrentPass(passToSave)
   }, [currentPass])
 
-  // Save template to database
+  // Save template to database with ALL images and metadata
   const handleSaveToSupabase = useCallback(async () => {
     setIsSaving(true)
+    
+    const toastId = toast.loading('Saving template to database...')
+    
     try {
+      // Prepare complete template data with correct structure matching Supabase expectations
+      const templateData = {
+        name: currentPass.templateName || 'WalletPush Template',
+        description: currentPass.description || 'Digital wallet pass template',
+        passStyle: currentPass.style || 'storeCard', // Use 'style' field from currentPass
+        style: currentPass.style || 'storeCard', // Ensure we have both fields for compatibility
+        fields: currentPass.fields || [],
+        colors: {
+          backgroundColor: currentPass.backgroundColor || '#1a1a1a',
+          foregroundColor: currentPass.foregroundColor || '#ffffff', 
+          labelColor: currentPass.labelColor || '#cccccc'
+        },
+        barcodes: currentPass.barcodes || [],
+        
+        // Include placeholders with their default values
+        placeholders: currentPass.placeholders || [],
+        
+        // Include ALL images with multiple resolutions using base64 data
+        images: {
+          // Icon images (required by Apple)
+          icon: currentPass.images?.icon ? {
+            '1x': currentPass.images.icon.x1,
+            '2x': currentPass.images.icon.x2,
+            '3x': currentPass.images.icon.x3
+          } : null,
+          
+          // Logo images
+          logo: currentPass.images?.logo ? {
+            '1x': currentPass.images.logo.x1,
+            '2x': currentPass.images.logo.x2,
+            '3x': currentPass.images.logo.x3
+          } : null,
+          
+          // Strip images
+          strip: currentPass.images?.strip ? {
+            '1x': currentPass.images.strip.x1,
+            '2x': currentPass.images.strip.x2,
+            '3x': currentPass.images.strip.x3
+          } : null,
+          
+          // Background images (for event tickets)
+          background: currentPass.images?.background ? {
+            '1x': currentPass.images.background.x1,
+            '2x': currentPass.images.background.x2,
+            '3x': currentPass.images.background.x3
+          } : null,
+          
+          // Thumbnail images
+          thumbnail: currentPass.images?.thumbnail ? {
+            '1x': currentPass.images.thumbnail.x1,
+            '2x': currentPass.images.thumbnail.x2,
+            '3x': currentPass.images.thumbnail.x3
+          } : null
+        },
+        
+        // Metadata
+        metadata: {
+          created_by: 'pass_designer',
+          version: 1, // Use integer instead of string
+          created_at: new Date().toISOString(),
+          total_fields: currentPass.fields?.length || 0,
+          total_barcodes: currentPass.barcodes?.length || 0,
+          has_images: !!(currentPass.images?.icon || currentPass.images?.logo || currentPass.images?.strip),
+          pass_type_identifier: currentPass.passTypeIdentifier,
+          organization_name: currentPass.organizationName,
+          pass_style: currentPass.style || 'storeCard' // Include the pass style in metadata too
+        }
+      }
+
+      console.log('💾 Saving complete template data:', templateData)
+
       const res = await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ template: currentPass })
+        body: JSON.stringify(templateData)
       })
-      if (!res.ok) throw new Error(await res.text())
-      // refresh list
+      
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('❌ Save failed:', errorText)
+        throw new Error(errorText)
+      }
+
+      const result = await res.json()
+      console.log('✅ Template saved successfully:', result)
+
+      // Update currentPass with the saved template ID and mark as saved
+      setCurrentPass(prev => ({
+        ...prev,
+        id: result.template?.id || result.id,
+        isSaved: true
+      }))
+
+      // Refresh the templates list
       const list = await fetch('/api/templates')
       if (list.ok) {
         const json = await list.json()
         setSupabaseTemplates(json.templates || [])
-        alert('Saved to Supabase.')
       }
-    } catch (e) {
-      console.error(e)
-      alert('Failed to save to Supabase')
+
+      // Success toast
+      toast.success('🎉 Pass template has been saved!', {
+        id: toastId,
+        duration: 3000,
+        icon: '✅'
+      })
+      
+    } catch (error: any) {
+      console.error('❌ Error saving template:', error)
+      
+      // Error toast
+      toast.error(`Failed to save template: ${error.message}`, {
+        id: toastId,
+        duration: 5000,
+        icon: '❌'
+      })
     } finally {
       setIsSaving(false)
     }
   }, [currentPass])
 
+  // Preview pass - generate and download .pkpass file
+  const handlePreviewPass = useCallback(async () => {
+    const toastId = toast.loading('Generating pass preview...')
+    
+    try {
+      // Validate required fields
+      if (!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier) {
+        throw new Error('Please complete template setup: name, style, and pass type identifier are required')
+      }
+
+      // Save template first if not saved
+      let templateId = currentPass.id
+      if (!templateId) {
+        await handleSaveToSupabase()
+        templateId = currentPass.id
+      }
+
+      if (!templateId) {
+        throw new Error('Failed to save template. Please try saving first.')
+      }
+
+      // Prepare sample form data for preview
+      const sampleFormData: { [key: string]: string } = {}
+      
+      // Extract placeholders from fields and provide sample data
+      currentPass.fields.forEach(field => {
+        const placeholderRegex = /\$\{([A-Za-z0-9_]+)\}/g
+        let match
+        while ((match = placeholderRegex.exec(field.value || '')) !== null) {
+          const placeholder = match[1] // Keep exact case from template
+          if (!sampleFormData[placeholder]) {
+            // Provide sample values based on common placeholder names (case-insensitive matching)
+            const lowerPlaceholder = placeholder.toLowerCase()
+            switch (lowerPlaceholder) {
+              case 'first_name':
+              case 'firstname':
+                sampleFormData[placeholder] = 'John'
+                break
+              case 'last_name':
+              case 'lastname':
+                sampleFormData[placeholder] = 'Doe'
+                break
+              case 'email':
+                sampleFormData[placeholder] = 'john.doe@example.com'
+                break
+              case 'points':
+                sampleFormData[placeholder] = '1000'
+                break
+              case 'balance':
+                sampleFormData[placeholder] = '$25.00'
+                break
+              case 'tier':
+                sampleFormData[placeholder] = 'Gold'
+                break
+              case 'member_since':
+                sampleFormData[placeholder] = '2024'
+                break
+              case 'phone':
+                sampleFormData[placeholder] = '+1 (555) 123-4567'
+                break
+              case 'id':
+              case 'member_id':
+                sampleFormData[placeholder] = 'MB12345'
+                break
+              case 'current_offer':
+                sampleFormData[placeholder] = '20% off next purchase'
+                break
+              case 'barcode_value':
+              case 'member_id':
+                sampleFormData[placeholder] = 'PREVIEW123'
+                break
+              default:
+                sampleFormData[placeholder] = `Sample ${placeholder}`
+            }
+          }
+        }
+      })
+
+      // Also check barcodes for placeholders
+      currentPass.barcodes.forEach(barcode => {
+        const placeholderRegex = /\$\{([A-Za-z0-9_]+)\}/g
+        let match
+        while ((match = placeholderRegex.exec(barcode.message || '')) !== null) {
+          const placeholder = match[1] // Keep exact case from template
+          if (!sampleFormData[placeholder]) {
+            const lowerPlaceholder = placeholder.toLowerCase()
+            if (lowerPlaceholder === 'id' || lowerPlaceholder === 'member_id' || lowerPlaceholder === 'barcode_value') {
+              sampleFormData[placeholder] = 'PREVIEW123'
+            } else {
+              sampleFormData[placeholder] = `Sample ${placeholder}`
+            }
+          }
+        }
+      })
+
+      console.log('🔍 Preview form data:', sampleFormData)
+
+      // Generate the .pkpass file using the Apple PassKit generator
+      const response = await fetch('/api/apple-pass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId: templateId,
+          formData: sampleFormData,
+          userId: 'preview-user',
+          deviceType: 'desktop'
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate pass preview')
+      }
+
+      const result = await response.json()
+      console.log('✅ Preview generated:', result)
+
+      // Download the pass file
+      if (result.meta?.downloadUrl) {
+        const downloadResponse = await fetch(result.meta.downloadUrl)
+        if (downloadResponse.ok) {
+          const blob = await downloadResponse.blob()
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${currentPass.templateName || 'pass'}-preview.pkpass`
+          document.body.appendChild(a)
+          a.click()
+          window.URL.revokeObjectURL(url)
+          document.body.removeChild(a)
+        }
+      }
+
+      // Success toast
+      toast.success('🎉 Pass preview generated! Check your downloads folder.', {
+        id: toastId,
+        duration: 4000,
+        icon: '📱'
+      })
+      
+    } catch (error: any) {
+      console.error('❌ Error generating preview:', error)
+      
+      // Error toast
+      toast.error(`Failed to generate preview: ${error.message}`, {
+        id: toastId,
+        duration: 5000,
+        icon: '❌'
+      })
+    }
+  }, [currentPass, handleSaveToSupabase])
+
   // Load pass
-  const handleLoadPass = useCallback((pass: PassData) => {
-    setCurrentPass(pass)
+  const handleLoadPass = useCallback((templateJson: any) => {
+    console.log('🔄 Loading template:', templateJson)
+    
+    // Convert template JSON back to PassData format
+    const loadedPass: PassData = {
+      id: templateJson.id || `loaded_${Date.now()}`,
+      templateName: templateJson.name || 'WalletPush',
+      description: templateJson.description || 'Digital wallet pass template',
+      style: templateJson.passStyle || templateJson.style || 'storeCard',
+      passTypeIdentifier: templateJson.metadata?.pass_type_identifier || 'pass.com.walletpushio',
+      organizationName: templateJson.metadata?.organization_name || 'WalletPush',
+      foregroundColor: templateJson.colors?.foregroundColor || '#ffffff',
+      backgroundColor: templateJson.colors?.backgroundColor || '#1a1a1a',
+      labelColor: templateJson.colors?.labelColor || '#cccccc',
+      fields: templateJson.fields || [],
+      barcodes: templateJson.barcodes || [],
+      locations: [],
+      images: {
+        logo: templateJson.images?.logo ? {
+          file: null, // File object doesn't exist after save/load
+          x1: templateJson.images.logo['1x'] || templateJson.images.logo.x1,
+          x2: templateJson.images.logo['2x'] || templateJson.images.logo.x2,
+          x3: templateJson.images.logo['3x'] || templateJson.images.logo.x3
+        } : undefined,
+        strip: templateJson.images?.strip ? {
+          file: null,
+          x1: templateJson.images.strip['1x'] || templateJson.images.strip.x1,
+          x2: templateJson.images.strip['2x'] || templateJson.images.strip.x2,
+          x3: templateJson.images.strip['3x'] || templateJson.images.strip.x3
+        } : undefined,
+        icon: templateJson.images?.icon ? {
+          file: null,
+          x1: templateJson.images.icon['1x'] || templateJson.images.icon.x1,
+          x2: templateJson.images.icon['2x'] || templateJson.images.icon.x2,
+          x3: templateJson.images.icon['3x'] || templateJson.images.icon.x3
+        } : undefined,
+        background: templateJson.images?.background ? {
+          file: null,
+          x1: templateJson.images.background['1x'] || templateJson.images.background.x1,
+          x2: templateJson.images.background['2x'] || templateJson.images.background.x2,
+          x3: templateJson.images.background['3x'] || templateJson.images.background.x3
+        } : undefined,
+        thumbnail: templateJson.images?.thumbnail ? {
+          file: null,
+          x1: templateJson.images.thumbnail['1x'] || templateJson.images.thumbnail.x1,
+          x2: templateJson.images.thumbnail['2x'] || templateJson.images.thumbnail.x2,
+          x3: templateJson.images.thumbnail['3x'] || templateJson.images.thumbnail.x3
+        } : undefined
+      },
+      placeholders: templateJson.placeholders || [],
+      isSaved: true
+    }
+    
+    console.log('✅ Converted template to PassData:', loadedPass)
+    setCurrentPass(loadedPass)
     setStep('design')
   }, [])
 
@@ -740,82 +1066,39 @@ export default function PassDesigner() {
             </Button>
           </div>
 
-          {savedPasses.length === 0 ? (
-            <Card className="p-8 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">No passes yet</h3>
-              <p className="text-slate-600 mb-4">Create your first wallet pass template to get started</p>
-              <Button onClick={() => setStep('create')}>Create Pass Template</Button>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {savedPasses.map((pass) => (
-                <Card key={pass.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-slate-900">
-                      {pass.templateName}
-                      <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded">
-                        {pass.style}
-                      </span>
-                    </CardTitle>
-                    <CardDescription className="text-slate-600">{pass.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleLoadPass(pass)}
-                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                      >
-                        Edit
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="text-slate-700 border-slate-300"
-                        onClick={() => {
-                          setSavedPasses(prev => prev.filter(p => p.id !== pass.id))
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {/* Supabase templates */}
-          <div className="mt-8">
-            <h3 className="text-xl font-semibold text-slate-900 mb-3">Supabase Templates</h3>
+          {/* Templates */}
+          <div>
+            <h3 className="text-xl font-semibold text-slate-900 mb-3">Templates</h3>
             {supabaseTemplates.length === 0 ? (
               <div className="text-sm text-slate-500">No templates yet</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {supabaseTemplates.map((t: any) => (
-                  <Card key={t.id}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        v{t.version}
-                        <span className="text-xs bg-slate-100 px-2 py-1 rounded">{new Date(t.created_at).toLocaleString()}</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleLoadPass(t.template_json)}>Load</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                <Card key={t.id}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      {t.template_json?.name || 'WalletPush Template'}
+                      <span className="text-xs bg-slate-100 px-2 py-1 rounded">{new Date(t.created_at).toLocaleString()}</span>
+                    </CardTitle>
+                    <CardDescription>{t.template_json?.description || 'Digital wallet pass template'}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleLoadPass(t.template_json)}>Load</Button>
+                    </div>
+                  </CardContent>
+                </Card>
                 ))}
               </div>
             )}
             <div className="mt-3 flex gap-2">
-              <Button onClick={handleSaveToSupabase} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700">Save Template</Button>
+              <Button 
+                onClick={handleSaveToSupabase} 
+                disabled={isSaving || !currentPass.templateName} 
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                {isSaving ? 'Saving...' : 'Save Current Template'}
+              </Button>
             </div>
           </div>
         </div>
@@ -890,15 +1173,26 @@ export default function PassDesigner() {
 
                 <div className="space-y-2">
                   <Label>Pass Type Identifier</Label>
-                  <select
+                  <select 
                     value={currentPass.passTypeIdentifier}
                     onChange={(e) => setCurrentPass(prev => ({...prev, passTypeIdentifier: e.target.value}))}
                     className="w-full h-10 px-3 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled={loadingPassTypeIds}
                   >
-                    <option value="">Select Pass Type ID</option>
-                    <option value="pass.com.walletpush.membership">pass.com.walletpush.membership</option>
-                    <option value="pass.com.walletpush.loyalty">pass.com.walletpush.loyalty</option>
-                    <option value="pass.com.walletpush.storecard">pass.com.walletpush.storecard</option>
+                    {loadingPassTypeIds ? (
+                      <option value="">Loading Pass Type IDs...</option>
+                    ) : passTypeIds.length === 0 ? (
+                      <option value="">No Pass Type IDs found</option>
+                    ) : (
+                      <>
+                        <option value="">✓ Select Pass Type ID</option>
+                        {passTypeIds.map((passType) => (
+                          <option key={passType.id} value={passType.pass_type_identifier}>
+                            {passType.label} ({passType.pass_type_identifier})
+                          </option>
+                        ))}
+                      </>
+                    )}
                   </select>
                 </div>
               </div>
@@ -925,6 +1219,28 @@ export default function PassDesigner() {
   // Main Designer Interface
   return (
     <DndProvider backend={HTML5Backend}>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#1f2937',
+            color: '#f9fafb',
+            border: '1px solid #374151',
+          },
+          success: {
+            style: {
+              background: '#059669',
+              color: '#ffffff',
+            },
+          },
+          error: {
+            style: {
+              background: '#dc2626',
+              color: '#ffffff',
+            },
+          },
+        }}
+      />
       <div className="min-h-screen bg-slate-50">
         {/* Header */}
         <div className="bg-white border-b border-slate-200 px-6 py-4">
@@ -942,10 +1258,18 @@ export default function PassDesigner() {
               </h1>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={handleSavePass}>
-                Save
+              <Button 
+                variant="outline" 
+                onClick={handleSaveToSupabase}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : (currentPass.id && currentPass.isSaved ? 'Update' : 'Save')}
               </Button>
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                onClick={handlePreviewPass}
+                disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier}
+              >
                 Preview
               </Button>
             </div>
@@ -1047,6 +1371,30 @@ export default function PassDesigner() {
                       placeholder="Your business name"
                       className="mt-1"
                     />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium">Pass Type ID</Label>
+                    {loadingPassTypeIds ? (
+                      <div className="text-sm text-gray-500 mt-1">Loading Pass Type IDs...</div>
+                    ) : passTypeIds.length > 0 ? (
+                      <select 
+                        value={currentPass.passTypeIdentifier || ''}
+                        onChange={(e) => setCurrentPass(prev => ({...prev, passTypeIdentifier: e.target.value}))}
+                        className="w-full mt-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      >
+                        <option value="">Select Pass Type ID</option>
+                        {passTypeIds.map((passType) => (
+                          <option key={passType.id} value={passType.pass_type_identifier}>
+                            {passType.label} ({passType.pass_type_identifier})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="text-sm text-gray-500 mt-1">
+                        No Pass Type IDs found. Upload a certificate in Pass Type IDs settings.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1383,7 +1731,7 @@ export default function PassDesigner() {
                               src={getImagePreviewUrl(currentPass.images.logo)} 
                               className="w-8 h-8 object-contain"
                             />
-                            <span className="text-sm">{currentPass.images.logo.file.name}</span>
+                            <span className="text-sm">{currentPass.images.logo.file?.name || 'logo.png'}</span>
                             <div className="text-xs text-slate-400">1x/2x/3x</div>
                           </div>
                         ) : (
@@ -1432,7 +1780,7 @@ export default function PassDesigner() {
                               src={getImagePreviewUrl(currentPass.images.strip)} 
                               className="w-16 h-5 object-cover rounded"
                             />
-                            <span className="text-sm">{currentPass.images.strip.file.name}</span>
+                            <span className="text-sm">{currentPass.images.strip.file?.name || 'strip.png'}</span>
                             <div className="text-xs text-slate-400">1x/2x/3x</div>
                           </div>
                         ) : (
@@ -1481,7 +1829,7 @@ export default function PassDesigner() {
                               src={getImagePreviewUrl(currentPass.images.icon)} 
                               className="w-8 h-8 object-contain"
                             />
-                            <span className="text-sm">{currentPass.images.icon.file.name}</span>
+                            <span className="text-sm">{currentPass.images.icon.file?.name || 'icon.png'}</span>
                             <div className="text-xs text-slate-400">1x/2x/3x</div>
                           </div>
                         ) : (
