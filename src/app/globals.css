@@ -20,14 +20,14 @@
     --muted-color: 107 114 128; /* Lighter charcoal for muted text (gray-500) */
     
     /* Brand Colors */
-    --primary: 67 114 234; /* Slightly lighter blue than #3862EA */
+    --primary: 22 94 239; /* #165EEF - exact blue requested */
     --primary-foreground: 255 255 255;
     --secondary: 248 250 252;
     --secondary-foreground: 15 23 42;
     
     /* Accent Colors */
     --accent: 243 244 246;
-    --accent-foreground: 67 114 234;
+    --accent-foreground: 22 94 239;
     --muted: 248 250 252;
     --muted-foreground: 107 114 128;
     
@@ -40,13 +40,13 @@
     /* UI Elements */
     --border: 226 232 240;
     --input: 226 232 240;
-    --ring: 67 114 234;
+    --ring: 22 94 239;
     --radius: 0.75rem;
     
     /* Dashboard specific */
     --sidebar-bg: 15 23 42;
     --sidebar-foreground: 203 213 225;
-    --sidebar-active: 67 114 234;
+    --sidebar-active: 22 94 239;
   }
   
   .dark {
@@ -134,6 +134,11 @@
   
   a:hover {
     opacity: 0.8;
+  }
+  
+  /* Override for sidebar navigation - maintain #C6C8CC color */
+  .sidebar-item, .sidebar-item:hover, .sidebar-item.active {
+    color: #C6C8CC !important;
   }
 }
 

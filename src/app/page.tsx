@@ -25,7 +25,7 @@ export default function LandingPage() {
                 </Button>
               </Link>
               <Link href="/auth/sign-up?type=business">
-                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                <Button className="btn-primary">
                   Start Free Trial
                 </Button>
               </Link>
