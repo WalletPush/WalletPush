@@ -8,7 +8,7 @@ import { passStore } from '../../route'
  */
 async function getMostRecentTemplateId(): Promise<string> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/api/templates`, { cache: 'no-store' })
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/templates`, { cache: 'no-store' })
     if (!response.ok) {
       throw new Error(`Failed to fetch templates: ${response.status}`)
     }
@@ -33,7 +33,7 @@ async function extractPlaceholderDefaultsFromTemplate(templateId: string): Promi
   try {
     console.log(`🎯 Extracting placeholders for template: ${templateId}`)
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/api/templates`, { cache: 'no-store' })
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/templates`, { cache: 'no-store' })
     if (!response.ok) {
       throw new Error(`Failed to fetch templates: ${response.status}`)
     }
@@ -54,15 +54,42 @@ async function extractPlaceholderDefaultsFromTemplate(templateId: string): Promi
       return template.passkit_json.placeholders
     }
     
-    // Fallback: Extract placeholders from template structure
-    console.log(`⚠️ No stored placeholders found, using fallback defaults`)
+    // Extract placeholders from the template's field values
+    console.log(`⚠️ No stored placeholders found, extracting from template fields`)
+    const placeholders: { [key: string]: string } = {}
+    
+    // Extract from template_json fields
+    if (template.template_json?.fields) {
+      for (const field of template.template_json.fields) {
+        if (field.value && field.value.includes('${')) {
+          // Extract placeholder name from ${PLACEHOLDER_NAME}
+          const matches = field.value.match(/\$\{([^}]+)\}/g)
+          if (matches) {
+            for (const match of matches) {
+              const placeholderName = match.replace(/\$\{|\}/g, '')
+              // Use the field's current value or a default
+              placeholders[placeholderName] = field.defaultValue || field.value || `Sample ${placeholderName}`
+            }
+          }
+        }
+      }
+    }
+    
+    console.log(`🎯 Extracted placeholders from template:`, placeholders)
+    
+    // If we found placeholders, use them
+    if (Object.keys(placeholders).length > 0) {
+      return placeholders
+    }
+    
+    // Ultimate fallback for Blue Karma template
     return {
       'Points': '0',
       'Current_Offer': '20% Discount Off Your Next Visit',
       'First_Name': 'John',
       'Last_Name': 'Doe',
       'MEMBER_ID': '1234',
-      'Email': 'john.doe@example.com'
+      'Email': 'john.doe@bluekarma.com'
     }
     
   } catch (error) {

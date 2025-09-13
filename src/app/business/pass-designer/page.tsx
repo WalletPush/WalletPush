@@ -124,8 +124,8 @@ interface PassData {
 
 const FIELD_TYPES = [
   { type: 'headerFields', label: 'Header Field', description: 'Top of pass' },
-  { type: 'primaryFields', label: 'Primary Field', description: 'Main content area' },
-  { type: 'secondaryFields', label: 'Secondary Field', description: 'Below primary' },
+  { type: 'primaryFields', label: 'Primary Field', description: 'Overlaid on strip image' },
+  { type: 'secondaryFields', label: 'Secondary Field', description: 'Below strip image' },
   { type: 'auxiliaryFields', label: 'Auxiliary Field', description: 'Bottom area' },
   { type: 'backFields', label: 'Back Field', description: 'Back of pass' },
   { type: 'barcode', label: 'Barcode', description: 'QR, PDF417, Aztec, Code128' }
@@ -286,36 +286,59 @@ function PassPreview({
                 </div>
               </div>
 
-              {/* Strip Image - BETWEEN Header and Primary Fields (like Passslot) */}
+              {/* Strip Image with Primary Fields Overlay */}
               {passData.images.strip && (
                 <div className="relative w-full h-24 mb-2" style={{marginLeft: '1rem', marginRight: '1rem', width: 'calc(100% - 2rem)'}}>
                   <img 
                     src={getImagePreviewUrl(passData.images.strip)} 
                     className="w-full h-full object-cover rounded"
                   />
+                  
+                  {/* Primary Fields - Overlaid on Strip Image */}
+                  <div className="absolute inset-0 flex items-center px-4">
+                    {passData.fields
+                      .filter(field => field.type === 'primaryFields')
+                      .slice(0, constraints?.frontFields.primaryFields.max || 1)
+                      .map((field, index) => (
+                        <div 
+                          key={field.id}
+                          onClick={() => onFieldClick(field)}
+                          className="cursor-pointer hover:bg-black/10 p-2 rounded relative z-10"
+                        >
+                          <div className="text-xs opacity-75" style={{ color: passData.labelColor }}>
+                            {field.label}
+                          </div>
+                          <div className="text-2xl font-bold text-white drop-shadow-lg">
+                            {field.value || `${field.label} Value`}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               )}
 
-              {/* Primary Fields */}
-              <div className="px-4 py-6 relative">
-                {passData.fields
-                  .filter(field => field.type === 'primaryFields')
-                  .slice(0, constraints?.frontFields.primaryFields.max || 1)
-                  .map((field, index) => (
-                    <div 
-                      key={field.id}
-                      onClick={() => onFieldClick(field)}
-                      className="cursor-pointer hover:bg-black/10 p-2 rounded mb-4 relative z-10"
-                    >
-                      <div className="text-xs opacity-75" style={{ color: passData.labelColor }}>
-                        {field.label}
+              {/* Primary Fields - Fallback when no strip image */}
+              {!passData.images.strip && (
+                <div className="px-4 py-6 relative">
+                  {passData.fields
+                    .filter(field => field.type === 'primaryFields')
+                    .slice(0, constraints?.frontFields.primaryFields.max || 1)
+                    .map((field, index) => (
+                      <div 
+                        key={field.id}
+                        onClick={() => onFieldClick(field)}
+                        className="cursor-pointer hover:bg-black/10 p-2 rounded mb-4 relative z-10"
+                      >
+                        <div className="text-xs opacity-75" style={{ color: passData.labelColor }}>
+                          {field.label}
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {field.value || `${field.label} Value`}
+                        </div>
                       </div>
-                      <div className="text-2xl font-bold">
-                        {field.value || `${field.label} Value`}
-                      </div>
-                    </div>
-                  ))}
-              </div>
+                    ))}
+                </div>
+              )}
 
               {/* Secondary & Auxiliary Fields */}
               <div className="px-4 py-4 grid grid-cols-2 gap-4">
@@ -656,18 +679,31 @@ export default function PassDesigner() {
         }]
       }))
     } else {
-      const newField: PassField = {
-        id: `field_${Date.now()}`,
-        type: fieldType as any,
-        label: `New ${fieldType.replace('Fields', '')}`,
-        value: '',
-        key: `key_${Date.now()}`
-      }
-      
-      setCurrentPass(prev => ({
-        ...prev,
-        fields: [...prev.fields, newField]
-      }))
+      setCurrentPass(prev => {
+        // Generate a meaningful placeholder name based on field type
+        const fieldTypeName = fieldType.replace('Fields', '').toLowerCase()
+        const existingFields = prev.fields.filter(f => f.type === fieldType)
+        const fieldNumber = existingFields.length + 1
+        
+        const placeholderName = fieldTypeName === 'secondary' ? `SECONDARY_${fieldNumber}` :
+                               fieldTypeName === 'auxiliary' ? `AUXILIARY_${fieldNumber}` :
+                               fieldTypeName === 'header' ? `HEADER_${fieldNumber}` :
+                               fieldTypeName === 'primary' ? `PRIMARY_${fieldNumber}` :
+                               `BACK_${fieldNumber}`
+        
+        const newField: PassField = {
+          id: `field_${Date.now()}`,
+          type: fieldType as any,
+          label: `New ${fieldType.replace('Fields', '')}`,
+          value: `\${${placeholderName}}`,
+          key: `key_${Date.now()}`
+        }
+        
+        return {
+          ...prev,
+          fields: [...prev.fields, newField]
+        }
+      })
     }
   }, [])
 
@@ -717,6 +753,23 @@ export default function PassDesigner() {
     const toastId = toast.loading('Saving template to database...')
     
     try {
+      // Extract current placeholders from fields for passkit_json
+      const currentPlaceholders: { [key: string]: string } = {}
+      
+      // Scan all fields for placeholder patterns
+      currentPass.fields.forEach(field => {
+        const text = `${field.label || ''} ${field.value || ''}`
+        const matches = text.match(/\$\{([A-Za-z0-9_]+)\}/g)
+        if (matches) {
+          matches.forEach(match => {
+            const key = match.replace(/\$\{|\}/g, '')
+            // Use existing placeholder value or create a sample one
+            const existingPlaceholder = currentPass.placeholders?.find(p => p.key === key)
+            currentPlaceholders[key] = existingPlaceholder?.defaultValue || `Sample ${key}`
+          })
+        }
+      })
+
       // Prepare complete template data with correct structure matching Supabase expectations
       const templateData = {
         name: currentPass.templateName || 'WalletPush Template',
@@ -786,12 +839,43 @@ export default function PassDesigner() {
         }
       }
 
+      // CRITICAL: Create passkit_json for Apple Pass generation
+      // This is what the ApplePassKitGenerator actually uses
+      const passkitJson = {
+        formatVersion: 1,
+        passTypeIdentifier: currentPass.passTypeIdentifier,
+        organizationName: currentPass.organizationName,
+        description: currentPass.description || 'Digital wallet pass',
+        backgroundColor: currentPass.backgroundColor || '#1a1a1a',
+        foregroundColor: currentPass.foregroundColor || '#ffffff',
+        labelColor: currentPass.labelColor || '#cccccc',
+        
+        // CRITICAL: Include the extracted placeholders
+        placeholders: currentPlaceholders,
+        
+        // CRITICAL: Add the required Apple Wallet style object
+        [currentPass.style || 'storeCard']: {
+          headerFields: currentPass.fields.filter(f => f.type === 'headerFields'),
+          primaryFields: currentPass.fields.filter(f => f.type === 'primaryFields'),
+          secondaryFields: currentPass.fields.filter(f => f.type === 'secondaryFields'),
+          auxiliaryFields: currentPass.fields.filter(f => f.type === 'auxiliaryFields'),
+          backFields: currentPass.fields.filter(f => f.type === 'backFields')
+        },
+        
+        // Add barcodes at root level
+        barcodes: currentPass.barcodes || []
+      }
+
       console.log('💾 Saving complete template data:', templateData)
+      console.log('🎯 PassKit JSON with placeholders:', passkitJson)
 
       const res = await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(templateData)
+        body: JSON.stringify({
+          ...templateData,
+          passkit_json: passkitJson  // CRITICAL: Add the passkit_json field
+        })
       })
       
       if (!res.ok) {
@@ -1927,17 +2011,25 @@ export default function PassDesigner() {
                   <Button 
                     className="w-full bg-indigo-600 hover:bg-indigo-700"
                     onClick={() => {
-                      const newField: PassField = {
-                        id: `placeholder_${Date.now()}`,
-                        type: 'backFields',
-                        label: 'New Placeholder',
-                        value: '${NEW_VALUE}',
-                        key: `placeholder_${Date.now()}`
-                      }
-                      setCurrentPass(prev => ({
-                        ...prev,
-                        fields: [...prev.fields, newField]
-                      }))
+                      setCurrentPass(prev => {
+                        // Generate a unique placeholder name
+                        const existingBackFields = prev.fields.filter(f => f.type === 'backFields')
+                        const fieldNumber = existingBackFields.length + 1
+                        const placeholderName = `CUSTOM_${fieldNumber}`
+                        
+                        const newField: PassField = {
+                          id: `placeholder_${Date.now()}`,
+                          type: 'backFields',
+                          label: 'Custom Field',
+                          value: `\${${placeholderName}}`,
+                          key: `placeholder_${Date.now()}`
+                        }
+                        
+                        return {
+                          ...prev,
+                          fields: [...prev.fields, newField]
+                        }
+                      })
                     }}
                   >
                     + Add New Placeholder
@@ -1968,6 +2060,55 @@ export default function PassDesigner() {
                         <div key={def.key} className="border border-slate-200 rounded-lg p-3">
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded text-indigo-600">${`{${def.key}}`}</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  const newName = prompt(`Rename placeholder "${def.key}" to:`, def.key)
+                                  if (newName && newName !== def.key && newName.match(/^[A-Za-z0-9_]+$/)) {
+                                    // Update all fields that use this placeholder
+                                    setCurrentPass(prev => ({
+                                      ...prev,
+                                      fields: prev.fields.map(f => ({
+                                        ...f,
+                                        label: f.label?.replace(`\${${def.key}}`, `\${${newName}}`),
+                                        value: f.value?.replace(`\${${def.key}}`, `\${${newName}}`)
+                                      })),
+                                      barcodes: prev.barcodes.map(b => ({
+                                        ...b,
+                                        message: b.message?.replace(`\${${def.key}}`, `\${${newName}}`),
+                                        altText: b.altText?.replace(`\${${def.key}}`, `\${${newName}}`)
+                                      })),
+                                      placeholders: (prev.placeholders || []).map(p => 
+                                        p.key === def.key ? { ...p, key: newName } : p
+                                      )
+                                    }))
+                                  }
+                                }}
+                                className="text-blue-500 hover:text-blue-700 text-sm"
+                                title="Rename placeholder"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Delete placeholder "\${${def.key}}" and all fields using it?`)) {
+                                    // Remove the placeholder by removing all fields that use it
+                                    setCurrentPass(prev => ({
+                                      ...prev,
+                                      fields: prev.fields.filter(f => {
+                                        const txt = `${f.label || ''} ${f.value || ''}`
+                                        return !txt.includes(`\${${def.key}}`)
+                                      }),
+                                      placeholders: (prev.placeholders || []).filter(p => p.key !== def.key)
+                                    }))
+                                  }
+                                }}
+                                className="text-red-500 hover:text-red-700 text-sm"
+                                title="Delete placeholder"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
