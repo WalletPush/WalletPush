@@ -71,7 +71,7 @@ interface PassField {
 }
 
 interface PassImage {
-  file: File
+  file?: File // Optional since it won't exist after loading from database
   x1: string // Base64 1x resolution
   x2: string // Base64 2x resolution  
   x3: string // Base64 3x resolution
@@ -120,6 +120,8 @@ interface PassData {
     thumbnail?: PassImage
   }
   placeholders?: PlaceholderDef[]
+  tenantId?: string // NEW: Multi-tenant support
+  isSaved?: boolean
 }
 
 const FIELD_TYPES = [
@@ -255,7 +257,7 @@ function PassPreview({
                 {/* Logo Area - TOP LEFT - BIGGER SIZE */}
                 <div className="w-32 h-12 bg-white/20 rounded flex items-center justify-center mr-4 flex-shrink-0">
                   {passData.images.logo ? (
-                    <img src={getImagePreviewUrl(passData.images.logo)} className="w-full h-full object-contain rounded" />
+                    <img src={passData.images.logo.file ? getImagePreviewUrl(passData.images.logo as ProcessedImage) : passData.images.logo.x1} className="w-full h-full object-contain rounded" />
                   ) : (
                     <div className="text-xs text-center opacity-75">LOGO</div>
                   )}
@@ -290,7 +292,7 @@ function PassPreview({
               {passData.images.strip && (
                 <div className="relative w-full h-24 mb-2" style={{marginLeft: '1rem', marginRight: '1rem', width: 'calc(100% - 2rem)'}}>
                   <img 
-                    src={getImagePreviewUrl(passData.images.strip)} 
+                    src={passData.images.strip?.file ? getImagePreviewUrl(passData.images.strip as ProcessedImage) : passData.images.strip?.x1} 
                     className="w-full h-full object-cover rounded"
                   />
                   
@@ -608,6 +610,12 @@ export default function PassDesigner() {
   const [passView, setPassView] = useState<'front' | 'back'>('front')
   const [selectedField, setSelectedField] = useState<PassField | null>(null)
   const [showColorPicker, setShowColorPicker] = useState<string | null>(null)
+  
+  // NEW: Multi-tenant state management
+  const [currentTenant, setCurrentTenant] = useState<{id: string, name: string} | null>(null)
+  const [tenants, setTenants] = useState<{id: string, name: string}[]>([])
+  const [loadingTenant, setLoadingTenant] = useState(true)
+  
   const [currentPass, setCurrentPass] = useState<PassData>({
     templateName: '',
     description: '',
@@ -620,15 +628,70 @@ export default function PassDesigner() {
     fields: [],
     barcodes: [],
     locations: [],
-    images: {}
+    images: {},
+    tenantId: undefined // NEW: Add tenant scoping
   })
   const [supabaseTemplates, setSupabaseTemplates] = useState<any[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [passTypeIds, setPassTypeIds] = useState<{id: string, label: string, pass_type_identifier: string}[]>([])
   const [loadingPassTypeIds, setLoadingPassTypeIds] = useState(false)
+  
+  // NEW: Rate limiting for previews
+  const [lastPreviewTime, setLastPreviewTime] = useState(0)
+  
+  // Local saved passes state
+  const [savedPasses, setSavedPasses] = useState<PassData[]>([])
 
   // Load from localStorage once on mount
   useEffect(() => {
+    // NEW: Fetch current tenant first
+    const fetchTenant = async () => {
+      try {
+        setLoadingTenant(true)
+        const res = await fetch(`/api/tenants?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+        })
+        if (res.ok) {
+          const { tenant, allTenants } = await res.json()
+          setCurrentTenant(tenant)
+          if (allTenants) setTenants(allTenants) // For admin tenant selector
+          
+          // Load templates scoped to tenant
+          if (tenant) {
+            const templatesRes = await fetch(`/api/templates?tenantId=${tenant.id}&t=${Date.now()}`, {
+              cache: 'no-store',
+              headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+            })
+            if (templatesRes.ok) {
+              const json = await templatesRes.json()
+              setSupabaseTemplates(json.templates || [])
+            }
+          }
+        } else {
+          console.warn('Failed to load tenant info - using fallback')
+          // Fallback: Load templates without tenant scoping for backward compatibility
+          const res = await fetch('/api/templates', { cache: 'no-store' })
+          if (res.ok) {
+            const json = await res.json()
+            setSupabaseTemplates(json.templates || [])
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tenant:', error)
+        // Fallback: Load templates without tenant scoping
+        try {
+          const res = await fetch('/api/templates', { cache: 'no-store' })
+          if (res.ok) {
+            const json = await res.json()
+            setSupabaseTemplates(json.templates || [])
+          }
+        } catch {}
+      } finally {
+        setLoadingTenant(false)
+      }
+    }
+
     try {
       const raw = localStorage.getItem('walletpush_pass_designer_saved')
       if (raw) {
@@ -638,16 +701,8 @@ export default function PassDesigner() {
         }
       }
     } catch {}
-    // Load templates from Supabase
-    ;(async () => {
-      try {
-        const res = await fetch('/api/templates', { cache: 'no-store' })
-        if (res.ok) {
-          const json = await res.json()
-          setSupabaseTemplates(json.templates || [])
-        }
-      } catch {}
-    })()
+    
+    fetchTenant()
     
     // Load Pass Type IDs
     ;(async () => {
@@ -748,6 +803,12 @@ export default function PassDesigner() {
 
   // Save template to database with ALL images and metadata
   const handleSaveToSupabase = useCallback(async () => {
+    // NEW: Validate tenant before saving
+    if (!currentTenant) {
+      toast.error('No tenant selected. Please contact support.')
+      return
+    }
+    
     setIsSaving(true)
     
     const toastId = toast.loading('Saving template to database...')
@@ -835,7 +896,8 @@ export default function PassDesigner() {
           has_images: !!(currentPass.images?.icon || currentPass.images?.logo || currentPass.images?.strip),
           pass_type_identifier: currentPass.passTypeIdentifier,
           organization_name: currentPass.organizationName,
-          pass_style: currentPass.style || 'storeCard' // Include the pass style in metadata too
+          pass_style: currentPass.style || 'storeCard', // Include the pass style in metadata too
+          tenant_id: currentTenant?.id // NEW: Multi-tenant scoping
         }
       }
 
@@ -924,6 +986,20 @@ export default function PassDesigner() {
 
   // Preview pass - generate and download .pkpass file
   const handlePreviewPass = useCallback(async () => {
+    // NEW: Rate limiting check (5 previews per minute)
+    const now = Date.now()
+    if (now - lastPreviewTime < 12000) { // 12 seconds between previews
+      toast.error('Please wait before generating another preview (rate limit: 5/min)')
+      return
+    }
+    setLastPreviewTime(now)
+    
+    // NEW: Validate tenant
+    if (!currentTenant) {
+      toast.error('No tenant selected. Please contact support.')
+      return
+    }
+    
     const toastId = toast.loading('Generating pass preview...')
     
     try {
@@ -1027,7 +1103,8 @@ export default function PassDesigner() {
           templateId: templateId,
           formData: sampleFormData,
           userId: 'preview-user',
-          deviceType: 'desktop'
+          deviceType: 'desktop',
+          tenantId: currentTenant?.id // NEW: Include tenant scoping
         })
       })
 
@@ -1078,6 +1155,12 @@ export default function PassDesigner() {
   const handleLoadPass = useCallback((templateJson: any) => {
     console.log('🔄 Loading template:', templateJson)
     
+    // NEW: Validate tenant access
+    if (currentTenant && templateJson.metadata?.tenant_id && templateJson.metadata.tenant_id !== currentTenant.id) {
+      toast.error('Access denied: This template belongs to a different tenant')
+      return
+    }
+    
     // Convert template JSON back to PassData format
     const loadedPass: PassData = {
       id: templateJson.id || `loaded_${Date.now()}`,
@@ -1094,31 +1177,31 @@ export default function PassDesigner() {
       locations: [],
       images: {
         logo: templateJson.images?.logo ? {
-          file: null, // File object doesn't exist after save/load
+          file: undefined, // File object doesn't exist after save/load
           x1: templateJson.images.logo['1x'] || templateJson.images.logo.x1,
           x2: templateJson.images.logo['2x'] || templateJson.images.logo.x2,
           x3: templateJson.images.logo['3x'] || templateJson.images.logo.x3
         } : undefined,
         strip: templateJson.images?.strip ? {
-          file: null,
+          file: undefined,
           x1: templateJson.images.strip['1x'] || templateJson.images.strip.x1,
           x2: templateJson.images.strip['2x'] || templateJson.images.strip.x2,
           x3: templateJson.images.strip['3x'] || templateJson.images.strip.x3
         } : undefined,
         icon: templateJson.images?.icon ? {
-          file: null,
+          file: undefined,
           x1: templateJson.images.icon['1x'] || templateJson.images.icon.x1,
           x2: templateJson.images.icon['2x'] || templateJson.images.icon.x2,
           x3: templateJson.images.icon['3x'] || templateJson.images.icon.x3
         } : undefined,
         background: templateJson.images?.background ? {
-          file: null,
+          file: undefined,
           x1: templateJson.images.background['1x'] || templateJson.images.background.x1,
           x2: templateJson.images.background['2x'] || templateJson.images.background.x2,
           x3: templateJson.images.background['3x'] || templateJson.images.background.x3
         } : undefined,
         thumbnail: templateJson.images?.thumbnail ? {
-          file: null,
+          file: undefined,
           x1: templateJson.images.thumbnail['1x'] || templateJson.images.thumbnail.x1,
           x2: templateJson.images.thumbnail['2x'] || templateJson.images.thumbnail.x2,
           x3: templateJson.images.thumbnail['3x'] || templateJson.images.thumbnail.x3
@@ -1133,6 +1216,33 @@ export default function PassDesigner() {
     setStep('design')
   }, [])
 
+  // NEW: Show loading state while fetching tenant
+  if (loadingTenant) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading tenant information...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // NEW: Show tenant setup if no tenant
+  if (!currentTenant) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">Business Setup Required</h2>
+          <p className="text-slate-600 mb-6">Please set up your business account to access the Pass Designer.</p>
+          <Button onClick={() => window.location.href = '/business/setup'} className="bg-gray-700 hover:bg-gray-800">
+            Set Up Business Account
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   if (step === 'list') {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -1141,13 +1251,32 @@ export default function PassDesigner() {
             <div>
               <h1 className="text-3xl font-bold text-slate-900">Pass Designer</h1>
               <p className="text-slate-600">Create and manage your wallet pass templates</p>
+              {/* NEW: Show current tenant */}
+              <p className="text-sm text-slate-500 mt-1">Business: {currentTenant.name}</p>
             </div>
-            <Button 
-              onClick={() => setStep('create')}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              Create New Pass
-            </Button>
+            <div className="flex items-center gap-4">
+              {/* NEW: Tenant selector for admins */}
+              {tenants.length > 1 && (
+                <select 
+                  value={currentTenant.id} 
+                  onChange={(e) => {
+                    const tenant = tenants.find(t => t.id === e.target.value)
+                    if (tenant) setCurrentTenant(tenant)
+                  }}
+                  className="px-3 py-2 border border-slate-300 rounded-md text-sm"
+                >
+                  {tenants.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              )}
+              <Button
+                onClick={() => setStep('create')}
+                className="bg-gray-700 hover:bg-gray-800"
+              >
+                Create New Pass
+              </Button>
+            </div>
           </div>
 
           {/* Templates */}
@@ -1178,8 +1307,8 @@ export default function PassDesigner() {
             <div className="mt-3 flex gap-2">
               <Button 
                 onClick={handleSaveToSupabase} 
-                disabled={isSaving || !currentPass.templateName} 
-                className="bg-indigo-600 hover:bg-indigo-700"
+                disabled={isSaving || !currentPass.templateName || !currentTenant} 
+                className="bg-gray-700 hover:bg-gray-800"
               >
                 {isSaving ? 'Saving...' : 'Save Current Template'}
               </Button>
@@ -1284,8 +1413,8 @@ export default function PassDesigner() {
               <div className="flex gap-4 pt-6">
                 <Button
                   onClick={() => setStep('design')}
-                  disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier}
-                  className="bg-indigo-600 hover:bg-indigo-700"
+                  disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier || !currentTenant}
+                  className="bg-gray-700 hover:bg-gray-800"
                 >
                   Continue to Designer
                 </Button>
@@ -1345,14 +1474,14 @@ export default function PassDesigner() {
               <Button 
                 variant="outline" 
                 onClick={handleSaveToSupabase}
-                disabled={isSaving}
+                disabled={isSaving || !currentTenant}
               >
                 {isSaving ? 'Saving...' : (currentPass.id && currentPass.isSaved ? 'Update' : 'Save')}
               </Button>
               <Button 
                 variant="outline"
                 onClick={handlePreviewPass}
-                disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier}
+                disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier || !currentTenant}
               >
                 Preview
               </Button>
@@ -1369,7 +1498,7 @@ export default function PassDesigner() {
                 onClick={() => setActiveTab(tab.toLowerCase())}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.toLowerCase()
-                    ? 'border-indigo-500 text-indigo-600'
+                    ? 'border-gray-700 text-gray-700'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
               >
@@ -1812,7 +1941,7 @@ export default function PassDesigner() {
                         {currentPass.images.logo ? (
                           <div className="flex items-center gap-2">
                             <img 
-                              src={getImagePreviewUrl(currentPass.images.logo)} 
+                              src={currentPass.images.logo?.file ? getImagePreviewUrl(currentPass.images.logo as ProcessedImage) : currentPass.images.logo?.x1} 
                               className="w-8 h-8 object-contain"
                             />
                             <span className="text-sm">{currentPass.images.logo.file?.name || 'logo.png'}</span>
@@ -1861,7 +1990,7 @@ export default function PassDesigner() {
                         {currentPass.images.strip ? (
                           <div className="flex items-center gap-2">
                             <img 
-                              src={getImagePreviewUrl(currentPass.images.strip)} 
+                              src={currentPass.images.strip?.file ? getImagePreviewUrl(currentPass.images.strip as ProcessedImage) : currentPass.images.strip?.x1} 
                               className="w-16 h-5 object-cover rounded"
                             />
                             <span className="text-sm">{currentPass.images.strip.file?.name || 'strip.png'}</span>
@@ -1910,7 +2039,7 @@ export default function PassDesigner() {
                         {currentPass.images.icon ? (
                           <div className="flex items-center gap-2">
                             <img 
-                              src={getImagePreviewUrl(currentPass.images.icon)} 
+                              src={currentPass.images.icon?.file ? getImagePreviewUrl(currentPass.images.icon as ProcessedImage) : currentPass.images.icon?.x1} 
                               className="w-8 h-8 object-contain"
                             />
                             <span className="text-sm">{currentPass.images.icon.file?.name || 'icon.png'}</span>
@@ -2009,7 +2138,7 @@ export default function PassDesigner() {
                 
                 <div className="space-y-4">
                   <Button 
-                    className="w-full bg-indigo-600 hover:bg-indigo-700"
+                    className="w-full bg-gray-700 hover:bg-gray-800"
                     onClick={() => {
                       setCurrentPass(prev => {
                         // Generate a unique placeholder name
@@ -2059,7 +2188,7 @@ export default function PassDesigner() {
                       return defs.map(def => (
                         <div key={def.key} className="border border-slate-200 rounded-lg p-3">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded text-indigo-600">${`{${def.key}}`}</span>
+                            <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded text-gray-700">${`{${def.key}}`}</span>
                             <div className="flex gap-2">
                               <button
                                 onClick={() => {
