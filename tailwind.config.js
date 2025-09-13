@@ -13,8 +13,12 @@ module.exports = {
   			sans: ['Inter', 'sans-serif'],
   		},
   		colors: {
-  			success: 'rgb(34 197 94)',
-  			warning: 'rgb(251 191 36)',
+  			// Global Design System Colors
+  			headline: 'rgb(var(--headline-color))',
+  			body: 'rgb(var(--body-color))',
+  			muted: 'rgb(var(--muted-color))',
+  			success: 'rgb(var(--success))',
+  			warning: 'rgb(var(--warning))',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

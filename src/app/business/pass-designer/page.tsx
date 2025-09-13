@@ -1272,7 +1272,7 @@ export default function PassDesigner() {
               )}
               <Button
                 onClick={() => setStep('create')}
-                className="bg-gray-700 hover:bg-gray-800"
+                className="btn-primary"
               >
                 Create New Pass
               </Button>
@@ -1308,7 +1308,7 @@ export default function PassDesigner() {
               <Button 
                 onClick={handleSaveToSupabase} 
                 disabled={isSaving || !currentPass.templateName || !currentTenant} 
-                className="bg-gray-700 hover:bg-gray-800"
+                className="btn-primary"
               >
                 {isSaving ? 'Saving...' : 'Save Current Template'}
               </Button>
@@ -1414,7 +1414,7 @@ export default function PassDesigner() {
                 <Button
                   onClick={() => setStep('design')}
                   disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier || !currentTenant}
-                  className="bg-gray-700 hover:bg-gray-800"
+                  className="btn-primary"
                 >
                   Continue to Designer
                 </Button>
@@ -2138,7 +2138,7 @@ export default function PassDesigner() {
                 
                 <div className="space-y-4">
                   <Button 
-                    className="w-full bg-gray-700 hover:bg-gray-800"
+                    className="w-full btn-primary"
                     onClick={() => {
                       setCurrentPass(prev => {
                         // Generate a unique placeholder name
