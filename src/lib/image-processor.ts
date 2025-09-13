@@ -137,6 +137,11 @@ export function cropImage(
 
 // Generate preview URL from ProcessedImage
 export function getImagePreviewUrl(processedImage: ProcessedImage): string {
+  if (!processedImage) {
+    console.warn('⚠️ No processed image provided')
+    return ''
+  }
+  
   const file: any = processedImage?.file
   // If we still have a File/Blob (fresh upload), create an object URL
   if (file && (file instanceof File || file instanceof Blob)) {
@@ -146,11 +151,18 @@ export function getImagePreviewUrl(processedImage: ProcessedImage): string {
       // fall through to base64
     }
   }
+  
   // Fallback: use the generated base64 (x1) preview
   const base = processedImage?.x1
-  if (typeof base === 'string') {
-    if (base.startsWith('data:')) return base
+  if (typeof base === 'string' && base.length > 0) {
+    if (base.startsWith('data:')) {
+      console.log('✅ Using data URL for image preview')
+      return base
+    }
+    console.log('✅ Converting base64 to data URL for image preview')
     return `data:image/png;base64,${base}`
   }
+  
+  console.warn('⚠️ No valid image data found:', processedImage)
   return ''
 }
