@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     
     const newGlobalPassTypeId = {
-      tenant_id: null, // Global Pass Type IDs have null tenant_id
+      account_id: null, // Global Pass Type IDs have null account_id
       label: description || 'Global WalletPush Certificate',
       pass_type_identifier: passTypeIdentifier,
       team_id: teamId,

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { BrandingProvider } from '@/lib/branding'
 
 export const metadata: Metadata = {
   title: 'WalletPush - Modern Wallet Membership & Loyalty Platform',
@@ -18,7 +19,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="font-inter">
-      <body className="font-inter antialiased">{children}</body>
+      <body className="font-inter antialiased">
+        <BrandingProvider>
+          {children}
+        </BrandingProvider>
+      </body>
     </html>
   )
 }

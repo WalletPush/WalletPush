@@ -15,8 +15,11 @@ module.exports = {
   		colors: {
   			success: 'rgb(34 197 94)',
   			warning: 'rgb(251 191 36)',
-  			'brand-primary': '#3862EA',
-  			'brand-primary-hover': '#2D4FD7',
+        'brand-primary': 'var(--brand-primary)',
+        'brand-secondary': 'var(--brand-secondary)',
+        'brand-background': 'var(--brand-background)',
+        'brand-text': 'var(--brand-text)',
+        'brand-primary-hover': '#2D4FD7',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

@@ -4,6 +4,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Brand Color CSS Variables */
+:root {
+  --brand-primary: #2E3748;
+  --brand-secondary: #4F46E5;
+  --brand-background: #1a1f2e;
+  --brand-text: #ffffff;
+}
+
 @layer base {
   :root {
     /* WalletPush Global Design System */
@@ -229,30 +237,82 @@
     font-family: 'Inter', sans-serif;
   }
 
-  /* Global Button Color Override */
-  button:not(.btn-secondary):not(.btn-destructive):not(.btn-warning):not([class*="bg-red"]):not([class*="bg-yellow"]):not([class*="bg-orange"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="border-red"]):not([class*="border-yellow"]) {
-    background-color: #3862EA !important;
+  /* TARGETED Button Gradient - Only for specific primary action buttons */
+  /* Only apply gradient to buttons that should have it */
+  button.bg-blue-600,
+  button.bg-blue-500, 
+  button.bg-blue-700,
+  button.bg-purple-600,
+  button.bg-purple-500,
+  button.bg-purple-700,
+  button[class*="gradient"],
+  button[class*="primary"]:not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-yellow"]):not(.settings-nav-tab) {
+    background: linear-gradient(to right, #2563eb, #9333ea) !important;
     color: white !important;
+    font-weight: 600 !important;
+    border: 0 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    transition: all 0.2s ease-in-out !important;
   }
   
-  button:not(.btn-secondary):not(.btn-destructive):not(.btn-warning):not([class*="bg-red"]):not([class*="bg-yellow"]):not([class*="bg-orange"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="border-red"]):not([class*="border-yellow"]):hover {
-    background-color: #2D4FD7 !important;
+  button.bg-blue-600:hover,
+  button.bg-blue-500:hover, 
+  button.bg-blue-700:hover,
+  button.bg-purple-600:hover,
+  button.bg-purple-500:hover,
+  button.bg-purple-700:hover,
+  button[class*="gradient"]:hover,
+  button[class*="primary"]:not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-yellow"]):not(.settings-nav-tab):hover {
+    background: linear-gradient(to right, #1d4ed8, #7c3aed) !important;
     color: white !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    transform: translateY(-1px) !important;
   }
 
-  /* Override specific Tailwind button classes */
-  .bg-blue-600, .bg-blue-500, .bg-blue-700, .bg-green-600, .bg-green-500, .bg-green-700, 
-  .bg-purple-600, .bg-purple-500, .bg-purple-700, .bg-indigo-600, .bg-indigo-500, .bg-indigo-700 {
-    background-color: #3862EA !important;
-    color: white !important;
+  /* Clean Settings Navigation Tabs - Simple & Elegant */
+  .settings-nav-tab {
+    background: white !important;
+    color: #64748b !important; /* slate-500 */
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    transform: none !important;
   }
 
-  .hover\\:bg-blue-700:hover, .hover\\:bg-blue-600:hover, .hover\\:bg-blue-500:hover,
-  .hover\\:bg-green-700:hover, .hover\\:bg-green-600:hover, .hover\\:bg-green-500:hover,
-  .hover\\:bg-purple-700:hover, .hover\\:bg-purple-600:hover, .hover\\:bg-purple-500:hover,
-  .hover\\:bg-indigo-700:hover, .hover\\:bg-indigo-600:hover, .hover\\:bg-indigo-500:hover {
-    background-color: #2D4FD7 !important;
-    color: white !important;
+  .settings-nav-tab:hover {
+    background: #f8fafc !important; /* slate-50 */
+    color: #475569 !important; /* slate-600 */
+    border-bottom: 2px solid #cbd5e1 !important; /* slate-300 */
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .settings-nav-tab-active {
+    background: white !important;
+    color: #2563eb !important; /* blue-600 */
+    border-bottom: 2px solid #2563eb !important; /* blue-600 */
+    font-weight: 600 !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .settings-nav-tab-inactive {
+    background: white !important;
+    color: #64748b !important; /* slate-500 */
+    border-bottom: 2px solid transparent !important;
+    font-weight: 500 !important;
+  }
+
+  /* REMOVED - These old rules were causing the problem */
+
+  /* Apply gradient to common button patterns */
+  [class*="bg-gradient-to-r"] {
+    background: linear-gradient(to right, #2563eb, #9333ea) !important;
+  }
+
+  [class*="bg-gradient-to-r"]:hover {
+    background: linear-gradient(to right, #1d4ed8, #7c3aed) !important;
   }
   
   /* Dashboard Layout */

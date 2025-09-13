@@ -6,19 +6,97 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Fetching Pass Type IDs from REAL database')
     
     const supabase = await createClient()
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191' // Hardcoded for now
     
-    // Query both business Pass Type IDs and global Pass Type IDs
-    const { data: passTypeIds, error } = await supabase
-      .from('pass_type_ids')
-      .select('*')
-      .or(`tenant_id.eq.${businessId},is_global.eq.true`)
-      .order('is_global', { ascending: false }) // Global first
-      .order('created_at', { ascending: false })
+    // Get the current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (error) {
-      console.error('❌ Database error:', error)
-      throw error
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get current active account
+    const { data: activeAccount } = await supabase
+      .from('user_active_account')
+      .select('active_account_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    let accountId = activeAccount?.active_account_id
+
+    // If no active account, get user's first account
+    if (!accountId) {
+      const { data: userAccounts } = await supabase
+        .from('account_members')
+        .select('account_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single()
+
+      accountId = userAccounts?.account_id
+    }
+
+    if (!accountId) {
+      // Fallback to hardcoded business ID for backward compatibility
+      accountId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    }
+
+    // Get account type to determine what Pass Type IDs to show
+    const { data: accountInfo } = await supabase
+      .from('accounts')
+      .select('type')
+      .eq('id', accountId)
+      .single()
+
+    let passTypeIds = []
+
+    if (accountInfo?.type === 'business') {
+      // For businesses, get assigned + owned + global Pass Type IDs
+      
+      // 1. Get assigned Pass Type IDs
+      const { data: assignedPassTypes } = await supabase
+        .from('pass_type_assignments')
+        .select(`
+          pass_type_ids!inner (*)
+        `)
+        .eq('business_account_id', accountId)
+
+      // 2. Get owned Pass Type IDs
+      const { data: ownedPassTypes } = await supabase
+        .from('pass_type_ids')
+        .select('*')
+        .eq('account_id', accountId)
+
+      // 3. Get global Pass Type IDs
+      const { data: globalPassTypes } = await supabase
+        .from('pass_type_ids')
+        .select('*')
+        .eq('is_global', true)
+
+      // Combine all Pass Type IDs
+      passTypeIds = [
+        ...(assignedPassTypes?.map(apt => ({ ...apt.pass_type_ids, source: 'assigned' })) || []),
+        ...(ownedPassTypes?.map(opt => ({ ...opt, source: 'owned' })) || []),
+        ...(globalPassTypes?.map(gpt => ({ ...gpt, source: 'global' })) || [])
+      ]
+
+    } else {
+      // For agencies/platform, get their own Pass Type IDs + global
+      const { data: agencyPassTypes, error } = await supabase
+        .from('pass_type_ids')
+        .select('*')
+        .or(`account_id.eq.${accountId},is_global.eq.true`)
+        .order('is_global', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('❌ Database error:', error)
+        throw error
+      }
+
+      passTypeIds = (agencyPassTypes || []).map(item => ({ 
+        ...item, 
+        source: item.is_global ? 'global' : 'owned' 
+      }))
     }
     
     console.log(`✅ Found ${passTypeIds?.length || 0} Pass Type IDs in database`)
@@ -37,6 +115,7 @@ export async function GET(request: NextRequest) {
       status: item.is_validated ? 'active' : 'pending',
       is_default: item.is_global, // Global Pass Type IDs are default
       is_global: item.is_global || false, // Include global flag
+      source: item.source || 'unknown', // assigned, owned, or global
       created_at: item.created_at,
       updated_at: item.updated_at || item.created_at,
       // Backwards compatibility
@@ -51,11 +130,11 @@ export async function GET(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('❌ Failed to fetch Pass Type IDs:', error)
-    
-    return NextResponse.json({ 
-      error: 'Failed to fetch Pass Type IDs',
-      passTypeIds: [] 
+    console.error('❌ Pass Type IDs fetch error:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      passTypeIds: []
     }, { status: 500 })
   }
 }
@@ -88,67 +167,99 @@ export async function POST(request: NextRequest) {
     const { join } = await import('path')
     const { existsSync } = await import('fs')
     
-    // Create certificates directory
-    const certsDir = join(process.cwd(), 'private', 'certificates')
-    if (!existsSync(certsDir)) {
-      await mkdir(certsDir, { recursive: true })
+    // Create certificates directory if it doesn't exist
+    const certDir = join(process.cwd(), 'private', 'certificates')
+    if (!existsSync(certDir)) {
+      await mkdir(certDir, { recursive: true })
     }
     
-    // Save the certificate with a secure filename
+    // Generate unique filename
     const timestamp = Date.now()
     const certFileName = `cert_${timestamp}.p12`
-    const certPath = join(certsDir, certFileName)
+    const certPath = join(certDir, certFileName)
     
-    // Store the certificate binary data
-    const certBytes = await file.arrayBuffer()
-    const certBuffer = Buffer.from(certBytes)
-    await writeFile(certPath, certBuffer)
+    // Convert file to buffer and save
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    await writeFile(certPath, buffer)
     
     console.log('💾 Certificate saved to:', certPath)
     
-    // TODO: Extract real Pass Type ID and Team ID from certificate using node-forge
-    // For now, use placeholder values but store the real certificate
-    
-    // Save to database
+    // Get current user and account
     const supabase = await createClient()
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get current active account
+    const { data: activeAccount } = await supabase
+      .from('user_active_account')
+      .select('active_account_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    let accountId = activeAccount?.active_account_id
+
+    if (!accountId) {
+      const { data: userAccounts } = await supabase
+        .from('account_members')
+        .select('account_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single()
+
+      accountId = userAccounts?.account_id
+    }
+
+    if (!accountId) {
+      // Fallback for backward compatibility
+      accountId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    }
     
     const newPassTypeId = {
-      tenant_id: isGlobal ? null : businessId, // Global Pass Type IDs have null tenant_id
+      account_id: isGlobal ? null : accountId, // Global Pass Type IDs have null account_id
       label: description || (isGlobal ? 'Global WalletPush Certificate' : 'Uploaded Certificate'),
       pass_type_identifier: 'pass.com.walletpushio', // TODO: Extract from certificate
       team_id: 'NC4W34D5LD', // TODO: Extract from certificate
       p12_path: certPath,
       p12_password_enc: password, // TODO: Encrypt this in production!
-      is_validated: true,
-      is_global: isGlobal
+      apns_key_id: null,
+      apns_team_id: 'NC4W34D5LD',
+      apns_p8_path: null,
+      issuer_id: null,
+      service_account_path: null,
+      is_validated: true, // Assume valid for now
+      is_global: isGlobal || false
     }
     
-    console.log('💾 Saving to database:', newPassTypeId)
+    console.log('💾 Saving Pass Type ID to database:', newPassTypeId)
     
-    const { data, error } = await supabase
+    const { data: savedPassTypeId, error: saveError } = await supabase
       .from('pass_type_ids')
       .insert(newPassTypeId)
       .select()
       .single()
     
-    if (error) {
-      console.error('❌ Database insert failed:', error)
-      throw error
+    if (saveError) {
+      console.error('❌ Database save error:', saveError)
+      throw saveError
     }
     
-    console.log('✅ Pass Type ID saved to database:', data.id)
+    console.log('✅ Pass Type ID saved successfully:', savedPassTypeId.id)
     
     return NextResponse.json({
       success: true,
-      passTypeId: data,
-      message: 'Certificate uploaded and stored successfully'
+      passTypeId: savedPassTypeId,
+      message: 'Pass Type ID certificate uploaded and saved successfully'
     })
     
   } catch (error) {
-    console.error('❌ Certificate upload failed:', error)
-    return NextResponse.json({ 
-      error: `Failed to upload certificate: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    console.error('❌ Pass Type ID upload error:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

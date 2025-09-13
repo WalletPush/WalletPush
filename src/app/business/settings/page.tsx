@@ -224,10 +224,10 @@ export default function SettingsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as SettingsTab)}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`settings-nav-tab flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      ? 'settings-nav-tab-active'
+                      : 'settings-nav-tab-inactive'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -485,7 +485,7 @@ export default function SettingsPage() {
                 </p>
 
                 {/* OpenRouter API Settings */}
-                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6 border border-purple-200">
+                <div className="bg-white rounded-lg p-6 border border-slate-200">
                   <div className="flex items-center gap-3 mb-4">
                     <SparklesIcon className="w-6 h-6 text-purple-600" />
                     <h4 className="text-lg font-semibold text-slate-900">OpenRouter API</h4>

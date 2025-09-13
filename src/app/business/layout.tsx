@@ -5,6 +5,12 @@ import { usePathname } from 'next/navigation'
 
 export default function BusinessLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  
+  // Don't show sidebar for auth routes
+  if (pathname.startsWith('/business/auth/')) {
+    return <>{children}</>
+  }
+  
   return (
     <div className="dashboard-container">
       <aside className="dashboard-sidebar">

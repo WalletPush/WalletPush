@@ -35,7 +35,7 @@ export class PassTypeIDStore {
       const { data: passTypeIds, error } = await supabase
         .from('pass_type_ids')
         .select('*')
-        .or(`tenant_id.eq.${businessId},is_global.eq.true`)
+        .or(`account_id.eq.${businessId},is_global.eq.true`)
         .order('is_global', { ascending: false })
         .order('created_at', { ascending: false })
       
@@ -59,7 +59,7 @@ export class PassTypeIDStore {
         is_global: item.is_global || false,
         created_at: item.created_at,
         updated_at: item.updated_at || item.created_at,
-        business_id: item.tenant_id
+        business_id: item.account_id
       } as PassTypeID))
       
       return transformedData

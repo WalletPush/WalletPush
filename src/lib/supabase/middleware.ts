@@ -59,13 +59,23 @@ const publicRoutes = [
   '/auth/update-password',
   '/auth/error',
   '/auth/confirm',
-  '/customer',
+  // Portal-specific auth routes
+  '/customer/auth/login',
+  '/customer/auth/sign-up',
+  '/customer/auth/forgot-password',
+  '/customer/dashboard',
+  '/business/auth/login',
+  '/business/auth/sign-up',
+  '/business/auth/forgot-password',
   '/business/dashboard', // Temporary public access for development
   '/business/pass-designer', // Temporary public access for development
   '/business/members', // Temporary public access for development
   '/business/settings', // Temporary public access for development
   '/business/distribution', // Temporary public access for development
   '/business/pass-type-ids', // Temporary public access for development
+  '/agency/auth/login',
+  '/agency/auth/sign-up',
+  '/agency/auth/forgot-password',
   '/agency/dashboard',    // Temporary public access for development
   '/api/business-settings', // API routes for development
   '/api/landing-pages', // API routes for development
