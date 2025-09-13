@@ -644,6 +644,52 @@ export default function PassDesigner() {
 
   // Load from localStorage once on mount
   useEffect(() => {
+    // Check for wizard data first
+    const checkWizardData = () => {
+      try {
+        // Check both sessionStorage and localStorage
+        const wizardData = sessionStorage.getItem('wizardPassData') || localStorage.getItem('wizardPassData')
+        if (wizardData) {
+          const parsedWizardData = JSON.parse(wizardData)
+          
+          // Convert wizard data to PassData format
+          const wizardPass: PassData = {
+            id: `wizard_${Date.now()}`,
+            templateName: parsedWizardData.templateName || 'Wizard Template',
+            description: parsedWizardData.description || '',
+            style: parsedWizardData.style || 'storeCard',
+            passTypeIdentifier: parsedWizardData.passTypeIdentifier || '',
+            organizationName: parsedWizardData.organizationName || 'WalletPush',
+            foregroundColor: parsedWizardData.foregroundColor || '#ffffff',
+            backgroundColor: parsedWizardData.backgroundColor || '#1a1a1a',
+            labelColor: parsedWizardData.labelColor || '#cccccc',
+            fields: parsedWizardData.fields || [],
+            barcodes: parsedWizardData.barcodes || [],
+            locations: parsedWizardData.locations || [],
+            images: parsedWizardData.images || {},
+            placeholders: parsedWizardData.placeholders || []
+          }
+          
+          setCurrentPass(wizardPass)
+          
+          // CRITICAL: Set step to 'design' to show the editor instead of template list
+          setStep('design')
+          
+          // Clear the wizard data from both storages
+          sessionStorage.removeItem('wizardPassData')
+          localStorage.removeItem('wizardPassData')
+          
+          // Show a success message
+          toast.success('Wizard data loaded successfully! Continue editing your pass.')
+          
+          return true // Indicates wizard data was loaded
+        }
+      } catch (error) {
+        console.error('Error loading wizard data:', error)
+      }
+      return false
+    }
+
     // NEW: Fetch current tenant first
     const fetchTenant = async () => {
       try {
@@ -692,15 +738,21 @@ export default function PassDesigner() {
       }
     }
 
-    try {
-      const raw = localStorage.getItem('walletpush_pass_designer_saved')
-      if (raw) {
-        const parsed = JSON.parse(raw) as PassData[]
-        if (Array.isArray(parsed)) {
-          setSavedPasses(parsed)
+    // Check for wizard data first
+    const hasWizardData = checkWizardData()
+    
+    // Only load from localStorage if no wizard data was found
+    if (!hasWizardData) {
+      try {
+        const raw = localStorage.getItem('walletpush_pass_designer_saved')
+        if (raw) {
+          const parsed = JSON.parse(raw) as PassData[]
+          if (Array.isArray(parsed)) {
+            setSavedPasses(parsed)
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    }
     
     fetchTenant()
     
@@ -804,10 +856,13 @@ export default function PassDesigner() {
   // Save template to database with ALL images and metadata
   const handleSaveToSupabase = useCallback(async () => {
     // NEW: Validate tenant before saving
+    // EMERGENCY FIX: Disable tenant validation
+    /*
     if (!currentTenant) {
       toast.error('No tenant selected. Please contact support.')
       return
     }
+    */
     
     setIsSaving(true)
     
@@ -897,7 +952,7 @@ export default function PassDesigner() {
           pass_type_identifier: currentPass.passTypeIdentifier,
           organization_name: currentPass.organizationName,
           pass_style: currentPass.style || 'storeCard', // Include the pass style in metadata too
-          tenant_id: currentTenant?.id // NEW: Multi-tenant scoping
+          // tenant_id: currentTenant?.id // DISABLED: Multi-tenant scoping
         }
       }
 
@@ -995,10 +1050,13 @@ export default function PassDesigner() {
     setLastPreviewTime(now)
     
     // NEW: Validate tenant
+    // EMERGENCY FIX: Disable tenant validation
+    /*
     if (!currentTenant) {
       toast.error('No tenant selected. Please contact support.')
       return
     }
+    */
     
     const toastId = toast.loading('Generating pass preview...')
     
@@ -1104,7 +1162,7 @@ export default function PassDesigner() {
           formData: sampleFormData,
           userId: 'preview-user',
           deviceType: 'desktop',
-          tenantId: currentTenant?.id // NEW: Include tenant scoping
+          // tenantId: currentTenant?.id // DISABLED: Include tenant scoping
         })
       })
 
@@ -1217,6 +1275,8 @@ export default function PassDesigner() {
   }, [])
 
   // NEW: Show loading state while fetching tenant
+  // EMERGENCY FIX: Disable tenant requirement
+  /*
   if (loadingTenant) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -1227,9 +1287,10 @@ export default function PassDesigner() {
       </div>
     )
   }
+  */
 
   // NEW: Show tenant setup if no tenant
-  if (!currentTenant) {
+  if (false && !currentTenant) { // DISABLED
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -1252,10 +1313,10 @@ export default function PassDesigner() {
               <h1 className="text-3xl font-bold text-slate-900">Pass Designer</h1>
               <p className="text-slate-600">Create and manage your wallet pass templates</p>
               {/* NEW: Show current tenant */}
-              <p className="text-sm text-slate-500 mt-1">Business: {currentTenant.name}</p>
+              {/* <p className="text-sm text-slate-500 mt-1">Business: {currentTenant.name}</p> */}
             </div>
             <div className="flex items-center gap-4">
-              {/* NEW: Tenant selector for admins */}
+              {/* NEW: Tenant selector for admins - DISABLED
               {tenants.length > 1 && (
                 <select 
                   value={currentTenant.id} 
@@ -1270,6 +1331,7 @@ export default function PassDesigner() {
                   ))}
                 </select>
               )}
+              */}
               <Button
                 onClick={() => setStep('create')}
                 className="btn-primary"
@@ -1307,7 +1369,7 @@ export default function PassDesigner() {
             <div className="mt-3 flex gap-2">
               <Button 
                 onClick={handleSaveToSupabase} 
-                disabled={isSaving || !currentPass.templateName || !currentTenant} 
+                disabled={isSaving || !currentPass.templateName} 
                 className="btn-primary"
               >
                 {isSaving ? 'Saving...' : 'Save Current Template'}
@@ -1413,7 +1475,7 @@ export default function PassDesigner() {
               <div className="flex gap-4 pt-6">
                 <Button
                   onClick={() => setStep('design')}
-                  disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier || !currentTenant}
+                  disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier}
                   className="btn-primary"
                 >
                   Continue to Designer
@@ -1474,14 +1536,14 @@ export default function PassDesigner() {
               <Button 
                 variant="outline" 
                 onClick={handleSaveToSupabase}
-                disabled={isSaving || !currentTenant}
+                disabled={isSaving}
               >
                 {isSaving ? 'Saving...' : (currentPass.id && currentPass.isSaved ? 'Update' : 'Save')}
               </Button>
               <Button 
                 variant="outline"
                 onClick={handlePreviewPass}
-                disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier || !currentTenant}
+                disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier}
               >
                 Preview
               </Button>

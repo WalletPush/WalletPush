@@ -136,8 +136,15 @@
     opacity: 0.8;
   }
   
-  /* Override for sidebar navigation - maintain #C6C8CC color */
-  .sidebar-item, .sidebar-item:hover, .sidebar-item.active {
+  /* FORCE sidebar navigation colors - #C6C8CC */
+  .sidebar-item, .sidebar-item:hover, .sidebar-item.active,
+  .sidebar-item span, .sidebar-item:hover span, .sidebar-item.active span,
+  .sidebar-item svg, .sidebar-item:hover svg, .sidebar-item.active svg {
+    color: #C6C8CC !important;
+  }
+
+  /* Force all sidebar text to be #C6C8CC */
+  .dashboard-sidebar, .dashboard-sidebar * {
     color: #C6C8CC !important;
   }
 }
@@ -168,6 +175,14 @@
   .sidebar-item.active {
     background-color: #1B202B;
     color: #C6C8CC;
+  }
+  
+  /* Persistent active state - keeps hover color when selected */
+  .sidebar-item[aria-current="page"],
+  .sidebar-item.router-link-active,
+  .sidebar-item[data-active="true"] {
+    background-color: #1B202B !important;
+    color: #C6C8CC !important;
   }
   
   /* Global Button System */
@@ -212,6 +227,32 @@
     color: white;
     @apply btn-modern hover:opacity-90;
     font-family: 'Inter', sans-serif;
+  }
+
+  /* Global Button Color Override */
+  button:not(.btn-secondary):not(.btn-destructive):not(.btn-warning):not([class*="bg-red"]):not([class*="bg-yellow"]):not([class*="bg-orange"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="border-red"]):not([class*="border-yellow"]) {
+    background-color: #3862EA !important;
+    color: white !important;
+  }
+  
+  button:not(.btn-secondary):not(.btn-destructive):not(.btn-warning):not([class*="bg-red"]):not([class*="bg-yellow"]):not([class*="bg-orange"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="border-red"]):not([class*="border-yellow"]):hover {
+    background-color: #2D4FD7 !important;
+    color: white !important;
+  }
+
+  /* Override specific Tailwind button classes */
+  .bg-blue-600, .bg-blue-500, .bg-blue-700, .bg-green-600, .bg-green-500, .bg-green-700, 
+  .bg-purple-600, .bg-purple-500, .bg-purple-700, .bg-indigo-600, .bg-indigo-500, .bg-indigo-700 {
+    background-color: #3862EA !important;
+    color: white !important;
+  }
+
+  .hover\\:bg-blue-700:hover, .hover\\:bg-blue-600:hover, .hover\\:bg-blue-500:hover,
+  .hover\\:bg-green-700:hover, .hover\\:bg-green-600:hover, .hover\\:bg-green-500:hover,
+  .hover\\:bg-purple-700:hover, .hover\\:bg-purple-600:hover, .hover\\:bg-purple-500:hover,
+  .hover\\:bg-indigo-700:hover, .hover\\:bg-indigo-600:hover, .hover\\:bg-indigo-500:hover {
+    background-color: #2D4FD7 !important;
+    color: white !important;
   }
   
   /* Dashboard Layout */

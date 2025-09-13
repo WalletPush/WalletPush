@@ -13,12 +13,10 @@ module.exports = {
   			sans: ['Inter', 'sans-serif'],
   		},
   		colors: {
-  			// Global Design System Colors
-  			headline: 'rgb(var(--headline-color))',
-  			body: 'rgb(var(--body-color))',
-  			muted: 'rgb(var(--muted-color))',
-  			success: 'rgb(var(--success))',
-  			warning: 'rgb(var(--warning))',
+  			success: 'rgb(34 197 94)',
+  			warning: 'rgb(251 191 36)',
+  			'brand-primary': '#3862EA',
+  			'brand-primary-hover': '#2D4FD7',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -29,10 +27,10 @@ module.exports = {
   				DEFAULT: 'hsl(var(--popover))',
   				foreground: 'hsl(var(--popover-foreground))'
   			},
-			primary: {
-				DEFAULT: 'rgb(var(--primary))',
-				foreground: 'rgb(var(--primary-foreground))'
-			},
+  			primary: {
+  				DEFAULT: 'hsl(var(--primary))',
+  				foreground: 'hsl(var(--primary-foreground))'
+  			},
   			secondary: {
   				DEFAULT: 'hsl(var(--secondary))',
   				foreground: 'hsl(var(--secondary-foreground))'
@@ -45,13 +43,13 @@ module.exports = {
   				DEFAULT: 'hsl(var(--accent))',
   				foreground: 'hsl(var(--accent-foreground))'
   			},
-			destructive: {
-				DEFAULT: 'rgb(var(--destructive))',
-				foreground: 'rgb(var(--destructive-foreground))'
-			},
+  			destructive: {
+  				DEFAULT: 'hsl(var(--destructive))',
+  				foreground: 'hsl(var(--destructive-foreground))'
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
-  			ring: 'rgb(var(--ring))',
+  			ring: 'hsl(var(--ring))',
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',
