@@ -16,6 +16,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline'
+import TemplateSelector from '@/components/templates/template-selector'
 
 // Types and interfaces
 interface WizardData {
@@ -898,51 +899,37 @@ export default function DistributionPage() {
       case 5:
         return (
           <div className="space-y-6">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-slate-900 mb-2">Pick a Template Style</h2>
-              <p className="text-slate-600">Choose a design template or create a custom style</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {MOCK_LANDING_TEMPLATES.map((template) => (
-                <div
-                  key={template.id}
-                  onClick={() => setWizardData(prev => ({ ...prev, selectedTemplate: template.id, customTemplate: '' }))}
-                  className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
-                    wizardData.selectedTemplate === template.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="aspect-video bg-slate-100 rounded-lg mb-3 flex items-center justify-center">
-                    <span className="text-slate-500 text-sm">Template Preview</span>
-                  </div>
-                  <h3 className="font-semibold text-slate-900 mb-1">{template.name}</h3>
-                  <p className="text-sm text-slate-600 mb-2">{template.description}</p>
-                  <span className="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded">
-                    {template.category}
-                  </span>
-                </div>
-              ))}
-
-              <div
-                onClick={() => setWizardData(prev => ({ ...prev, customTemplate: 'custom', selectedTemplate: '' }))}
-                className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
-                  wizardData.customTemplate === 'custom'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="aspect-video bg-slate-100 rounded-lg mb-3 flex items-center justify-center">
-                  <SparklesIcon className="w-12 h-12 text-slate-400" />
-                </div>
-                <h3 className="font-semibold text-slate-900 mb-1">Custom Template</h3>
-                <p className="text-sm text-slate-600 mb-2">Let AI create a unique design based on your content</p>
-                <span className="inline-block bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded">
-                  AI Generated
-                </span>
-              </div>
-            </div>
+            <TemplateSelector
+              templateType="distribution"
+              selectedTemplate={wizardData.selectedTemplate}
+              onTemplateSelect={(template) => {
+                console.log('🏢 Business selected template:', template)
+                
+                // Apply template data to wizard data
+                setWizardData(prev => ({
+                  ...prev,
+                  selectedTemplate: template.id,
+                  // Apply template content to previous steps
+                  headline: template.templateData.headline,
+                  subHeader: template.templateData.subheadline,
+                  incentive: template.templateData.callToAction,
+                  benefits: template.templateData.features || prev.benefits,
+                  additionalCopy: template.templateData.valueProposition || prev.additionalCopy,
+                  customTemplate: `
+                    /* Template: ${template.name} */
+                    :root {
+                      --template-primary: ${template.templateData.primaryColor};
+                      --template-secondary: ${template.templateData.secondaryColor};
+                      --template-accent: ${template.templateData.accentColor};
+                      --template-font: ${template.templateData.fontFamily};
+                    }
+                  `
+                }))
+                
+                // Show success message
+                alert(`✅ Template "${template.name}" applied! Your previous steps have been updated with the template content. You can now customize it for your specific program.`)
+              }}
+            />
           </div>
         )
 

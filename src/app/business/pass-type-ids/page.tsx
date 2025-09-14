@@ -1,23 +1,39 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { PlusIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, ShieldCheckIcon, BuildingOfficeIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
 
 interface PassTypeID {
   id: string
-  identifier: string
-  description: string
-  team_identifier: string
-  organization_name: string
-  certificate_file_name: string
+  label?: string
+  pass_type_identifier?: string
+  identifier?: string
+  description?: string
+  team_id?: string
+  team_identifier?: string
+  organization_name?: string
+  certificate_file_name?: string
   certificate_file_path?: string
   certificate_password?: string
-  certificate_expiry: string
-  status: 'active' | 'expired' | 'pending'
-  is_default: boolean
+  certificate_expiry?: string
+  status?: 'active' | 'expired' | 'pending'
+  is_default?: boolean
   is_global?: boolean
+  is_validated?: boolean
   created_at: string
-  updated_at: string
+  updated_at?: string
+  source: 'assigned' | 'owned' | 'global'
+  assigned_by?: string
+  assigned_by_type?: string
+  assignment_id?: string
+  assignment_date?: string
+}
+
+interface PassTypeIDResponse {
+  assigned: PassTypeID[]
+  owned: PassTypeID[]
+  global: PassTypeID[]
+  passTypeIds: PassTypeID[]
 }
 
 interface CertificateUpload {
@@ -27,7 +43,9 @@ interface CertificateUpload {
 }
 
 export default function PassTypeIDsPage() {
-  const [passTypeIDs, setPassTypeIDs] = useState<PassTypeID[]>([])
+  const [assignedPassTypes, setAssignedPassTypes] = useState<PassTypeID[]>([])
+  const [ownedPassTypes, setOwnedPassTypes] = useState<PassTypeID[]>([])
+  const [globalPassTypes, setGlobalPassTypes] = useState<PassTypeID[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [showUploadForm, setShowUploadForm] = useState(false)
@@ -45,29 +63,27 @@ export default function PassTypeIDsPage() {
       setError('')
       
       console.log('🔍 Loading Pass Type IDs...')
-      const response = await fetch('/api/pass-type-ids?t=' + Date.now())
+      const response = await fetch('/api/business/pass-type-ids?t=' + Date.now())
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`)
       }
       
-      const data = await response.json()
+      const data: PassTypeIDResponse = await response.json()
       console.log('📋 API Response:', data)
       
-      if (data.passTypeIds && Array.isArray(data.passTypeIds)) {
-        // Filter out global Pass Type IDs from dashboard display
-        const businessPassTypeIds = data.passTypeIds.filter(passType => !passType.is_global)
-        setPassTypeIDs(businessPassTypeIds)
-        console.log(`✅ Loaded ${businessPassTypeIds.length} business Pass Type IDs (hiding ${data.passTypeIds.length - businessPassTypeIds.length} global)`)
-      } else {
-        console.warn('⚠️ Invalid response structure:', data)
-        setPassTypeIDs([])
-      }
+      setAssignedPassTypes(data.assigned || [])
+      setOwnedPassTypes(data.owned || [])
+      setGlobalPassTypes(data.global || [])
+      
+      console.log(`✅ Loaded Pass Type IDs - Assigned: ${data.assigned?.length || 0}, Owned: ${data.owned?.length || 0}, Global: ${data.global?.length || 0}`)
       
     } catch (error) {
       console.error('❌ Failed to load Pass Type IDs:', error)
       setError(`Failed to load: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      setPassTypeIDs([])
+      setAssignedPassTypes([])
+      setOwnedPassTypes([])
+      setGlobalPassTypes([])
     } finally {
       setIsLoading(false)
     }
@@ -124,6 +140,63 @@ export default function PassTypeIDsPage() {
     loadPassTypeIDs()
   }, [])
 
+  // Helper function to render a Pass Type ID card
+  const renderPassTypeCard = (passType: PassTypeID, canEdit: boolean = false) => {
+    const identifier = passType.pass_type_identifier || passType.identifier || 'Unknown'
+    const label = passType.label || passType.description || 'Unnamed Certificate'
+    const teamId = passType.team_id || passType.team_identifier || 'Unknown'
+    
+    return (
+      <div key={passType.id} className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">{label}</h3>
+            <p className="text-sm text-slate-600 font-mono bg-slate-50 px-2 py-1 rounded">{identifier}</p>
+          </div>
+          {passType.is_validated && (
+            <ShieldCheckIcon className="w-5 h-5 text-green-600 flex-shrink-0 ml-2" title="Validated Certificate" />
+          )}
+        </div>
+        
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-slate-500">Team ID:</span>
+            <span className="text-slate-900 font-mono">{teamId}</span>
+          </div>
+          
+          {passType.source === 'assigned' && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Provided by:</span>
+                <span className="text-slate-900">{passType.assigned_by}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Assignment Date:</span>
+                <span className="text-slate-900">{new Date(passType.assignment_date!).toLocaleDateString()}</span>
+              </div>
+            </>
+          )}
+          
+          <div className="flex justify-between">
+            <span className="text-slate-500">Created:</span>
+            <span className="text-slate-900">{new Date(passType.created_at).toLocaleDateString()}</span>
+          </div>
+        </div>
+        
+        {canEdit && (
+          <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
+            <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+              Edit
+            </button>
+            <button className="text-sm text-red-600 hover:text-red-800 font-medium">
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Header */}
@@ -144,7 +217,7 @@ export default function PassTypeIDsPage() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <PlusIcon className="w-4 h-4" />
-            New Pass Type ID
+            Upload Certificate
           </button>
         </div>
       </div>
@@ -163,156 +236,92 @@ export default function PassTypeIDsPage() {
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p className="text-slate-600 mt-4">Loading Pass Type IDs...</p>
         </div>
-      ) : passTypeIDs.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">No Business Pass Type IDs</h3>
-          <p className="text-slate-600 mb-4">You can create passes using the global WalletPush certificate, or upload your own Apple PassKit certificate for custom branding</p>
-          <button
-            onClick={() => setShowUploadForm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <PlusIcon className="w-4 h-4" />
-            Upload Certificate
-          </button>
-        </div>
       ) : (
-        /* Pass Type IDs Table */
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pass Type ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Organization
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Team ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Certificate
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Expiry
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {passTypeIDs.map((passType) => (
-                <tr key={passType.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{passType.identifier}</div>
-                        {passType.is_default && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Default
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 font-medium">{passType.description}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 font-medium">{passType.organization_name || 'Not Set'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{passType.team_identifier}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{passType.certificate_file_name}</div>
-                    {passType.certificate_file_path && (
-                      <div className="text-xs text-green-600">✅ Stored</div>
-                    )}
-                    {!passType.certificate_file_path && (
-                      <div className="text-xs text-red-600">❌ Missing</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{passType.certificate_expiry}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      passType.status === 'active' 
-                        ? 'bg-green-100 text-green-800'
-                        : passType.status === 'expired'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {passType.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          const newDescription = prompt('Edit description:', passType.description)
-                          if (newDescription && newDescription !== passType.description) {
-                            // Update description locally (real API update would go here)
-                            setPassTypeIDs(prev => prev.map(p => 
-                              p.id === passType.id 
-                                ? { ...p, description: newDescription }
-                                : p
-                            ))
-                            console.log(`✏️ Updated description for ${passType.id}:`, newDescription)
-                          }
-                        }}
-                        className="text-indigo-600 hover:text-indigo-900"
-                        title="Edit Pass Type ID"
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm(`Are you sure you want to delete "${passType.description}"?\n\nThis action cannot be undone.`)) {
-                            try {
-                              const response = await fetch(`/api/pass-type-ids/${passType.id}`, {
-                                method: 'DELETE',
-                              })
+        <div className="space-y-8">
+          {/* Assigned Pass Type IDs */}
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <BuildingOfficeIcon className="w-6 h-6 text-blue-600" />
+              <h2 className="text-xl font-semibold text-slate-900">Assigned Certificates</h2>
+              <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                {assignedPassTypes.length}
+              </span>
+            </div>
+            <p className="text-slate-600 mb-6">
+              These Pass Type IDs have been assigned to your business. You can use them to create passes but cannot modify or delete them.
+            </p>
+            
+            {assignedPassTypes.length === 0 ? (
+              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
+                <BuildingOfficeIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">No Assigned Certificates</h3>
+                <p className="text-slate-600">No Pass Type IDs have been assigned to your business yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {assignedPassTypes.map(passType => renderPassTypeCard(passType, false))}
+              </div>
+            )}
+          </section>
 
-                              if (response.ok) {
-                                // Remove from local state
-                                setPassTypeIDs(prev => prev.filter(p => p.id !== passType.id))
-                                console.log(`✅ Deleted Pass Type ID from database:`, passType.id)
-                              } else {
-                                const error = await response.json()
-                                console.error('❌ Delete failed:', error)
-                                alert(`Failed to delete: ${error.error || 'Unknown error'}`)
-                              }
-                            } catch (error) {
-                              console.error('❌ Delete error:', error)
-                              alert('Failed to delete Pass Type ID')
-                            }
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete Pass Type ID"
-                      >
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Owned Pass Type IDs */}
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <ShieldCheckIcon className="w-6 h-6 text-green-600" />
+              <h2 className="text-xl font-semibold text-slate-900">Your Certificates</h2>
+              <span className="bg-green-100 text-green-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                {ownedPassTypes.length}
+              </span>
+            </div>
+            <p className="text-slate-600 mb-6">
+              These are Pass Type IDs that you've uploaded yourself. You have full control to edit, delete, or manage these certificates.
+            </p>
+            
+            {ownedPassTypes.length === 0 ? (
+              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
+                <ShieldCheckIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">No Personal Certificates</h3>
+                <p className="text-slate-600 mb-4">Upload your own Apple PassKit certificate for custom branding and full control.</p>
+                <button
+                  onClick={() => setShowUploadForm(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  Upload Certificate
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {ownedPassTypes.map(passType => renderPassTypeCard(passType, true))}
+              </div>
+            )}
+          </section>
+
+          {/* Global Pass Type IDs */}
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <GlobeAltIcon className="w-6 h-6 text-purple-600" />
+              <h2 className="text-xl font-semibold text-slate-900">Global Certificates</h2>
+              <span className="bg-purple-100 text-purple-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                {globalPassTypes.length}
+              </span>
+            </div>
+            <p className="text-slate-600 mb-6">
+              These are global Pass Type IDs provided by the platform. Perfect for getting started quickly without needing your own Apple Developer certificate.
+            </p>
+            
+            {globalPassTypes.length === 0 ? (
+              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
+                <GlobeAltIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 mb-2">No Global Certificates</h3>
+                <p className="text-slate-600">No global certificates are currently available.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {globalPassTypes.map(passType => renderPassTypeCard(passType, false))}
+              </div>
+            )}
+          </section>
         </div>
       )}
 
