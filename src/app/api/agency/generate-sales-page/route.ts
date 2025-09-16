@@ -102,19 +102,49 @@ STYLE:
 
 Return ONLY the complete HTML code, no explanations or markdown formatting.`
 
-      const userPrompt = `Generate a high-converting sales page with this information:
+      // Build custom instructions for Claude
+      let customInstructions = ''
+      
+      // Add color theme
+      if (wizardData.primaryColor || wizardData.secondaryColor) {
+        customInstructions += `\n🎨 BRAND COLORS:
+- Primary Color: ${wizardData.primaryColor} (use for buttons, headers, key elements)
+- Secondary Color: ${wizardData.secondaryColor} (use for accents, links, highlights)\n`
+      }
+      
+      // Add specific images
+      const imageUrls = wizardData.imageUrls || {}
+      if (Object.keys(imageUrls).some(key => imageUrls[key])) {
+        customInstructions += `\n📸 SPECIFIC IMAGES TO USE:
+${imageUrls.hero ? `- Hero Image: ${imageUrls.hero}` : ''}
+${imageUrls.logo ? `- Logo: ${imageUrls.logo}` : ''}
+${imageUrls.background ? `- Background Image: ${imageUrls.background}` : ''}
+${imageUrls.feature1 ? `- Feature Image 1: ${imageUrls.feature1}` : ''}
+${imageUrls.feature2 ? `- Feature Image 2: ${imageUrls.feature2}` : ''}
+${imageUrls.feature3 ? `- Feature Image 3: ${imageUrls.feature3}` : ''}\n`
+      }
+      
+      // Add custom instructions
+      if (wizardData.customInstructions) {
+        customInstructions += `\n✨ SPECIFIC DESIGN INSTRUCTIONS:
+${wizardData.customInstructions}\n`
+      }
+
+      const userPrompt = `${customInstructions}
+
+Generate a high-converting sales page with this information:
 
 HEADLINE (H1): ${wizardData.headline}
 SUB-HEADLINE (H2): ${wizardData.subHeadline}
 
 KEY BENEFITS:
-${wizardData.keyBenefits?.filter(b => b.trim()).map((benefit, i) => `${i + 1}. ${benefit}`).join('\n') || 'No benefits provided'}
+${wizardData.keyBenefits?.filter((b: string) => b.trim()).map((benefit: string, i: number) => `${i + 1}. ${benefit}`).join('\n') || 'No benefits provided'}
 
 HOW IT WORKS:
-${wizardData.howItWorks?.map(step => `Step ${step.step}: ${step.title} - ${step.description}`).join('\n') || 'No steps provided'}
+${wizardData.howItWorks?.map((step: any) => `Step ${step.step}: ${step.title} - ${step.description}`).join('\n') || 'No steps provided'}
 
 PRICING PACKAGES:
-${wizardData.selectedPackages?.map(pkg => `
+${wizardData.selectedPackages?.map((pkg: any) => `
 ${pkg.name} - $${pkg.price}/month ${pkg.isPopular ? '(MOST POPULAR)' : ''}
 ${pkg.description}
 - ${pkg.passLimit.toLocaleString()} passes
@@ -124,7 +154,7 @@ Features: ${pkg.features.join(', ')}
 `).join('\n') || 'No packages provided'}
 
 RISK REVERSAL/REASSURANCE:
-${wizardData.riskReversal?.filter(r => r.trim()).map((item, i) => `• ${item}`).join('\n') || 'No risk reversal provided'}
+${wizardData.riskReversal?.filter((r: string) => r.trim()).map((item: string, i: number) => `• ${item}`).join('\n') || 'No risk reversal provided'}
 
 BRANDING:
 ${wizardData.logo ? `Logo URL: ${wizardData.logo}` : 'No logo provided'}

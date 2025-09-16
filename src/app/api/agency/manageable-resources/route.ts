@@ -15,38 +15,16 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Fetching manageable resources for user:', user.email)
 
-    // Get current active account (should be agency or platform)
-    const { data: activeAccount } = await supabase
-      .from('user_active_account')
-      .select('active_account_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    // Get or create agency account using our helper function
+    const { data: agencyAccountId, error: agencyError } = await supabase
+      .rpc('get_or_create_agency_account')
 
-    // If no active account, get user's first agency account
-    let agencyAccountId = activeAccount?.active_account_id
-    
-    if (!agencyAccountId) {
-      const { data: userAccounts } = await supabase
-        .from('account_members')
-        .select(`
-          account_id,
-          role,
-          accounts!inner (
-            id,
-            type
-          )
-        `)
-        .eq('user_id', user.id)
-        .in('accounts.type', ['agency', 'platform'])
-        .in('role', ['owner', 'admin'])
-        .limit(1)
-        .single()
-
-      agencyAccountId = userAccounts?.account_id
-    }
-
-    if (!agencyAccountId) {
-      return NextResponse.json({ error: 'No agency account found' }, { status: 404 })
+    if (agencyError || !agencyAccountId) {
+      console.error('❌ Agency account error:', agencyError)
+      return NextResponse.json({ 
+        error: 'No agency account found',
+        debug: `Agency Error: ${agencyError?.message || 'No agency account ID returned'}`
+      }, { status: 404 })
     }
 
     // Check if this is platform admin
@@ -58,21 +36,26 @@ export async function GET(request: NextRequest) {
 
     console.log('🏢 Agency/Platform account:', agencyAccountId, 'Type:', isPlatform?.type)
 
-    // 1. Get manageable businesses
+    // 1. Get manageable businesses from the businesses table
     let businessesQuery = supabase
-      .from('accounts')
+      .from('businesses')
       .select(`
         id,
         name,
-        status,
+        subscription_status,
+        subscription_plan,
         created_at,
-        parent_agency_id
+        agency_id,
+        contact_email,
+        max_passes,
+        total_passes_created,
+        total_members,
+        monthly_cost
       `)
-      .eq('type', 'business')
 
     // If not platform, only show businesses under this agency
     if (isPlatform?.type !== 'platform') {
-      businessesQuery = businessesQuery.eq('parent_agency_id', agencyAccountId)
+      businessesQuery = businessesQuery.eq('agency_id', agencyAccountId)
     }
 
     const { data: businesses, error: businessesError } = await businessesQuery
@@ -132,9 +115,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Create a map of assigned Pass Type IDs
-    const assignmentMap = new Map()
+    const passTypeAssignmentMap = new Map()
     existingAssignments?.forEach(assignment => {
-      assignmentMap.set(assignment.pass_type_id, {
+      passTypeAssignmentMap.set(assignment.pass_type_id, {
         business_id: assignment.business_account_id,
         business_name: assignment.business_accounts?.name
       })
@@ -143,14 +126,55 @@ export async function GET(request: NextRequest) {
     // Add assignment info to Pass Type IDs
     const passTypesWithAssignments = passTypes?.map(pt => ({
       ...pt,
-      assigned_to: assignmentMap.get(pt.id) || null
+      assigned_to: passTypeAssignmentMap.get(pt.id) || null
     }))
+
+    // Get Pass Type ID assignments for these businesses
+    const businessIds = (businesses || []).map(b => b.id)
+    const { data: assignments } = await supabase
+      .from('pass_type_assignments')
+      .select(`
+        business_account_id,
+        pass_type_ids (
+          id,
+          label,
+          is_global
+        )
+      `)
+      .in('business_account_id', businessIds)
+
+    // Create business assignment map
+    const businessAssignmentMap = new Map()
+    assignments?.forEach(assignment => {
+      businessAssignmentMap.set(assignment.business_account_id, assignment.pass_type_ids)
+    })
+
+    // Transform businesses data to match dashboard expectations
+    const transformedBusinesses = (businesses || []).map(business => ({
+      id: business.id,
+      name: business.name,
+      status: business.subscription_status || 'active',
+      created_at: business.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+      member_count: business.total_members || 0,
+      pass_count: business.total_passes_created || 0,
+      revenue: business.monthly_cost || 0,
+      assigned_pass_type: businessAssignmentMap.get(business.id) || null
+    }))
+
+    // Calculate totals for dashboard stats
+    const totalRevenue = transformedBusinesses.reduce((sum, b) => sum + b.revenue, 0)
+    const totalMembers = transformedBusinesses.reduce((sum, b) => sum + b.member_count, 0)
+    const totalPasses = transformedBusinesses.reduce((sum, b) => sum + b.pass_count, 0)
 
     console.log(`✅ Found ${businesses?.length || 0} businesses and ${passTypes?.length || 0} Pass Type IDs`)
 
     return NextResponse.json({
-      businesses: businesses || [],
-      passTypes: passTypesWithAssignments || [],
+      businesses: transformedBusinesses,
+      passTypeIds: passTypesWithAssignments || [], // Note: dashboard expects 'passTypeIds' not 'passTypes'
+      totalRevenue,
+      monthlyRevenue: totalRevenue, // Assuming monthly for now
+      totalMembers,
+      totalPasses,
       agencyInfo: {
         id: agencyAccountId,
         type: isPlatform?.type,

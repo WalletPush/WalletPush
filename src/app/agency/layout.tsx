@@ -8,7 +8,8 @@ import {
   KeyIcon, 
   UserGroupIcon,
   CogIcon,
-  SparklesIcon
+  SparklesIcon,
+  UserIcon
 } from '@heroicons/react/24/outline'
 
 export default function AgencyLayout({ children }: { children: React.ReactNode }) {
@@ -65,6 +66,11 @@ export default function AgencyLayout({ children }: { children: React.ReactNode }
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <span>Settings</span>
+              </Link>
+              
+              <Link href="/agency/profile" className={`sidebar-item ${pathname === '/agency/profile' ? 'active' : ''}`}>
+                <UserIcon className="w-5 h-5" />
+                <span>My Profile</span>
               </Link>
             </div>
           </nav>

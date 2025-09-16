@@ -13,150 +13,98 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('🔍 Fetching businesses for user:', user.email)
+    // Get or create agency account using our helper function
+    const { data: agencyAccountId, error: agencyError } = await supabase
+      .rpc('get_or_create_agency_account')
 
-    // Get current active account (should be agency or platform)
-    const { data: activeAccount } = await supabase
-      .from('user_active_account')
-      .select('active_account_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    // If no active account, get user's first agency account
-    let agencyAccountId = activeAccount?.active_account_id
-    
-    if (!agencyAccountId) {
-      const { data: userAccounts } = await supabase
-        .from('account_members')
-        .select(`
-          account_id,
-          role,
-          accounts!inner (
-            id,
-            type
-          )
-        `)
-        .eq('user_id', user.id)
-        .in('accounts.type', ['agency', 'platform'])
-        .in('role', ['owner', 'admin'])
-        .limit(1)
-        .single()
-
-      agencyAccountId = userAccounts?.account_id
+    if (agencyError || !agencyAccountId) {
+      return NextResponse.json({ 
+        error: 'Failed to get agency account',
+        debug: `Agency Error: ${agencyError?.message || 'No agency account ID returned'}. Expected: 49aadd4f-3065-4b6c-9440-dc0b63012338`
+      }, { status: 500 })
     }
 
-    if (!agencyAccountId) {
-      return NextResponse.json({ error: 'No agency account found' }, { status: 404 })
+    // Use the agency account ID directly (it's now returning the correct agency_accounts ID)
+    
+    const { data: businessAccounts, error: businessError } = await supabase
+      .from('businesses')
+      .select(`
+        id,
+        name,
+        subscription_status,
+        subscription_plan,
+        created_at,
+        updated_at,
+        agency_id,
+        contact_email,
+        contact_phone,
+        max_passes,
+        max_members,
+        total_passes_created,
+        total_members,
+        monthly_cost,
+        trial_ends_at
+      `)
+      .eq('agency_id', agencyAccountId)
+    
+    if (businessError) {
+      return NextResponse.json({ 
+        error: `Failed to fetch businesses: ${businessError.message}`,
+        debug: `Business Error: ${businessError.code} - ${businessError.details}`
+      }, { status: 500 })
     }
 
-    console.log('🏢 Agency account:', agencyAccountId)
+    // If no businesses found, debug what's in the businesses table
+    if (!businessAccounts || businessAccounts.length === 0) {
+      const { data: allBusinesses, error: allError } = await supabase
+        .from('businesses')
+        .select('id, name, agency_id')
+        .limit(10)
+      
+      return NextResponse.json({ 
+        error: `No businesses found for agency ${agencyAccountId}`,
+        debug: `Found ${allBusinesses?.length || 0} total businesses. Sample: ${JSON.stringify(allBusinesses?.slice(0,3) || [])}`,
+        agencyId: agencyAccountId
+      }, { status: 404 })
+    }
 
-    // TODO: Replace with actual database queries once schema is applied
-    // For now, return mock data
-    
-    const mockBusinesses = [
-      {
-        id: '1',
-        name: 'Coffee Shop Pro',
-        email: 'admin@coffeeshoppro.com',
-        status: 'active',
-        package: {
-          id: '2',
-          name: 'Business',
-          price: 69,
-          passLimit: 5000,
-          programLimit: 10,
-          staffLimit: 5
-        },
-        usage: {
-          passesUsed: 2450,
-          programsCreated: 3,
-          staffAccounts: 2,
-          monthlyRevenue: 69
-        },
-        createdAt: '2024-01-15',
-        lastActive: '2024-01-25',
-        domain: 'loyalty.coffeeshoppro.com'
+    // Transform the data to match the expected format
+    const businesses = (businessAccounts || []).map(business => ({
+      id: business.id,
+      name: business.name,
+      email: business.contact_email || `admin@${business.name.toLowerCase().replace(/\s+/g, '')}.com`,
+      status: business.subscription_status || 'active',
+      package: {
+        id: business.subscription_plan || 'starter',
+        name: business.subscription_plan === 'starter' ? 'Starter Plan' : 
+              business.subscription_plan === 'business' ? 'Business Plan' : 
+              business.subscription_plan === 'enterprise' ? 'Enterprise Plan' : 'Custom Plan',
+        price: business.monthly_cost || 0,
+        passLimit: business.max_passes || 1000,
+        programLimit: -1, // Unlimited for agency businesses
+        staffLimit: business.max_members || 500
       },
-      {
-        id: '2',
-        name: 'Fitness First',
-        email: 'owner@fitnessfirst.com',
-        status: 'trial',
-        package: {
-          id: '1',
-          name: 'Starter',
-          price: 29,
-          passLimit: 1000,
-          programLimit: 3,
-          staffLimit: 2
-        },
-        usage: {
-          passesUsed: 156,
-          programsCreated: 1,
-          staffAccounts: 1,
-          monthlyRevenue: 0
-        },
-        createdAt: '2024-01-20',
-        lastActive: '2024-01-24',
-        trialEndsAt: '2024-02-04'
+      usage: {
+        passesUsed: business.total_passes_created || 0,
+        programsCreated: 1, // Default for now
+        staffAccounts: business.total_members || 0,
+        monthlyRevenue: business.monthly_cost || 0
       },
-      {
-        id: '3',
-        name: 'Restaurant Deluxe',
-        email: 'manager@restaurantdeluxe.com',
-        status: 'active',
-        package: {
-          id: '3',
-          name: 'Pro',
-          price: 97,
-          passLimit: 10000,
-          programLimit: 20,
-          staffLimit: -1
-        },
-        usage: {
-          passesUsed: 7890,
-          programsCreated: 8,
-          staffAccounts: 12,
-          monthlyRevenue: 97
-        },
-        createdAt: '2024-01-10',
-        lastActive: '2024-01-25',
-        domain: 'members.restaurantdeluxe.com'
-      },
-      {
-        id: '4',
-        name: 'Beauty Salon Elite',
-        email: 'info@beautysalonelite.com',
-        status: 'suspended',
-        package: {
-          id: '2',
-          name: 'Business',
-          price: 69,
-          passLimit: 5000,
-          programLimit: 10,
-          staffLimit: 5
-        },
-        usage: {
-          passesUsed: 4890,
-          programsCreated: 9,
-          staffAccounts: 4,
-          monthlyRevenue: 0
-        },
-        createdAt: '2024-01-05',
-        lastActive: '2024-01-18'
-      }
-    ]
+      createdAt: business.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+      lastActive: business.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+      domain: `loyalty.${business.name.toLowerCase().replace(/\s+/g, '')}.com`,
+      trialEndsAt: business.trial_ends_at?.split('T')[0] || null
+    }))
 
-    console.log(`✅ Returning ${mockBusinesses.length} businesses`)
+    // Success - return the businesses
 
     return NextResponse.json({
-      businesses: mockBusinesses,
+      businesses: businesses,
       agencyInfo: {
         id: agencyAccountId,
-        totalBusinesses: mockBusinesses.length,
-        activeBusinesses: mockBusinesses.filter(b => b.status === 'active').length,
-        totalRevenue: mockBusinesses.reduce((sum, b) => sum + b.usage.monthlyRevenue, 0)
+        totalBusinesses: businesses.length,
+        activeBusinesses: businesses.filter(b => b.status === 'active').length,
+        totalRevenue: businesses.reduce((sum, b) => sum + b.usage.monthlyRevenue, 0)
       }
     })
 
@@ -179,59 +127,74 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, packageId } = body
+    const { 
+      name, 
+      slug, 
+      contact_email, 
+      contact_phone, 
+      address, 
+      subscription_plan, 
+      custom_domain 
+    } = body
 
-    if (!name || !email || !packageId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (!name || !contact_email || !subscription_plan) {
+      return NextResponse.json({ error: 'Missing required fields (name, contact_email, subscription_plan)' }, { status: 400 })
     }
 
-    console.log('🏗️ Creating business for user:', user.email, 'name:', name)
+    // Get or create agency account using our helper function
+    const { data: agencyAccountId, error: agencyError } = await supabase
+      .rpc('get_or_create_agency_account')
 
-    // Get current active account (should be agency or platform)
-    const { data: activeAccount } = await supabase
-      .from('user_active_account')
-      .select('active_account_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    if (agencyError || !agencyAccountId) {
+      return NextResponse.json({ 
+        error: 'Failed to get agency account',
+        debug: `Agency Error: ${agencyError?.message || 'No agency account ID returned'}`
+      }, { status: 500 })
+    }
 
-    // If no active account, get user's first agency account
-    let agencyAccountId = activeAccount?.active_account_id
+    // Set pricing based on subscription plan
+    const pricingMap = {
+      starter: { cost: 19.99, passes: 1000, members: 500 },
+      business: { cost: 49.99, passes: 5000, members: 2000 },
+      enterprise: { cost: 149.99, passes: 25000, members: 10000 }
+    }
     
-    if (!agencyAccountId) {
-      const { data: userAccounts } = await supabase
-        .from('account_members')
-        .select(`
-          account_id,
-          role,
-          accounts!inner (
-            id,
-            type
-          )
-        `)
-        .eq('user_id', user.id)
-        .in('accounts.type', ['agency', 'platform'])
-        .in('role', ['owner', 'admin'])
-        .limit(1)
-        .single()
+    const pricing = pricingMap[subscription_plan as keyof typeof pricingMap] || pricingMap.starter
 
-      agencyAccountId = userAccounts?.account_id
+    // Create business in database
+    const { data: newBusiness, error: businessError } = await supabase
+      .from('businesses')
+      .insert({
+        agency_id: agencyAccountId,
+        name,
+        slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        contact_email,
+        contact_phone,
+        address,
+        subscription_plan,
+        subscription_status: 'trial',
+        monthly_cost: pricing.cost,
+        max_passes: pricing.passes,
+        max_members: pricing.members,
+        custom_domain: custom_domain || null,
+        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+        next_billing_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+      })
+      .select()
+      .single()
+
+    if (businessError) {
+      console.error('❌ Failed to create business:', businessError)
+      return NextResponse.json({ 
+        error: `Failed to create business: ${businessError.message}`,
+        debug: `Database Error: ${businessError.message} | Code: ${businessError.code} | Details: ${businessError.details}`
+      }, { status: 500 })
     }
-
-    if (!agencyAccountId) {
-      return NextResponse.json({ error: 'No agency account found' }, { status: 404 })
-    }
-
-    console.log('🏢 Creating business for agency:', agencyAccountId)
-
-    // TODO: Replace with actual database operations once schema is applied
-    // For now, just validate the data and return success
-    
-    console.log(`✅ Successfully validated business creation: ${name}`)
 
     return NextResponse.json({
       success: true,
       message: 'Business created successfully',
-      businessId: Date.now().toString()
+      business: newBusiness
     })
 
   } catch (error) {

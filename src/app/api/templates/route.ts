@@ -5,15 +5,21 @@ import { passStore } from '../apple-pass/route'
 
 // GOLDEN TRUTH: No fallbacks, no memory store - 100% database driven
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     console.log('🔍 Fetching templates from Supabase database')
     
     const supabase = await createClient()
     
+    // Get query parameters
+    const url = new URL(request.url)
+    const tenantId = url.searchParams.get('tenantId')
+    
+    console.log('🔍 Template request - tenantId:', tenantId)
+    
     try {
-      // Try to get templates from Supabase - INCLUDING PASSKIT_JSON
-      const { data: templates, error } = await supabase
+      // Build query with program name JOIN
+      let query = supabase
         .from('templates')
         .select(`
           id,
@@ -24,9 +30,18 @@ export async function GET() {
           previews,
           published_at,
           created_at,
-          pass_type_identifier
+          pass_type_identifier,
+          programs!inner (
+            id,
+            name
+          )
         `)
-        .order('created_at', { ascending: false })
+      
+      // TEMPORARY: Remove all filtering until we fix the data
+      console.log('🔍 Fetching ALL templates (filtering disabled temporarily)')
+      // TODO: Fix template account_id data and re-enable filtering
+      
+      const { data: templates, error } = await query.order('created_at', { ascending: false })
 
       if (error) {
         console.error('❌ Supabase error, falling back to memory store:', error)

@@ -8,6 +8,7 @@ import {
   CodeBracketIcon,
   GlobeAltIcon,
   DocumentDuplicateIcon,
+  DocumentTextIcon,
   PencilIcon,
   ArrowPathIcon,
   CheckIcon,
@@ -53,9 +54,18 @@ interface WizardData {
     isPopular: boolean
   }>
   
-  // Step 5: Template Style
-  selectedTemplate: string
-  customTemplate: string
+  // Step 5: Give Claude More Info
+  primaryColor: string
+  secondaryColor: string
+  imageUrls: {
+    hero?: string
+    logo?: string
+    background?: string
+    feature1?: string
+    feature2?: string
+    feature3?: string
+  }
+  customInstructions: string
   
   // Step 6: Generated Result
   generatedHtml: string
@@ -182,8 +192,10 @@ export default function SalesPageDesignerPage() {
     ],
     
     // Step 5
-    selectedTemplate: '',
-    customTemplate: '',
+    primaryColor: '#3862EA',
+    secondaryColor: '#10B981',
+    imageUrls: {},
+    customInstructions: '',
     
     // Step 6
     generatedHtml: ''
@@ -803,7 +815,7 @@ export default function SalesPageDesignerPage() {
       case 4:
         return wizardData.selectedPackages.length > 0
       case 5:
-        return wizardData.selectedTemplate || wizardData.customTemplate
+        return wizardData.primaryColor && wizardData.secondaryColor
       case 6:
         return true
       default:
@@ -1329,49 +1341,145 @@ export default function SalesPageDesignerPage() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-slate-900 mb-2">Pick a Template Style</h2>
-              <p className="text-slate-600">Choose a design template or create a custom style</p>
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Give Claude More Info</h2>
+              <p className="text-slate-600">Provide specific guidance for AI generation</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {MOCK_LANDING_TEMPLATES.map((template) => (
-                <div
-                  key={template.id}
-                  onClick={() => setWizardData(prev => ({ ...prev, selectedTemplate: template.id, customTemplate: '' }))}
-                  className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
-                    wizardData.selectedTemplate === template.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="aspect-video bg-slate-100 rounded-lg mb-3 flex items-center justify-center">
-                    <span className="text-slate-500 text-sm">Template Preview</span>
+            {/* Color Theme */}
+            <div className="bg-slate-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded mr-2"></div>
+                Brand Colors
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Primary Color (Buttons, Headers)
+                  </label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="color"
+                      value={wizardData.primaryColor}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      className="w-12 h-10 rounded border border-slate-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={wizardData.primaryColor}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                      placeholder="#3862EA"
+                    />
                   </div>
-                  <h3 className="font-semibold text-slate-900 mb-1">{template.name}</h3>
-                  <p className="text-sm text-slate-600 mb-2">{template.description}</p>
-                  <span className="inline-block bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded">
-                    {template.category}
-                  </span>
                 </div>
-              ))}
-
-              <div
-                onClick={() => setWizardData(prev => ({ ...prev, customTemplate: 'custom', selectedTemplate: '' }))}
-                className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
-                  wizardData.customTemplate === 'custom'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="aspect-video bg-slate-100 rounded-lg mb-3 flex items-center justify-center">
-                  <SparklesIcon className="w-12 h-12 text-slate-400" />
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Secondary Color (Accents, Links)
+                  </label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="color"
+                      value={wizardData.secondaryColor}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                      className="w-12 h-10 rounded border border-slate-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={wizardData.secondaryColor}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                      placeholder="#10B981"
+                    />
+                  </div>
                 </div>
-                <h3 className="font-semibold text-slate-900 mb-1">Custom Template</h3>
-                <p className="text-sm text-slate-600 mb-2">Let AI create a unique design based on your content</p>
-                <span className="inline-block bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded">
-                  AI Generated
-                </span>
               </div>
+            </div>
+
+            {/* Image URLs */}
+            <div className="bg-slate-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <PhotoIcon className="w-5 h-5 text-blue-500 mr-2" />
+                Specific Images (Optional)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Hero Image URL</label>
+                  <input
+                    type="url"
+                    value={wizardData.imageUrls.hero || ''}
+                    onChange={(e) => setWizardData(prev => ({ 
+                      ...prev, 
+                      imageUrls: { ...prev.imageUrls, hero: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    placeholder="https://example.com/hero-image.jpg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Logo URL</label>
+                  <input
+                    type="url"
+                    value={wizardData.imageUrls.logo || ''}
+                    onChange={(e) => setWizardData(prev => ({ 
+                      ...prev, 
+                      imageUrls: { ...prev.imageUrls, logo: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    placeholder="https://example.com/logo.png"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Background Image URL</label>
+                  <input
+                    type="url"
+                    value={wizardData.imageUrls.background || ''}
+                    onChange={(e) => setWizardData(prev => ({ 
+                      ...prev, 
+                      imageUrls: { ...prev.imageUrls, background: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    placeholder="https://example.com/background.jpg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Feature Image 1 URL</label>
+                  <input
+                    type="url"
+                    value={wizardData.imageUrls.feature1 || ''}
+                    onChange={(e) => setWizardData(prev => ({ 
+                      ...prev, 
+                      imageUrls: { ...prev.imageUrls, feature1: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    placeholder="https://example.com/feature1.jpg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Instructions */}
+            <div className="bg-slate-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <DocumentTextIcon className="w-5 h-5 text-blue-500 mr-2" />
+                Additional Instructions for Claude
+              </h3>
+              <textarea
+                value={wizardData.customInstructions}
+                onChange={(e) => setWizardData(prev => ({ ...prev, customInstructions: e.target.value }))}
+                placeholder="Give Claude specific instructions about style, layout, tone, or features you want. For example:
+- Make it look modern and minimalist
+- Use a tech startup vibe
+- Include testimonials section
+- Make buttons larger and more prominent
+- Use professional photography style
+- Add animations or hover effects
+- Focus on mobile-first design"
+                className="w-full p-4 border border-slate-300 rounded-lg"
+                rows={8}
+              />
+              <p className="text-sm text-slate-500 mt-2">
+                These instructions will be prioritized in the AI generation process
+              </p>
             </div>
           </div>
         )
@@ -1398,7 +1506,9 @@ export default function SalesPageDesignerPage() {
                   <p><strong>How It Works:</strong> {wizardData.howItWorks?.length || 0} steps</p>
                   <p><strong>Pricing Packages:</strong> {wizardData.selectedPackages?.length || 0} packages</p>
                   <p><strong>Risk Reversal:</strong> {wizardData.riskReversal?.filter(r => r.trim()).length || 0} items</p>
-                  <p><strong>Template:</strong> {wizardData.customTemplate === 'custom' ? 'Custom AI Template' : MOCK_LANDING_TEMPLATES.find(t => t.id === wizardData.selectedTemplate)?.name || 'None'}</p>
+                  <p><strong>Primary Color:</strong> {wizardData.primaryColor}</p>
+                  <p><strong>Secondary Color:</strong> {wizardData.secondaryColor}</p>
+                  <p><strong>Custom Instructions:</strong> {wizardData.customInstructions ? 'Yes' : 'None'}</p>
                 </div>
               </div>
             </div>

@@ -75,108 +75,21 @@ export default function AgencyBusinessesPage() {
       const response = await fetch('/api/agency/businesses')
       
       if (!response.ok) {
+        const errorData = await response.json()
+        alert(`❌ API ERROR: ${errorData.error}\n\n🔍 DEBUG: ${errorData.debug || 'No debug info'}\n\n🏢 Agency ID: ${errorData.agencyId || 'Unknown'}`)
         throw new Error(`API error: ${response.status}`)
       }
       
       const data = await response.json()
       setBusinesses(data.businesses || [])
       
+      if (data.businesses && data.businesses.length > 0) {
+        alert(`✅ SUCCESS: Loaded ${data.businesses.length} businesses from database`)
+      }
+      
     } catch (error) {
-      console.error('❌ Failed to load businesses:', error)
-      // Fallback to mock data for development
-      setBusinesses([
-        {
-          id: '1',
-          name: 'Coffee Shop Pro',
-          email: 'admin@coffeeshoppro.com',
-          status: 'active',
-          package: {
-            id: '2',
-            name: 'Business',
-            price: 69,
-            passLimit: 5000,
-            programLimit: 10,
-            staffLimit: 5
-          },
-          usage: {
-            passesUsed: 2450,
-            programsCreated: 3,
-            staffAccounts: 2,
-            monthlyRevenue: 69
-          },
-          createdAt: '2024-01-15',
-          lastActive: '2024-01-25',
-          domain: 'loyalty.coffeeshoppro.com'
-        },
-        {
-          id: '2',
-          name: 'Fitness First',
-          email: 'owner@fitnessfirst.com',
-          status: 'trial',
-          package: {
-            id: '1',
-            name: 'Starter',
-            price: 29,
-            passLimit: 1000,
-            programLimit: 3,
-            staffLimit: 2
-          },
-          usage: {
-            passesUsed: 156,
-            programsCreated: 1,
-            staffAccounts: 1,
-            monthlyRevenue: 0
-          },
-          createdAt: '2024-01-20',
-          lastActive: '2024-01-24',
-          trialEndsAt: '2024-02-04'
-        },
-        {
-          id: '3',
-          name: 'Restaurant Deluxe',
-          email: 'manager@restaurantdeluxe.com',
-          status: 'active',
-          package: {
-            id: '3',
-            name: 'Pro',
-            price: 97,
-            passLimit: 10000,
-            programLimit: 20,
-            staffLimit: -1
-          },
-          usage: {
-            passesUsed: 7890,
-            programsCreated: 8,
-            staffAccounts: 12,
-            monthlyRevenue: 97
-          },
-          createdAt: '2024-01-10',
-          lastActive: '2024-01-25',
-          domain: 'members.restaurantdeluxe.com'
-        },
-        {
-          id: '4',
-          name: 'Beauty Salon Elite',
-          email: 'info@beautysalonelite.com',
-          status: 'suspended',
-          package: {
-            id: '2',
-            name: 'Business',
-            price: 69,
-            programLimit: 10,
-            passLimit: 5000,
-            staffLimit: 5
-          },
-          usage: {
-            passesUsed: 4890,
-            programsCreated: 9,
-            staffAccounts: 4,
-            monthlyRevenue: 0
-          },
-          createdAt: '2024-01-05',
-          lastActive: '2024-01-18'
-        }
-      ])
+      alert(`❌ LOAD FAILED: ${error.message}`)
+      setBusinesses([]) // No fallback - show empty state
     } finally {
       setIsLoading(false)
     }

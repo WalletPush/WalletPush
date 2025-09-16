@@ -699,7 +699,9 @@ export default function PassDesigner() {
           headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
         })
         if (res.ok) {
-          const { tenant, allTenants } = await res.json()
+          const { currentTenant, tenants } = await res.json()
+          const tenant = currentTenant
+          const allTenants = tenants
           setCurrentTenant(tenant)
           if (allTenants) setTenants(allTenants) // For admin tenant selector
           
@@ -710,8 +712,23 @@ export default function PassDesigner() {
               headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
             })
             if (templatesRes.ok) {
-              const json = await templatesRes.json()
-              setSupabaseTemplates(json.templates || [])
+              try {
+                const json = await templatesRes.json()
+                if (json.templates && Array.isArray(json.templates)) {
+                  setSupabaseTemplates(json.templates)
+                } else {
+                  console.error('❌ Templates is not an array:', typeof json.templates, json.templates)
+                  setSupabaseTemplates([])
+                }
+      } catch (parseError: any) {
+        console.error('❌ Failed to parse templates response:', parseError)
+        toast.error(`Failed to parse templates: ${parseError.message}`)
+        setSupabaseTemplates([])
+      }
+            } else {
+              const errorText = await templatesRes.text()
+              console.error('❌ Templates API failed:', templatesRes.status, errorText)
+              toast.error(`Templates API failed: ${templatesRes.status} - ${errorText}`)
             }
           }
         } else {
@@ -1219,75 +1236,160 @@ export default function PassDesigner() {
       return
     }
     
-    // Convert template JSON back to PassData format
-    const loadedPass: PassData = {
-      id: templateJson.id || `loaded_${Date.now()}`,
-      templateName: templateJson.name || 'WalletPush',
-      description: templateJson.description || 'Digital wallet pass template',
-      style: templateJson.passStyle || templateJson.style || 'storeCard',
-      passTypeIdentifier: templateJson.metadata?.pass_type_identifier || 'pass.com.walletpushio',
-      organizationName: templateJson.metadata?.organization_name || 'WalletPush',
-      foregroundColor: templateJson.colors?.foregroundColor || '#ffffff',
-      backgroundColor: templateJson.colors?.backgroundColor || '#1a1a1a',
-      labelColor: templateJson.colors?.labelColor || '#cccccc',
-      fields: templateJson.fields || [],
-      barcodes: templateJson.barcodes || [],
-      locations: [],
-      images: {
-        logo: templateJson.images?.logo ? {
-          file: undefined, // File object doesn't exist after save/load
-          x1: templateJson.images.logo['1x'] || templateJson.images.logo.x1,
-          x2: templateJson.images.logo['2x'] || templateJson.images.logo.x2,
-          x3: templateJson.images.logo['3x'] || templateJson.images.logo.x3
-        } : undefined,
-        strip: templateJson.images?.strip ? {
-          file: undefined,
-          x1: templateJson.images.strip['1x'] || templateJson.images.strip.x1,
-          x2: templateJson.images.strip['2x'] || templateJson.images.strip.x2,
-          x3: templateJson.images.strip['3x'] || templateJson.images.strip.x3
-        } : undefined,
-        icon: templateJson.images?.icon ? {
-          file: undefined,
-          x1: templateJson.images.icon['1x'] || templateJson.images.icon.x1,
-          x2: templateJson.images.icon['2x'] || templateJson.images.icon.x2,
-          x3: templateJson.images.icon['3x'] || templateJson.images.icon.x3
-        } : undefined,
-        background: templateJson.images?.background ? {
-          file: undefined,
-          x1: templateJson.images.background['1x'] || templateJson.images.background.x1,
-          x2: templateJson.images.background['2x'] || templateJson.images.background.x2,
-          x3: templateJson.images.background['3x'] || templateJson.images.background.x3
-        } : undefined,
-        thumbnail: templateJson.images?.thumbnail ? {
-          file: undefined,
-          x1: templateJson.images.thumbnail['1x'] || templateJson.images.thumbnail.x1,
-          x2: templateJson.images.thumbnail['2x'] || templateJson.images.thumbnail.x2,
-          x3: templateJson.images.thumbnail['3x'] || templateJson.images.thumbnail.x3
-        } : undefined
-      },
-      placeholders: templateJson.placeholders || [],
-      isSaved: true
-    }
+    // Check if this is an AI-generated template (has templateName instead of name)
+    const isAITemplate = templateJson.aiGenerated || templateJson.templateName
+    
+    let loadedPass: PassData
+    
+    if (isAITemplate) {
+      // Convert AI template format to PassData format
+      const fields: PassField[] = []
+      
+      // Convert frontFields to fields array
+      if (templateJson.frontFields?.headerField) {
+        fields.push({
+          id: `header_${Date.now()}`,
+          type: 'headerFields',
+          key: templateJson.frontFields.headerField.placeholder || 'header',
+          label: templateJson.frontFields.headerField.label,
+          value: templateJson.frontFields.headerField.defaultValue || ''
+        })
+      }
+      
+      if (templateJson.frontFields?.secondaryField) {
+        fields.push({
+          id: `secondary_${Date.now()}`,
+          type: 'secondaryFields', 
+          key: templateJson.frontFields.secondaryField.placeholder || 'secondary',
+          label: templateJson.frontFields.secondaryField.label,
+          value: templateJson.frontFields.secondaryField.placeholder || '${Current_Offer}'
+        })
+      }
+      
+      // Convert backFields to fields array
+      if (templateJson.backFields) {
+        templateJson.backFields.forEach((backField: any, index: number) => {
+          fields.push({
+            id: `back_${Date.now()}_${index}`,
+            type: 'backFields',
+            key: backField.placeholder || `back_${index}`,
+            label: backField.label,
+            value: backField.placeholder || `\${${backField.label.replace(/\s+/g, '_')}}`
+          })
+        })
+      }
+      
+      loadedPass = {
+        id: templateJson.id || `loaded_${Date.now()}`,
+        templateName: templateJson.templateName || templateJson.name || 'AI Template',
+        description: templateJson.description || 'AI-generated template',
+        style: 'storeCard',
+        passTypeIdentifier: templateJson.passTypeId || 'pass.com.walletpushio',
+        organizationName: templateJson.organizationName || 'WalletPush',
+        foregroundColor: templateJson.textColor || '#000000',
+        backgroundColor: templateJson.backgroundColor || '#ffffff',
+        labelColor: templateJson.textColor || '#000000',
+        fields: fields,
+        barcodes: templateJson.barcode ? [{
+          format: templateJson.barcode.type === 'QR' ? 'PKBarcodeFormatQR' : 'PKBarcodeFormatQR',
+          message: templateJson.barcode.content || '${MEMBER_ID}',
+          messageEncoding: 'iso-8859-1',
+          altText: templateJson.barcode.altText || templateJson.barcode.content
+        }] : [],
+        locations: [],
+        images: {
+          logo: templateJson.logoUrl ? {
+            file: undefined,
+            x1: templateJson.logoUrl,
+            x2: templateJson.logoUrl,
+            x3: templateJson.logoUrl
+          } : undefined,
+          strip: templateJson.stripImageUrl ? {
+            file: undefined,
+            x1: templateJson.stripImageUrl,
+            x2: templateJson.stripImageUrl,
+            x3: templateJson.stripImageUrl
+          } : undefined,
+          icon: templateJson.iconUrl ? {
+            file: undefined,
+            x1: templateJson.iconUrl,
+            x2: templateJson.iconUrl,
+            x3: templateJson.iconUrl
+          } : undefined
+        },
+        placeholders: templateJson.placeholders || [], // Use placeholders directly from AI template
+        tenantId: currentTenant?.id,
+        isSaved: true
+      }
+    } else {
+      // Original template format
+      loadedPass = {
+        id: templateJson.id || `loaded_${Date.now()}`,
+        templateName: templateJson.name || 'WalletPush',
+        description: templateJson.description || 'Digital wallet pass template',
+        style: templateJson.passStyle || templateJson.style || 'storeCard',
+        passTypeIdentifier: templateJson.metadata?.pass_type_identifier || 'pass.com.walletpushio',
+        organizationName: templateJson.metadata?.organization_name || 'WalletPush',
+        foregroundColor: templateJson.colors?.foregroundColor || '#ffffff',
+        backgroundColor: templateJson.colors?.backgroundColor || '#1a1a1a',
+        labelColor: templateJson.colors?.labelColor || '#cccccc',
+        fields: templateJson.fields || [],
+        barcodes: templateJson.barcodes || [],
+        locations: [],
+          images: {
+            logo: templateJson.images?.logo ? {
+              file: undefined, // File object doesn't exist after save/load
+              x1: templateJson.images.logo['1x'] || templateJson.images.logo.x1,
+              x2: templateJson.images.logo['2x'] || templateJson.images.logo.x2,
+              x3: templateJson.images.logo['3x'] || templateJson.images.logo.x3
+            } : undefined,
+            strip: templateJson.images?.strip ? {
+              file: undefined,
+              x1: templateJson.images.strip['1x'] || templateJson.images.strip.x1,
+              x2: templateJson.images.strip['2x'] || templateJson.images.strip.x2,
+              x3: templateJson.images.strip['3x'] || templateJson.images.strip.x3
+            } : undefined,
+            icon: templateJson.images?.icon ? {
+              file: undefined,
+              x1: templateJson.images.icon['1x'] || templateJson.images.icon.x1,
+              x2: templateJson.images.icon['2x'] || templateJson.images.icon.x2,
+              x3: templateJson.images.icon['3x'] || templateJson.images.icon.x3
+            } : undefined,
+            background: templateJson.images?.background ? {
+              file: undefined,
+              x1: templateJson.images.background['1x'] || templateJson.images.background.x1,
+              x2: templateJson.images.background['2x'] || templateJson.images.background.x2,
+              x3: templateJson.images.background['3x'] || templateJson.images.background.x3
+            } : undefined,
+            thumbnail: templateJson.images?.thumbnail ? {
+              file: undefined,
+              x1: templateJson.images.thumbnail['1x'] || templateJson.images.thumbnail.x1,
+              x2: templateJson.images.thumbnail['2x'] || templateJson.images.thumbnail.x2,
+              x3: templateJson.images.thumbnail['3x'] || templateJson.images.thumbnail.x3
+            } : undefined
+          },
+          placeholders: templateJson.placeholders || [],
+          tenantId: currentTenant?.id,
+          isSaved: true
+        }
+      }
     
     console.log('✅ Converted template to PassData:', loadedPass)
     setCurrentPass(loadedPass)
     setStep('design')
-  }, [])
+  }, [currentTenant, setCurrentPass, setStep])
 
-  // NEW: Show loading state while fetching tenant
-  // EMERGENCY FIX: Disable tenant requirement
-  /*
+  // Show loading state while fetching tenant (like distribution page)
   if (loadingTenant) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading tenant information...</p>
+          <p className="text-slate-600">Loading Pass Designer...</p>
         </div>
       </div>
     )
   }
-  */
 
   // NEW: Show tenant setup if no tenant
   if (false && !currentTenant) { // DISABLED
@@ -1344,15 +1446,15 @@ export default function PassDesigner() {
           {/* Templates */}
           <div>
             <h3 className="text-xl font-semibold text-slate-900 mb-3">Templates</h3>
-            {supabaseTemplates.length === 0 ? (
-              <div className="text-sm text-slate-500">No templates yet</div>
-            ) : (
+              {supabaseTemplates.length === 0 ? (
+                <div className="text-sm text-slate-500">No templates yet</div>
+              ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {supabaseTemplates.map((t: any) => (
                 <Card key={t.id}>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      {t.template_json?.name || 'WalletPush Template'}
+                      {t.programs?.name || t.template_json?.name || t.template_json?.templateName || 'WalletPush Template'}
                       <span className="text-xs bg-slate-100 px-2 py-1 rounded">{new Date(t.created_at).toLocaleString()}</span>
                     </CardTitle>
                     <CardDescription className="text-slate-600">{t.template_json?.description || 'Digital wallet pass template'}</CardDescription>
@@ -1366,15 +1468,6 @@ export default function PassDesigner() {
                 ))}
               </div>
             )}
-            <div className="mt-3 flex gap-2">
-              <Button 
-                onClick={handleSaveToSupabase} 
-                disabled={isSaving || !currentPass.templateName} 
-                className="btn-primary"
-              >
-                {isSaving ? 'Saving...' : 'Save Current Template'}
-              </Button>
-            </div>
           </div>
         </div>
       </div>
@@ -1533,13 +1626,6 @@ export default function PassDesigner() {
               </h1>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
-                onClick={handleSaveToSupabase}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : (currentPass.id && currentPass.isSaved ? 'Update' : 'Save')}
-              </Button>
               <Button 
                 variant="outline"
                 onClick={handlePreviewPass}

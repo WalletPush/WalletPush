@@ -7,10 +7,34 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     const settingKey = url.searchParams.get('key')
     
-    // For testing, we'll use the Blue Karma business ID
-    const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    // Get user authentication
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return NextResponse.json({ data: null, error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get business through account_members → accounts → businesses chain
+    const { data: userAccounts, error: accountsError } = await supabase
+      .from('account_members')
+      .select(`
+        account_id,
+        accounts!inner (
+          id,
+          type
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('accounts.type', 'business')
+      .limit(1)
+      .single()
+
+    if (accountsError || !userAccounts) {
+      return NextResponse.json({ data: null, error: 'No business account found for this user' }, { status: 404 })
+    }
+
+    const business_id = userAccounts.account_id
     
-    console.log('GET business-settings:', { business_id, settingKey })
+    console.log('GET business-settings:', { business_id, settingKey, user_id: user.id })
     
     let query = supabase
       .from('business_settings')
