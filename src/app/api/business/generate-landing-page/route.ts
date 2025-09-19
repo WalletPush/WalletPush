@@ -150,6 +150,7 @@ export async function POST(request: NextRequest) {
     // Generate landing page HTML using Claude if screenshot available, otherwise use static template
     if (screenshot) {
       console.log('🎨 Generating custom landing page with Claude using website screenshot...')
+      console.log('📸 Screenshot URL:', screenshot)
       
       const claudePrompt = `Create a professional landing page for a loyalty program that VISUALLY MATCHES the provided website screenshot.
 

@@ -91,6 +91,8 @@ const publicRoutes = [
   '/api/passkit', // Apple PassKit web service
   '/api/passes', // Pass download API
   '/api/validate-pass', // Pass validation API
+  '/api/customer-signup', // Customer signup for landing pages
+  '/api/public/join', // Public form submission endpoint
   '/admin/global-pass-type-id', // Admin page for global Pass Type ID management
   '/api/admin/global-pass-type-id', // API for global Pass Type ID management
   '/api/admin/wwdr-certificate' // API for WWDR certificate upload

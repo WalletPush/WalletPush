@@ -455,8 +455,33 @@ export default function AICopilotChatPage() {
         throw new Error(result.error || 'Failed to create program')
       }
       
-      // Generate landing page automatically
+      // Generate landing page automatically with screenshot
       addMessage('system', '🌐 Generating promotional landing page...')
+      
+      // STAGE 2: Capture website screenshot for visual design matching
+      let screenshotUrl = null
+      try {
+        addMessage('system', '📸 Capturing website screenshot for design matching...')
+        
+        const screenshotResponse = await fetch('/api/business/screenshot-website', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            websiteUrl: websiteUrl
+          })
+        })
+        
+        if (screenshotResponse.ok) {
+          const screenshotResult = await screenshotResponse.json()
+          screenshotUrl = screenshotResult.screenshotUrl
+          addMessage('system', '✅ Screenshot captured! Creating visually matching landing page...')
+        } else {
+          addMessage('system', '⚠️ Screenshot failed, creating standard landing page...')
+        }
+      } catch (screenshotError) {
+        console.warn('Screenshot capture failed:', screenshotError)
+        addMessage('system', '⚠️ Screenshot failed, creating standard landing page...')
+      }
       
       try {
         const landingResponse = await fetch('/api/business/generate-landing-page', {
@@ -467,7 +492,7 @@ export default function AICopilotChatPage() {
             businessId: result.businessId,
             templateId: result.templateId,
             programId: result.programId,
-            screenshot: crawlData?.screenshot // Pass screenshot for visual design matching
+            screenshot: screenshotUrl // Pass screenshot URL for visual design matching
           })
         })
         

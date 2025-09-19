@@ -5,9 +5,9 @@ import OpenAI from 'openai'
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { prompt, business_name, logo_url, background_image_url, project_state } = await request.json()
+    const { prompt, business_name, logo_url, background_image_url, project_state, template_id } = await request.json()
     
-    console.log('Generate landing page request:', { prompt, business_name })
+    console.log('Generate landing page request:', { prompt, business_name, template_id })
     
     // For testing, we'll use the Blue Karma business ID
     const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     
     if (!openrouterConfig?.enabled || !openrouterConfig?.api_key) {
       // Generate mock HTML when OpenRouter not configured
-      const mockHtml = generateMockHTML(prompt, business_name, logo_url, background_image_url)
+      const mockHtml = await generateMockHTML(prompt, business_name, logo_url, background_image_url, template_id, supabase, project_state?.requiredFields, project_state?.optionalFields)
       
       return NextResponse.json({ 
         data: { 
@@ -68,8 +68,8 @@ OUTPUT FORMAT:
 
 REQUIREMENTS:
 - Use Tailwind CSS via CDN
-- Form posts to /api/public/join with method="POST"
-- Include hidden fields: <input type="hidden" name="tenant_id" value="{{TENANT_ID}}"> and <input type="hidden" name="program_id" value="{{PROGRAM_ID}}">
+- Form posts to /api/customer-signup with method="POST"
+- Include hidden fields: <input type="hidden" name="landing_page_id" value="LANDING_PAGE_ID_PLACEHOLDER">
 - Use provided branding assets (logo, background image)
 - Include all specified form fields as <input> elements
 - Professional, conversion-optimized design
@@ -100,8 +100,8 @@ Do not ask questions. Build immediately using all provided information.`
           .trim()
       }
 
-      const sanitizedPrompt = sanitizeText(prompt).slice(0, 2000) // Limit prompt to 2000 chars
-      const sanitizedBusinessName = business_name ? sanitizeText(business_name) : ''
+      const sanitizedPrompt = sanitizeText(prompt || '').slice(0, 2000) // Limit prompt to 2000 chars
+      const sanitizedBusinessName = business_name ? sanitizeText(business_name) : 'Your Business'
 
       // Convert relative URLs to absolute URLs for the HTML generation
       const logoFullUrl = logo_url ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}` : null
@@ -114,18 +114,18 @@ ${backgroundFullUrl ? `Background Image URL: ${backgroundFullUrl}` : ''}
 Requirements: ${sanitizedPrompt}`
 
       console.log('=== DEBUG TOKEN COUNT ===')
-      console.log('Original prompt length:', prompt.length)
-      console.log('Logo URL length:', logo_url?.length || 0)
-      console.log('Background URL length:', background_image_url?.length || 0)
-      console.log('Business name length:', business_name?.length || 0)
+      console.log('Original prompt length:', (prompt || '').length)
+      console.log('Logo URL length:', (logo_url || '').length)
+      console.log('Background URL length:', (background_image_url || '').length)
+      console.log('Business name length:', (business_name || '').length)
       console.log('Using model:', openrouterConfig.model)
       console.log('=========================')
 
       const apiParams = {
         model: openrouterConfig.model,
         messages: [
-          { role: "system" as const, content: sanitizeText(systemPrompt) },
-          { role: "user" as const, content: sanitizeText(userPrompt) }
+          { role: "system" as const, content: sanitizeText(systemPrompt || '') },
+          { role: "user" as const, content: sanitizeText(userPrompt || '') }
         ],
         max_tokens: 4000,
         temperature: 0.7
@@ -201,7 +201,7 @@ Requirements: ${sanitizedPrompt}`
       console.error('OpenRouter API error:', error)
       
       // Generate mock HTML as fallback
-      const mockHtml = generateMockHTML(prompt, business_name, logo_url, background_image_url)
+      const mockHtml = await generateMockHTML(prompt, business_name, logo_url, background_image_url, template_id, supabase, project_state?.requiredFields, project_state?.optionalFields)
       
       return NextResponse.json({ 
         data: { 
@@ -221,7 +221,142 @@ Requirements: ${sanitizedPrompt}`
   }
 }
 
-function generateMockHTML(prompt: string, businessName: string, logoUrl?: string, backgroundUrl?: string): string {
+async function generateMockHTML(
+  prompt: string, 
+  businessName: string, 
+  logoUrl?: string, 
+  backgroundUrl?: string,
+  templateId?: string,
+  supabase?: any,
+  requiredFields?: string[],
+  optionalFields?: string[]
+): Promise<string> {
+  
+  // Map of available form fields - CUSTOMER-FOCUSED ONLY
+  const availableFields = {
+    firstName: { name: 'first_name', placeholder: 'First Name', type: 'text' },
+    lastName: { name: 'last_name', placeholder: 'Last Name', type: 'text' },
+    email: { name: 'email', placeholder: 'Email Address', type: 'email' },
+    phone: { name: 'phone', placeholder: 'Phone Number', type: 'tel' },
+    dateOfBirth: { name: 'date_of_birth', placeholder: 'Date of Birth', type: 'date' },
+    address: { name: 'address', placeholder: 'Address', type: 'text' },
+    city: { name: 'city', placeholder: 'City', type: 'text' },
+    zipCode: { name: 'zip_code', placeholder: 'ZIP Code', type: 'text' },
+    company: { name: 'company', placeholder: 'Company', type: 'text' }
+  }
+
+  // Build form fields based on business selection
+  let formFields: any[] = []
+  
+  // Add required fields
+  if (requiredFields && requiredFields.length > 0) {
+    requiredFields.forEach(fieldId => {
+      if (availableFields[fieldId as keyof typeof availableFields]) {
+        formFields.push({
+          ...availableFields[fieldId as keyof typeof availableFields],
+          required: true
+        })
+      }
+    })
+  }
+  
+  // Add optional fields
+  if (optionalFields && optionalFields.length > 0) {
+    optionalFields.forEach(fieldId => {
+      if (availableFields[fieldId as keyof typeof availableFields]) {
+        formFields.push({
+          ...availableFields[fieldId as keyof typeof availableFields],
+          required: false
+        })
+      }
+    })
+  }
+  
+  // Default fields if none specified
+  if (formFields.length === 0) {
+    formFields = [
+      { name: 'first_name', placeholder: 'First Name', type: 'text', required: true },
+      { name: 'last_name', placeholder: 'Last Name', type: 'text', required: true },
+      { name: 'email', placeholder: 'Email Address', type: 'email', required: true },
+      { name: 'phone', placeholder: 'Phone Number', type: 'tel', required: false }
+    ]
+  }
+
+  // SMART FORM GENERATION: Analyze template placeholders to suggest customer fields
+  if (templateId && supabase) {
+    try {
+      const { data: template } = await supabase
+        .from('templates')
+        .select('template_json, passkit_json')
+        .eq('id', templateId)
+        .single()
+
+      if (template?.passkit_json?.placeholders) {
+        console.log('🔍 Template placeholders found:', Object.keys(template.passkit_json.placeholders))
+        
+        // Analyze placeholders to suggest customer-facing fields
+        const placeholders = Object.keys(template.passkit_json.placeholders)
+        const suggestedFields = []
+        
+        // Smart mapping: placeholder patterns → form fields
+        for (const placeholder of placeholders) {
+          const lower = placeholder.toLowerCase()
+          
+          // Name variations
+          if (lower.includes('first') && lower.includes('name')) {
+            if (!suggestedFields.find(f => f.name === 'first_name')) {
+              suggestedFields.push({ name: 'first_name', placeholder: 'First Name', type: 'text', required: true, maps_to: placeholder })
+            }
+          } else if (lower.includes('last') && lower.includes('name')) {
+            if (!suggestedFields.find(f => f.name === 'last_name')) {
+              suggestedFields.push({ name: 'last_name', placeholder: 'Last Name', type: 'text', required: true, maps_to: placeholder })
+            }
+          } else if (lower.includes('full') && lower.includes('name')) {
+            if (!suggestedFields.find(f => f.name === 'full_name')) {
+              suggestedFields.push({ name: 'full_name', placeholder: 'Full Name', type: 'text', required: true, maps_to: placeholder })
+            }
+          }
+          
+          // Email variations
+          else if (lower.includes('email')) {
+            if (!suggestedFields.find(f => f.name === 'email')) {
+              suggestedFields.push({ name: 'email', placeholder: 'Email Address', type: 'email', required: true, maps_to: placeholder })
+            }
+          }
+          
+          // Phone variations
+          else if (lower.includes('phone') || lower.includes('mobile')) {
+            if (!suggestedFields.find(f => f.name === 'phone')) {
+              suggestedFields.push({ name: 'phone', placeholder: 'Phone Number', type: 'tel', required: false, maps_to: placeholder })
+            }
+          }
+          
+          // Date of birth variations
+          else if (lower.includes('birth') || lower.includes('dob')) {
+            if (!suggestedFields.find(f => f.name === 'date_of_birth')) {
+              suggestedFields.push({ name: 'date_of_birth', placeholder: 'Date of Birth', type: 'date', required: false, maps_to: placeholder })
+            }
+          }
+          
+          // Skip backend-generated fields (MEMBER_ID, Points, Tier, etc.)
+          // These are handled server-side with template defaults
+        }
+        
+        // If we found customer-facing placeholders, use them
+        if (suggestedFields.length > 0) {
+          console.log('🎯 Smart-generated form fields:', suggestedFields.map(f => `${f.name} → ${f.maps_to}`))
+          formFields = suggestedFields
+        }
+      }
+    } catch (error) {
+      console.log('Could not analyze template for smart form generation:', error)
+    }
+  }
+
+  const formFieldsHTML = formFields.map(field => 
+    `<input type="${field.type}" name="${field.name}" placeholder="${field.placeholder}" ${field.required ? 'required' : ''}>`
+  ).join('\n                ')
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -234,7 +369,7 @@ function generateMockHTML(prompt: string, businessName: string, logoUrl?: string
         body { font-family: 'Inter', sans-serif; line-height: 1.6; }
         .hero { 
             min-height: 100vh; 
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${backgroundUrl || '/api/placeholder/1200/600'}');
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5))${backgroundUrl ? `, url('${backgroundUrl}')` : ', linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
             background-size: cover; 
             background-position: center;
             display: flex; 
@@ -252,6 +387,9 @@ function generateMockHTML(prompt: string, businessName: string, logoUrl?: string
         input { width: 100%; padding: 12px; margin-bottom: 1rem; border: none; border-radius: 5px; font-size: 16px; }
         button { width: 100%; padding: 12px; background: #4F46E5; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; }
         button:hover { background: #4338CA; }
+        .loading { display: none; }
+        .success { display: none; background: #10b981; padding: 1rem; border-radius: 5px; margin-top: 1rem; }
+        .error { display: none; background: #ef4444; padding: 1rem; border-radius: 5px; margin-top: 1rem; }
     </style>
 </head>
 <body>
@@ -260,15 +398,65 @@ function generateMockHTML(prompt: string, businessName: string, logoUrl?: string
             ${logoUrl ? `<img src="${logoUrl}" alt="Logo" class="logo">` : ''}
             <h1>Welcome to ${businessName}</h1>
             <p>Join our exclusive membership program and unlock amazing benefits!</p>
-            <form class="form" onsubmit="alert('Thank you for joining!'); return false;">
-                <input type="text" placeholder="First Name" required>
-                <input type="text" placeholder="Last Name" required>
-                <input type="email" placeholder="Email Address" required>
-                <input type="tel" placeholder="Phone Number" required>
-                <button type="submit">Join Now - It's Free!</button>
+            <form class="form" id="signupForm">
+                <input type="hidden" name="landing_page_id" value="LANDING_PAGE_ID_PLACEHOLDER">
+                ${formFieldsHTML}
+                <button type="submit" id="submitBtn">Join Now - It's Free!</button>
+                <div class="loading" id="loading">Creating your pass...</div>
+                <div class="success" id="success">Success! Your pass has been created and sent to your email.</div>
+                <div class="error" id="error">Something went wrong. Please try again.</div>
             </form>
         </div>
     </div>
+
+    <script>
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault()
+            
+            const form = e.target
+            const formData = new FormData(form)
+            const data = Object.fromEntries(formData.entries())
+            
+            const submitBtn = document.getElementById('submitBtn')
+            const loading = document.getElementById('loading')
+            const success = document.getElementById('success')
+            const error = document.getElementById('error')
+            
+            // Hide previous messages
+            success.style.display = 'none'
+            error.style.display = 'none'
+            
+            // Show loading
+            submitBtn.style.display = 'none'
+            loading.style.display = 'block'
+            
+            try {
+                const response = await fetch('/api/customer-signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                
+                const result = await response.json()
+                
+                if (result.success) {
+                    success.style.display = 'block'
+                    form.reset()
+                } else {
+                    error.textContent = result.error || 'Something went wrong. Please try again.'
+                    error.style.display = 'block'
+                }
+            } catch (err) {
+                error.textContent = 'Network error. Please check your connection and try again.'
+                error.style.display = 'block'
+            } finally {
+                loading.style.display = 'none'
+                submitBtn.style.display = 'block'
+            }
+        })
+    </script>
 </body>
 </html>`
 }

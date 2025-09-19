@@ -34,22 +34,24 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const body = await request.json()
     
-    const { name, title, description, custom_url, html_content, settings, status } = body
+    const { name, title, description, custom_url, html_content, settings, status, template_id, program_id } = body
     
     // For testing, we'll use the Blue Karma business ID
     const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
     
+    // Use the selected template_id (from Step 1) or null if not valid
+    const selectedTemplateId = template_id || settings?.programTemplate || null
+    const selectedProgramId = program_id || null // Don't force a program_id
+    
+    // Use only the basic columns that exist in the current schema
     const { data, error } = await supabase
       .from('landing_pages')
       .insert({
         business_id,
-        program_id: '02bdc603-4faf-4cca-abb8-2a5167a8be39', // Blue Karma default program
         name: name || title || 'Untitled Landing Page',
         custom_url: custom_url ? `${custom_url}-${Date.now()}` : `landing-${Date.now()}.example.com`,
-        logo_url: settings?.logo || null,
-        background_image_url: settings?.backgroundImage || null,
-        ai_prompt: `Generated landing page for: ${title || name || 'Untitled Page'}. Description: ${description || 'No description provided'}`,
         generated_html: html_content || '<html><body>Generated landing page content</body></html>',
+        ai_prompt: `Generated landing page for: ${title || name || 'Untitled Page'}. Description: ${description || 'No description provided'}.`,
         is_published: status === 'published'
       })
       .select()

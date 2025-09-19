@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { 
   SparklesIcon,
   PhotoIcon,
@@ -14,7 +15,9 @@ import {
   XMarkIcon,
   PaperAirplaneIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  TrashIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline'
 import TemplateSelector from '@/components/templates/template-selector'
 
@@ -45,6 +48,17 @@ interface WizardData {
   optionalFields: string[]
   
   // Step 5: Template Style
+  primaryColor: string
+  secondaryColor: string
+  imageUrls: {
+    hero?: string
+    logo?: string
+    background?: string
+    feature1?: string
+    feature2?: string
+    feature3?: string
+  }
+  customInstructions: string
   selectedTemplate: string
   customTemplate: string
   
@@ -71,7 +85,7 @@ const STEPS = [
   { id: 1, title: 'Basic Information', description: 'Page title, description & URL' },
   { id: 2, title: 'Brand Assets', description: 'Logo, images & branding' },
   { id: 3, title: 'Copy & Content', description: 'Headlines & benefits' },
-  { id: 4, title: 'Form Requirements', description: 'Signup form configuration' },
+  { id: 4, title: 'Form & Placeholders', description: 'Map customer data to pass fields' },
   { id: 5, title: 'Template Style', description: 'Choose your design' },
   { id: 6, title: 'AI Generation', description: 'Generate your landing page' }
 ]
@@ -101,11 +115,18 @@ export default function DistributionPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
   const [programTemplates, setProgramTemplates] = useState<ProgramTemplate[]>([
-    { id: 'temp-blue-karma-1', name: 'Blue Karma Loyalty', type: 'storeCard', description: 'Blue Karma loyalty program template' }
+    { id: 'ae76dc2a-e295-4219-b5ce-f6ecd8961de1', name: 'Blue Karma Membership', type: 'storeCard', description: 'Blue Karma membership program template' }
   ])
   const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [selectedTemplatePlaceholders, setSelectedTemplatePlaceholders] = useState<any[]>([])
+  const [placeholderMapping, setPlaceholderMapping] = useState<{[key: string]: string}>({})
   const [savedLandingPages, setSavedLandingPages] = useState<any[]>([])
   const [loadingSavedPages, setLoadingSavedPages] = useState(false)
+  const [chatMessage, setChatMessage] = useState('')
+  const [chatHistory, setChatHistory] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
+  const [isChatting, setIsChatting] = useState(false)
+  const [debugMessages, setDebugMessages] = useState<string[]>([])
+  const [currentLandingPageId, setCurrentLandingPageId] = useState<string | null>(null)
   const [wizardData, setWizardData] = useState<WizardData>({
     // Step 1
     pageTitle: '',
@@ -132,6 +153,10 @@ export default function DistributionPage() {
     optionalFields: [],
     
     // Step 5
+    primaryColor: '#3862EA',
+    secondaryColor: '#10B981',
+    imageUrls: {},
+    customInstructions: '',
     selectedTemplate: '',
     customTemplate: '',
     
@@ -158,9 +183,9 @@ export default function DistributionPage() {
         if (result.data && result.data.length > 0) {
           const templates = result.data.map((template: any) => ({
             id: template.id,
-            name: template.name,
-            type: template.pass_type || 'Unknown',
-            description: template.description || 'No description available'
+            name: template.programs?.name || template.template_json?.name || `Template ${template.id.slice(0, 8)}`,
+            type: template.template_json?.metadata?.pass_style || template.pass_type || 'storeCard',
+            description: template.template_json?.description || template.programs?.name || 'Custom pass template'
           }))
           console.log('Setting templates from API:', templates)
           setProgramTemplates(templates)
@@ -207,6 +232,86 @@ export default function DistributionPage() {
       loadSavedLandingPages()
     }
   }, [activeTab])
+
+  // Load template placeholders when a template is selected
+  const loadTemplatePlaceholders = async (templateId: string) => {
+    if (!templateId) {
+      setSelectedTemplatePlaceholders([])
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/templates/${templateId}`)
+      const result = await response.json()
+      
+      if (result.data) {
+        const template = result.data
+        const placeholders = template.passkit_json?.placeholders || {}
+        
+        // Convert placeholders to array with metadata
+        const placeholderArray = Object.keys(placeholders).map(key => ({
+          key,
+          defaultValue: placeholders[key],
+          isCustomerFacing: isCustomerFacingPlaceholder(key),
+          suggestedFormField: suggestFormField(key)
+        }))
+        
+        console.log('🎯 Template placeholders loaded:', placeholderArray)
+        setSelectedTemplatePlaceholders(placeholderArray)
+        
+        // Initialize mapping for customer-facing placeholders
+        const initialMapping: {[key: string]: string} = {}
+        placeholderArray.forEach(placeholder => {
+          if (placeholder.isCustomerFacing && placeholder.suggestedFormField) {
+            initialMapping[placeholder.key] = placeholder.suggestedFormField
+          }
+        })
+        setPlaceholderMapping(initialMapping)
+      }
+    } catch (error) {
+      console.error('Error loading template placeholders:', error)
+    }
+  }
+
+  // Detect if a placeholder is customer-facing
+  const isCustomerFacingPlaceholder = (placeholder: string): boolean => {
+    const lower = placeholder.toLowerCase()
+    return lower.includes('first') && lower.includes('name') ||
+           lower.includes('last') && lower.includes('name') ||
+           lower.includes('full') && lower.includes('name') ||
+           lower.includes('email') ||
+           lower.includes('phone') ||
+           lower.includes('mobile') ||
+           lower.includes('birth') ||
+           lower.includes('dob') ||
+           lower.includes('address') ||
+           lower.includes('city') ||
+           lower.includes('zip') ||
+           lower.includes('company')
+  }
+
+  // Suggest form field for a placeholder
+  const suggestFormField = (placeholder: string): string => {
+    const lower = placeholder.toLowerCase()
+    if (lower.includes('first') && lower.includes('name')) return 'firstName'
+    if (lower.includes('last') && lower.includes('name')) return 'lastName'
+    if (lower.includes('full') && lower.includes('name')) return 'fullName'
+    if (lower.includes('email')) return 'email'
+    if (lower.includes('phone') || lower.includes('mobile')) return 'phone'
+    if (lower.includes('birth') || lower.includes('dob')) return 'dateOfBirth'
+    if (lower.includes('address')) return 'address'
+    if (lower.includes('city')) return 'city'
+    if (lower.includes('zip')) return 'zipCode'
+    if (lower.includes('company')) return 'company'
+    return ''
+  }
+
+  // Trigger placeholder loading when template changes
+  useEffect(() => {
+    if (wizardData.programTemplate) {
+      loadTemplatePlaceholders(wizardData.programTemplate)
+    }
+  }, [wizardData.programTemplate])
 
   const handleImageUpload = async (file: File, type: 'logo' | 'background' | 'social' | 'additional') => {
     const formData = new FormData()
@@ -306,12 +411,43 @@ export default function DistributionPage() {
   const generateLandingPage = async () => {
     setIsGenerating(true)
     try {
+      // Build the prompt from wizard data
+      const prompt = `Create a landing page for ${wizardData.pageTitle}.
+      
+Headline: ${wizardData.headline}
+Sub-headline: ${wizardData.subHeader}
+Incentive: ${wizardData.incentive}
+Benefits: ${wizardData.benefits.filter(b => b.trim()).join(', ')}
+Additional Copy: ${wizardData.additionalCopy}
+
+Style Instructions: ${wizardData.customInstructions}
+Primary Color: ${wizardData.primaryColor}
+Secondary Color: ${wizardData.secondaryColor}
+
+This is for a ${programTemplates.find(t => t.id === wizardData.programTemplate)?.type || 'loyalty'} program.
+Make it modern, professional, and conversion-focused.`
+
       const response = await fetch('/api/generate-landing-page', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(wizardData)
+        body: JSON.stringify({
+          prompt: prompt,
+          business_name: wizardData.pageTitle,
+          logo_url: wizardData.logo,
+          background_image_url: wizardData.backgroundImage,
+          template_id: wizardData.programTemplate,
+          project_state: {
+            requiredFields: wizardData.requiredFields,
+            optionalFields: wizardData.optionalFields,
+            placeholder_mapping: placeholderMapping,
+            selected_placeholders: selectedTemplatePlaceholders,
+            primaryColor: wizardData.primaryColor,
+            secondaryColor: wizardData.secondaryColor,
+            customInstructions: wizardData.customInstructions
+          }
+        })
       })
 
       const result = await response.json()
@@ -350,21 +486,48 @@ export default function DistributionPage() {
     }
 
     try {
-      const response = await fetch('/api/landing-pages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: wizardData.pageTitle || 'Untitled Landing Page',
-          title: wizardData.pageTitle,
-          description: wizardData.pageDescription,
-          custom_url: wizardData.customUrl,
-          html_content: wizardData.generatedHtml,
-          settings: wizardData,
-          status: 'published'
+      let response
+      let landingPageId = currentLandingPageId
+
+      if (currentLandingPageId) {
+        // Update existing landing page
+        console.log('🔄 Updating existing landing page:', currentLandingPageId)
+        response = await fetch(`/api/landing-pages/${currentLandingPageId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: wizardData.pageTitle || 'Untitled Landing Page',
+            title: wizardData.pageTitle,
+            description: wizardData.pageDescription,
+            custom_url: wizardData.customUrl,
+            html_content: wizardData.generatedHtml,
+            template_id: wizardData.programTemplate,
+            settings: wizardData,
+            status: 'published'
+          })
         })
-      })
+      } else {
+        // Create new landing page
+        console.log('✨ Creating new landing page')
+        response = await fetch('/api/landing-pages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: wizardData.pageTitle || 'Untitled Landing Page',
+            title: wizardData.pageTitle,
+            description: wizardData.pageDescription,
+            custom_url: wizardData.customUrl,
+            html_content: wizardData.generatedHtml,
+            template_id: wizardData.programTemplate,
+            settings: wizardData,
+            status: 'published'
+          })
+        })
+      }
 
       const result = await response.json()
       
@@ -372,7 +535,40 @@ export default function DistributionPage() {
         throw new Error(result.error)
       }
 
-      alert(`Landing page "${wizardData.pageTitle}" saved and published successfully!`)
+      // Set the landing page ID if it's a new one
+      if (!currentLandingPageId && result.data?.id) {
+        setCurrentLandingPageId(result.data.id)
+        landingPageId = result.data.id
+      }
+
+      // Update the generated HTML with the actual landing page ID
+      if (landingPageId && wizardData.generatedHtml) {
+        const updatedHtml = wizardData.generatedHtml.replace(
+          'LANDING_PAGE_ID_PLACEHOLDER', 
+          landingPageId
+        )
+        
+        // Only update if HTML changed
+        if (updatedHtml !== wizardData.generatedHtml) {
+          await fetch(`/api/landing-pages/${landingPageId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              html_content: updatedHtml
+            })
+          })
+          
+          // Update local state
+          setWizardData(prev => ({ ...prev, generatedHtml: updatedHtml }))
+        }
+      }
+
+      // Refresh the saved landing pages list
+      loadSavedLandingPages()
+
+      alert(`Landing page "${wizardData.pageTitle}" ${currentLandingPageId ? 'updated' : 'created'} and published successfully!`)
     } catch (error) {
       console.error('Error saving landing page:', error)
       alert('Failed to save landing page. Please try again.')
@@ -387,8 +583,103 @@ export default function DistributionPage() {
     generateLandingPage()
   }
 
+  const addDebugMessage = (message: string) => {
+    setDebugMessages(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`].slice(-10))
+  }
+
+  const handleChatWithClaude = async () => {
+    setDebugMessages([]) // Clear previous debug messages
+    
+    if (!chatMessage.trim() || !wizardData.generatedHtml) {
+      addDebugMessage(`❌ Validation failed - Message: ${!!chatMessage.trim()}, HTML: ${!!wizardData.generatedHtml}`)
+      return
+    }
+    
+    setIsChatting(true)
+    addDebugMessage('🚀 Starting chat with Claude...')
+    
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      addDebugMessage(`🔑 Session: ${!!session ? 'Found' : 'Missing'}`)
+      
+      if (!session) {
+        addDebugMessage('❌ Not logged in')
+        alert('You must be logged in to chat with Claude.')
+        setIsChatting(false)
+        return
+      }
+
+      // Add user message to chat history
+      const userMessage = { role: 'user' as const, content: chatMessage }
+      setChatHistory(prev => [...prev, userMessage])
+      const messageToSend = chatMessage
+      setChatMessage('')
+
+      addDebugMessage(`📡 Making API request - Message: ${messageToSend.substring(0, 50)}...`)
+      addDebugMessage(`📝 HTML length: ${wizardData.generatedHtml?.length}`)
+
+      const response = await fetch('/api/business/chat-edit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          message: messageToSend,
+          currentHtml: wizardData.generatedHtml,
+          wizardData: wizardData
+        })
+      })
+
+      addDebugMessage(`📥 Response status: ${response.status}`)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        addDebugMessage(`❌ Server error: ${response.status} ${response.statusText}`)
+        addDebugMessage(`❌ Error body: ${errorText.substring(0, 200)}...`)
+        alert(`Server error: ${response.status} ${response.statusText}`)
+        return
+      }
+
+      const data = await response.json()
+      addDebugMessage(`✅ Response received - Has message: ${!!data.message}`)
+      
+      if (data.error) {
+        addDebugMessage(`❌ API error: ${data.error}`)
+        alert('Failed to get response from Claude. Please try again.')
+        return
+      }
+
+      // Add Claude's response to chat history
+      const assistantMessage = { role: 'assistant' as const, content: data.message }
+      setChatHistory(prev => [...prev, assistantMessage])
+      
+      // Update the HTML if Claude provided an updated version
+      if (data.updatedHtml) {
+        addDebugMessage('🔄 Updating HTML with Claude response')
+        setWizardData(prev => ({ ...prev, generatedHtml: data.updatedHtml }))
+      }
+      
+      addDebugMessage('✅ Chat completed successfully')
+      
+    } catch (error: any) {
+      addDebugMessage(`❌ Error: ${error.message}`)
+      alert(`Failed to chat with Claude: ${error.message}`)
+    } finally {
+      setIsChatting(false)
+    }
+  }
+
   const handleEditLandingPage = (page: any) => {
     try {
+      // Set the current landing page ID for updating
+      setCurrentLandingPageId(page.id)
+      
+      // Switch to create tab to show the wizard
+      setActiveTab('create')
+      
       // Load the saved page data back into the wizard
       const settings = page.settings || {}
       
@@ -434,6 +725,35 @@ export default function DistributionPage() {
     }
   }
 
+  const handleDeleteLandingPage = async (page: any) => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${page.name}"?\n\nThis action cannot be undone.`
+    )
+    
+    if (!confirmed) return
+
+    try {
+      const response = await fetch(`/api/landing-pages/${page.id}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete landing page')
+      }
+
+      // Remove the page from the local state
+      setSavedLandingPages(prev => prev.filter(p => p.id !== page.id))
+      
+      // Show success message
+      alert(`Landing page "${page.name}" has been deleted successfully.`)
+    } catch (error) {
+      console.error('Error deleting landing page:', error)
+      alert(`Failed to delete landing page: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
   const canProceedToNext = () => {
     switch (currentStep) {
       case 1:
@@ -443,9 +763,9 @@ export default function DistributionPage() {
       case 3:
         return wizardData.headline && wizardData.incentive && wizardData.subHeader && wizardData.benefits.some(b => b.trim())
       case 4:
-        return wizardData.requiredFields.length > 0
+        return Object.keys(placeholderMapping).length > 0 // Must have some placeholder mappings
       case 5:
-        return wizardData.selectedTemplate || wizardData.customTemplate
+        return wizardData.primaryColor && wizardData.secondaryColor // Brand colors required
       case 6:
         return true
       default:
@@ -828,108 +1148,247 @@ export default function DistributionPage() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-slate-900 mb-2">Sign Up Form Requirements</h2>
-              <p className="text-slate-600">Choose which fields to include in your signup form</p>
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Form & Pass Placeholder Mapping</h2>
+              <p className="text-slate-600">Map customer form fields to pass template placeholders</p>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Form Fields</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {FORM_FIELDS.map((field) => {
-                    const isRequired = wizardData.requiredFields.includes(field.id)
-                    const isOptional = wizardData.optionalFields.includes(field.id)
-                    const isIncluded = isRequired || isOptional
-                    const isLocked = field.id === 'firstName' || field.id === 'email'
+            {!wizardData.programTemplate ? (
+              <div className="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-yellow-800">Please select a pass template in Step 1 first.</p>
+              </div>
+            ) : selectedTemplatePlaceholders.length === 0 ? (
+              <div className="text-center p-8">
+                <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-slate-600">Loading template placeholders...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <h3 className="font-semibold text-blue-900 mb-2">Template Placeholders Found:</h3>
+                  <p className="text-blue-800 text-sm">
+                    {selectedTemplatePlaceholders.length} placeholders detected in your pass template.
+                    Map customer-facing placeholders to form fields below.
+                  </p>
+                </div>
 
-                    return (
-                      <div key={field.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
-                        <div>
-                          <span className="font-medium text-slate-900">{field.label}</span>
-                          {isLocked && <span className="text-xs text-slate-500 ml-2">(Required)</span>}
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => !isLocked && toggleFormField(field.id, !isRequired)}
-                            disabled={isLocked && isRequired}
-                            className={`px-3 py-1 rounded text-xs font-medium ${
-                              isRequired 
-                                ? 'bg-red-100 text-red-700 border border-red-200' 
-                                : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-red-50 hover:text-red-600'
-                            } ${isLocked && isRequired ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-                          >
-                            Required
-                          </button>
-                          <button
-                            onClick={() => !isLocked && toggleFormField(field.id, !isOptional)}
-                            disabled={isLocked}
-                            className={`px-3 py-1 rounded text-xs font-medium ${
-                              isOptional 
-                                ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                                : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-blue-50 hover:text-blue-600'
-                            } ${isLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-                          >
-                            Optional
-                          </button>
-                          {!isIncluded && !isLocked && (
-                            <span className="px-3 py-1 rounded text-xs font-medium bg-slate-200 text-slate-500">
-                              Not Included
-                            </span>
-                          )}
-                        </div>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-900">Customer Data Placeholders</h3>
+                  {selectedTemplatePlaceholders.filter(p => p.isCustomerFacing).map((placeholder) => (
+                    <div key={placeholder.key} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-white">
+                      <div className="flex-1">
+                        <div className="font-medium text-slate-900">${placeholder.key}</div>
+                        <div className="text-sm text-slate-500">Default: "{placeholder.defaultValue}"</div>
                       </div>
-                    )
-                  })}
+                      <div className="flex-1 mx-4">
+                        <select
+                          value={placeholderMapping[placeholder.key] || ''}
+                          onChange={(e) => setPlaceholderMapping(prev => ({
+                            ...prev,
+                            [placeholder.key]: e.target.value
+                          }))}
+                          className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="">-- Select Form Field --</option>
+                          <option value="firstName">First Name</option>
+                          <option value="lastName">Last Name</option>
+                          <option value="fullName">Full Name</option>
+                          <option value="email">Email Address</option>
+                          <option value="phone">Phone Number</option>
+                          <option value="dateOfBirth">Date of Birth</option>
+                          <option value="address">Address</option>
+                          <option value="city">City</option>
+                          <option value="zipCode">ZIP Code</option>
+                          <option value="company">Company</option>
+                        </select>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          placeholderMapping[placeholder.key] 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {placeholderMapping[placeholder.key] ? 'Mapped' : 'Not Mapped'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">Selected Fields Summary:</h4>
-                <div className="text-sm text-blue-800">
-                  <p><strong>Required:</strong> {wizardData.requiredFields.map(id => FORM_FIELDS.find(f => f.id === id)?.label).join(', ')}</p>
-                  {wizardData.optionalFields.length > 0 && (
-                    <p><strong>Optional:</strong> {wizardData.optionalFields.map(id => FORM_FIELDS.find(f => f.id === id)?.label).join(', ')}</p>
-                  )}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-900">Business-Controlled Placeholders</h3>
+                  <p className="text-sm text-slate-600 mb-4">These use default values from your pass template and are not collected from customers.</p>
+                  {selectedTemplatePlaceholders.filter(p => !p.isCustomerFacing).map((placeholder) => (
+                    <div key={placeholder.key} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-gray-50">
+                      <div className="flex-1">
+                        <div className="font-medium text-slate-700">${placeholder.key}</div>
+                        <div className="text-sm text-slate-500">Default: "{placeholder.defaultValue}"</div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                          Auto-Generated
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-900 mb-2">Mapping Summary:</h4>
+                  <div className="text-sm text-green-800">
+                    <p><strong>Form Fields:</strong> {Object.values(placeholderMapping).join(', ') || 'None mapped yet'}</p>
+                    <p><strong>Customer Placeholders:</strong> {selectedTemplatePlaceholders.filter(p => p.isCustomerFacing).length}</p>
+                    <p><strong>Business Placeholders:</strong> {selectedTemplatePlaceholders.filter(p => !p.isCustomerFacing).length}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )
 
       case 5:
         return (
           <div className="space-y-6">
-            <TemplateSelector
-              templateType="distribution"
-              selectedTemplate={wizardData.selectedTemplate}
-              onTemplateSelect={(template) => {
-                console.log('🏢 Business selected template:', template)
-                
-                // Apply template data to wizard data
-                setWizardData(prev => ({
-                  ...prev,
-                  selectedTemplate: template.id,
-                  // Apply template content to previous steps
-                  headline: template.templateData.headline,
-                  subHeader: template.templateData.subheadline,
-                  incentive: template.templateData.callToAction,
-                  benefits: template.templateData.features || prev.benefits,
-                  additionalCopy: template.templateData.valueProposition || prev.additionalCopy,
-                  customTemplate: `
-                    /* Template: ${template.name} */
-                    :root {
-                      --template-primary: ${template.templateData.primaryColor};
-                      --template-secondary: ${template.templateData.secondaryColor};
-                      --template-accent: ${template.templateData.accentColor};
-                      --template-font: ${template.templateData.fontFamily};
-                    }
-                  `
-                }))
-                
-                // Show success message
-                alert(`✅ Template "${template.name}" applied! Your previous steps have been updated with the template content. You can now customize it for your specific program.`)
-              }}
-            />
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Give Claude More Info</h2>
+              <p className="text-slate-600">Provide specific guidance for AI generation</p>
+            </div>
+
+            {/* Color Theme */}
+            <div className="bg-slate-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <div className="w-5 h-5 bg-gradient-to-r from-blue-500 to-purple-500 rounded mr-2"></div>
+                Brand Colors
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Primary Color (Buttons, Headers)
+                  </label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="color"
+                      value={wizardData.primaryColor}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      className="w-12 h-10 rounded border border-slate-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={wizardData.primaryColor}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                      placeholder="#3862EA"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Secondary Color (Accents, Links)
+                  </label>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="color"
+                      value={wizardData.secondaryColor}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                      className="w-12 h-10 rounded border border-slate-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={wizardData.secondaryColor}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                      placeholder="#10B981"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Image URLs */}
+            <div className="bg-slate-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <PhotoIcon className="w-5 h-5 text-blue-500 mr-2" />
+                Specific Images (Optional)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Hero Image URL</label>
+                  <input
+                    type="url"
+                    value={wizardData.imageUrls.hero || ''}
+                    onChange={(e) => setWizardData(prev => ({ 
+                      ...prev, 
+                      imageUrls: { ...prev.imageUrls, hero: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    placeholder="https://example.com/hero-image.jpg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Logo URL</label>
+                  <input
+                    type="url"
+                    value={wizardData.imageUrls.logo || ''}
+                    onChange={(e) => setWizardData(prev => ({ 
+                      ...prev, 
+                      imageUrls: { ...prev.imageUrls, logo: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    placeholder="https://example.com/logo.png"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Background Image URL</label>
+                  <input
+                    type="url"
+                    value={wizardData.imageUrls.background || ''}
+                    onChange={(e) => setWizardData(prev => ({ 
+                      ...prev, 
+                      imageUrls: { ...prev.imageUrls, background: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    placeholder="https://example.com/background.jpg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Feature Image 1 URL</label>
+                  <input
+                    type="url"
+                    value={wizardData.imageUrls.feature1 || ''}
+                    onChange={(e) => setWizardData(prev => ({ 
+                      ...prev, 
+                      imageUrls: { ...prev.imageUrls, feature1: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    placeholder="https://example.com/feature1.jpg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Instructions */}
+            <div className="bg-slate-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <DocumentTextIcon className="w-5 h-5 text-blue-500 mr-2" />
+                Additional Instructions for Claude
+              </h3>
+              <textarea
+                value={wizardData.customInstructions}
+                onChange={(e) => setWizardData(prev => ({ ...prev, customInstructions: e.target.value }))}
+                placeholder="Give Claude specific instructions about style, layout, tone, or features you want. For example:
+- Make it look modern and minimalist
+- Use a tech startup vibe
+- Include testimonials section
+- Make buttons larger and more prominent
+- Use professional photography style
+- Add animations or hover effects
+- Focus on mobile-first design"
+                className="w-full p-4 border border-slate-300 rounded-lg"
+                rows={8}
+              />
+              <p className="text-sm text-slate-500 mt-2">
+                These instructions will be prioritized in the AI generation process
+              </p>
+            </div>
           </div>
         )
 
@@ -1022,24 +1481,74 @@ export default function DistributionPage() {
                   )}
                 </div>
                 
+                {/* Debug Panel */}
+                {debugMessages.length > 0 && (
+                  <div className="mt-6 border border-amber-200 bg-amber-50 rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-semibold text-amber-900">🔍 Debug Log</h4>
+                      <button 
+                        onClick={() => setDebugMessages([])}
+                        className="text-xs text-amber-700 hover:text-amber-900"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <div className="bg-white rounded border max-h-[150px] overflow-y-auto p-2">
+                      {debugMessages.map((msg, index) => (
+                        <div key={index} className="text-xs font-mono text-slate-700 mb-1">
+                          {msg}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Chat with Claude for Edits */}
                 <div className="mt-6 border border-slate-200 rounded-lg p-4">
                   <h4 className="font-semibold text-slate-900 mb-3">Chat with Claude for Edits</h4>
                   <div className="space-y-3">
                     <div className="bg-slate-50 rounded-lg p-3 min-h-[100px] max-h-[200px] overflow-y-auto">
-                      <p className="text-sm text-slate-600">
-                        Ask Claude to make changes to your landing page. For example:
-                        "Make the headline larger", "Change the background color to blue", "Add a testimonials section"
-                      </p>
+                      {chatHistory.length === 0 ? (
+                        <p className="text-sm text-slate-600">
+                          Ask Claude to make changes to your landing page. For example:
+                          "Make the headline larger", "Change the background color to blue", "Add a testimonials section"
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {chatHistory.map((msg, index) => (
+                            <div key={index} className={`text-sm ${msg.role === 'user' ? 'text-blue-700 font-medium' : 'text-slate-700'}`}>
+                              <span className="font-semibold">{msg.role === 'user' ? 'You:' : 'Claude:'}</span> {msg.content}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <input
                         type="text"
+                        value={chatMessage}
+                        onChange={(e) => setChatMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && !isChatting && handleChatWithClaude()}
                         placeholder="Ask Claude to make changes..."
                         className="flex-1 p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        disabled={isChatting}
                       />
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                        Send
+                      <button 
+                        onClick={handleChatWithClaude}
+                        disabled={isChatting || !chatMessage.trim()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {isChatting ? (
+                          <>
+                            <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                            Asking...
+                          </>
+                        ) : (
+                          <>
+                            <PaperAirplaneIcon className="w-4 h-4" />
+                            Send
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -1068,7 +1577,50 @@ export default function DistributionPage() {
         <div className="border-b border-slate-200">
           <nav className="-mb-px flex space-x-8">
             <button
-              onClick={() => setActiveTab('create')}
+              onClick={() => {
+                setActiveTab('create')
+                // Reset wizard for new landing page
+                setCurrentLandingPageId(null)
+                setCurrentStep(1)
+                setChatHistory([])
+                setDebugMessages([])
+                setWizardData({
+                  // Step 1
+                  pageTitle: '',
+                  pageDescription: '',
+                  socialImage: null,
+                  customUrl: '',
+                  pageUrlSlug: '',
+                  programTemplate: '',
+                  
+                  // Step 2
+                  logo: null,
+                  backgroundImage: null,
+                  additionalImages: [],
+                  
+                  // Step 3
+                  headline: '',
+                  incentive: '',
+                  subHeader: '',
+                  benefits: [''],
+                  additionalCopy: '',
+                  
+                  // Step 4
+                  requiredFields: ['firstName', 'email'],
+                  optionalFields: [],
+                  
+                  // Step 5
+                  primaryColor: '#3862EA',
+                  secondaryColor: '#10B981',
+                  imageUrls: {},
+                  customInstructions: '',
+                  selectedTemplate: '',
+                  customTemplate: '',
+                  
+                  // Step 6
+                  generatedHtml: ''
+                })
+              }}
               className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === 'create'
                   ? 'border-blue-500 text-blue-600'
@@ -1245,6 +1797,13 @@ export default function DistributionPage() {
                           >
                             <PencilIcon className="w-4 h-4" />
                             Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteLandingPage(page)}
+                            className="flex items-center gap-1 px-3 py-1 text-red-600 hover:text-red-700 border border-red-600 rounded-md hover:bg-red-50"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                            Delete
                           </button>
                         </div>
                       </div>

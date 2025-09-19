@@ -37,11 +37,51 @@ export async function GET(request: Request) {
           )
         `)
       
-      // TEMPORARY: Remove all filtering until we fix the data
-      console.log('🔍 Fetching ALL templates (filtering disabled temporarily)')
-      // TODO: Fix template account_id data and re-enable filtering
+      // Get current user for business filtering
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
       
-      const { data: templates, error } = await query.order('created_at', { ascending: false })
+      if (!user) {
+        console.log('🔍 No authenticated user - fetching ALL templates for development')
+        const { data: templates, error } = await query.order('created_at', { ascending: false })
+        
+        if (error) {
+          console.error('❌ Supabase error:', error)
+          throw error
+        }
+        
+        return NextResponse.json({
+          data: templates || [],
+          templates: templates || [],
+          error: null
+        })
+      }
+
+      // For authenticated users, filter by business
+      console.log('🔍 Fetching templates for authenticated business user:', user.email)
+      
+      // Use the Blue Karma business ID for now (in production, get from user context)
+      const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+      
+      const { data: templates, error } = await supabase
+        .from('templates')
+        .select(`
+          id,
+          program_id,
+          version,
+          template_json,
+          passkit_json,
+          previews,
+          published_at,
+          created_at,
+          pass_type_identifier,
+          programs!inner (
+            id,
+            name,
+            account_id
+          )
+        `)
+        .eq('programs.account_id', businessId)
+        .order('created_at', { ascending: false })
 
       if (error) {
         console.error('❌ Supabase error, falling back to memory store:', error)

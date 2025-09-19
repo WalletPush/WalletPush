@@ -306,12 +306,12 @@
 
   /* REMOVED - These old rules were causing the problem */
 
-  /* Apply gradient to common button patterns */
-  [class*="bg-gradient-to-r"] {
+  /* Apply gradient to button elements only - NOT div backgrounds */
+  button[class*="bg-gradient-to-r"] {
     background: linear-gradient(to right, #2563eb, #9333ea) !important;
   }
 
-  [class*="bg-gradient-to-r"]:hover {
+  button[class*="bg-gradient-to-r"]:hover {
     background: linear-gradient(to right, #1d4ed8, #7c3aed) !important;
   }
   
@@ -348,4 +348,12 @@
   .auth-title { @apply text-2xl font-semibold text-slate-900; }
   .auth-subtitle { @apply text-slate-600 text-sm; }
   .auth-actions { @apply mt-4 flex gap-2; }
+
+  /* Text utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

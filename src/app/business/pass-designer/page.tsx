@@ -8,8 +8,10 @@ import toast, { Toaster } from 'react-hot-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { processImageForWallet, getImagePreviewUrl, type ProcessedImage } from '@/lib/image-processor'
+import { TrashIcon, ClockIcon } from '@heroicons/react/24/outline'
 
 // Apple Pass Constraints by Style
 const PASS_CONSTRAINTS = {
@@ -209,7 +211,7 @@ function PassPreview({
                     <div className="text-xs opacity-75" style={{ color: passData.labelColor }}>
                       {field.label}
                     </div>
-                    <div className="text-sm font-medium">
+                    <div className="text-sm font-medium whitespace-pre-wrap">
                       {field.value || `${field.label} Value`}
                     </div>
                   </div>
@@ -886,12 +888,26 @@ export default function PassDesigner() {
     const toastId = toast.loading('Saving template to database...')
     
     try {
-      // Extract current placeholders from fields for passkit_json
+      // Extract current placeholders from fields AND barcodes for passkit_json
       const currentPlaceholders: { [key: string]: string } = {}
       
       // Scan all fields for placeholder patterns
       currentPass.fields.forEach(field => {
         const text = `${field.label || ''} ${field.value || ''}`
+        const matches = text.match(/\$\{([A-Za-z0-9_]+)\}/g)
+        if (matches) {
+          matches.forEach(match => {
+            const key = match.replace(/\$\{|\}/g, '')
+            // Use existing placeholder value or create a sample one
+            const existingPlaceholder = currentPass.placeholders?.find(p => p.key === key)
+            currentPlaceholders[key] = existingPlaceholder?.defaultValue || `Sample ${key}`
+          })
+        }
+      })
+
+      // Scan all barcodes for placeholder patterns (message + altText)
+      currentPass.barcodes.forEach(barcode => {
+        const text = `${barcode.message || ''} ${barcode.altText || ''}`
         const matches = text.match(/\$\{([A-Za-z0-9_]+)\}/g)
         if (matches) {
           matches.forEach(match => {
@@ -1056,6 +1072,124 @@ export default function PassDesigner() {
     }
   }, [currentPass])
 
+  // Smart placeholder normalization - converts any variation to semantic meaning
+  const normalizePlaceholder = useCallback((placeholder: string): string => {
+    const normalized = placeholder
+      .toLowerCase()
+      .replace(/[-_\s]/g, '') // Remove separators
+      .replace(/name$/, '') // Remove trailing 'name' for first/last
+    
+    // Map common variations to standardized names
+    const mappings: Record<string, string> = {
+      'first': 'firstName',
+      'firstname': 'firstName', 
+      'fname': 'firstName',
+      'last': 'lastName',
+      'lastname': 'lastName',
+      'lname': 'lastName',
+      'surname': 'lastName',
+      'email': 'email',
+      'emailaddress': 'email',
+      'mail': 'email',
+      'phone': 'phone',
+      'phonenumber': 'phone',
+      'mobile': 'phone',
+      'tel': 'phone',
+      'telephone': 'phone',
+      'id': 'memberId',
+      'memberid': 'memberId',
+      'member': 'memberId',
+      'userid': 'memberId',
+      'user': 'memberId',
+      'barcodeval': 'memberId',
+      'barcodevalue': 'memberId',
+      'code': 'memberId',
+      'offer': 'currentOffer',
+      'currentoffer': 'currentOffer',
+      'discount': 'currentOffer',
+      'deal': 'currentOffer',
+      'promotion': 'currentOffer',
+      'points': 'points',
+      'balance': 'balance',
+      'tier': 'tier',
+      'level': 'tier',
+      'since': 'memberSince',
+      'membersince': 'memberSince',
+      'joined': 'memberSince'
+    }
+    
+    return mappings[normalized] || placeholder
+  }, [])
+
+  // Generate smart sample data based on placeholder semantics and user defaults
+  const generateSampleData = useCallback((allPlaceholders: string[]) => {
+    const sampleData: Record<string, string> = {}
+    
+    // First, use any default values set by user in Dynamic Placeholders
+    currentPass.placeholders.forEach(placeholder => {
+      if (placeholder.defaultValue && placeholder.defaultValue.trim()) {
+        sampleData[placeholder.key] = placeholder.defaultValue
+      }
+    })
+    
+    // Then handle any remaining placeholders with smart defaults
+    allPlaceholders.forEach(placeholder => {
+      if (!sampleData[placeholder]) {
+        const semantic = normalizePlaceholder(placeholder)
+        
+        switch (semantic) {
+          case 'firstName':
+            sampleData[placeholder] = 'John'
+            break
+          case 'lastName':
+            sampleData[placeholder] = 'Doe'
+            break
+          case 'email':
+            sampleData[placeholder] = 'john.doe@example.com'
+            break
+          case 'phone':
+            sampleData[placeholder] = '+1 (555) 123-4567'
+            break
+          case 'memberId':
+            sampleData[placeholder] = 'PREVIEW123'
+            break
+          case 'currentOffer':
+            sampleData[placeholder] = '20% off next purchase'
+            break
+          case 'points':
+            sampleData[placeholder] = '1000'
+            break
+          case 'balance':
+            sampleData[placeholder] = '$25.00'
+            break
+          case 'tier':
+            sampleData[placeholder] = 'Gold'
+            break
+          case 'memberSince':
+            sampleData[placeholder] = '2024'
+            break
+          default:
+            // For unknown placeholders, try to provide contextual defaults
+            if (placeholder.toLowerCase().includes('date')) {
+              sampleData[placeholder] = new Date().toLocaleDateString()
+            } else if (placeholder.toLowerCase().includes('time')) {
+              sampleData[placeholder] = new Date().toLocaleTimeString()
+            } else if (placeholder.toLowerCase().includes('year')) {
+              sampleData[placeholder] = new Date().getFullYear().toString()
+            } else if (placeholder.toLowerCase().includes('count') || placeholder.toLowerCase().includes('number')) {
+              sampleData[placeholder] = '5'
+            } else if (placeholder.toLowerCase().includes('url') || placeholder.toLowerCase().includes('link')) {
+              sampleData[placeholder] = 'https://example.com'
+            } else {
+              sampleData[placeholder] = `Sample ${placeholder}`
+            }
+        }
+      }
+    })
+    
+    return sampleData
+  }, [currentPass.placeholders, normalizePlaceholder])
+
   // Preview pass - generate and download .pkpass file
   const handlePreviewPass = useCallback(async () => {
     // NEW: Rate limiting check (5 previews per minute)
@@ -1094,79 +1228,35 @@ export default function PassDesigner() {
         throw new Error('Failed to save template. Please try saving first.')
       }
 
-      // Prepare sample form data for preview
-      const sampleFormData: { [key: string]: string } = {}
+      // Prepare sample form data for preview - collect all placeholders first
+      const allPlaceholders: string[] = []
       
-      // Extract placeholders from fields and provide sample data
+      // Extract placeholders from fields 
       currentPass.fields.forEach(field => {
-        const placeholderRegex = /\$\{([A-Za-z0-9_]+)\}/g
+        const placeholderRegex = /\$\{([A-Za-z0-9_-]+)\}/g
         let match
         while ((match = placeholderRegex.exec(field.value || '')) !== null) {
           const placeholder = match[1] // Keep exact case from template
-          if (!sampleFormData[placeholder]) {
-            // Provide sample values based on common placeholder names (case-insensitive matching)
-            const lowerPlaceholder = placeholder.toLowerCase()
-            switch (lowerPlaceholder) {
-              case 'first_name':
-              case 'firstname':
-                sampleFormData[placeholder] = 'John'
-                break
-              case 'last_name':
-              case 'lastname':
-                sampleFormData[placeholder] = 'Doe'
-                break
-              case 'email':
-                sampleFormData[placeholder] = 'john.doe@example.com'
-                break
-              case 'points':
-                sampleFormData[placeholder] = '1000'
-                break
-              case 'balance':
-                sampleFormData[placeholder] = '$25.00'
-                break
-              case 'tier':
-                sampleFormData[placeholder] = 'Gold'
-                break
-              case 'member_since':
-                sampleFormData[placeholder] = '2024'
-                break
-              case 'phone':
-                sampleFormData[placeholder] = '+1 (555) 123-4567'
-                break
-              case 'id':
-              case 'member_id':
-                sampleFormData[placeholder] = 'MB12345'
-                break
-              case 'current_offer':
-                sampleFormData[placeholder] = '20% off next purchase'
-                break
-              case 'barcode_value':
-              case 'member_id':
-                sampleFormData[placeholder] = 'PREVIEW123'
-                break
-              default:
-                sampleFormData[placeholder] = `Sample ${placeholder}`
-            }
+          if (!allPlaceholders.includes(placeholder)) {
+            allPlaceholders.push(placeholder)
           }
         }
       })
 
-      // Also check barcodes for placeholders
+      // Extract placeholders from barcodes
       currentPass.barcodes.forEach(barcode => {
-        const placeholderRegex = /\$\{([A-Za-z0-9_]+)\}/g
+        const placeholderRegex = /\$\{([A-Za-z0-9_-]+)\}/g
         let match
         while ((match = placeholderRegex.exec(barcode.message || '')) !== null) {
           const placeholder = match[1] // Keep exact case from template
-          if (!sampleFormData[placeholder]) {
-            const lowerPlaceholder = placeholder.toLowerCase()
-            if (lowerPlaceholder === 'id' || lowerPlaceholder === 'member_id' || lowerPlaceholder === 'barcode_value') {
-              sampleFormData[placeholder] = 'PREVIEW123'
-            } else {
-              sampleFormData[placeholder] = `Sample ${placeholder}`
-            }
+          if (!allPlaceholders.includes(placeholder)) {
+            allPlaceholders.push(placeholder)
           }
         }
       })
+
+      // Generate smart sample data using the new dynamic system
+      const sampleFormData = generateSampleData(allPlaceholders)
 
       console.log('🔍 Preview form data:', sampleFormData)
 
@@ -1226,6 +1316,35 @@ export default function PassDesigner() {
     }
   }, [currentPass, handleSaveToSupabase])
 
+  // Delete template function
+  const handleDeleteTemplate = useCallback(async (templateId: string, templateName: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${templateName}"?\n\nThis action cannot be undone.`
+    )
+    
+    if (!confirmed) return
+
+    try {
+      const response = await fetch(`/api/templates/${templateId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete template')
+      }
+
+      // Remove the template from local state
+      setSupabaseTemplates(prev => prev.filter(t => t.id !== templateId))
+      
+      // Show success message
+      toast.success(`Template "${templateName}" has been deleted successfully.`)
+    } catch (error) {
+      console.error('Error deleting template:', error)
+      toast.error(`Failed to delete template: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }, [])
+
   // Load pass
   const handleLoadPass = useCallback((templateJson: any) => {
     console.log('🔄 Loading template:', templateJson)
@@ -1280,7 +1399,7 @@ export default function PassDesigner() {
       }
       
       loadedPass = {
-        id: templateJson.id || `loaded_${Date.now()}`,
+        id: templateJson.id,
         templateName: templateJson.templateName || templateJson.name || 'AI Template',
         description: templateJson.description || 'AI-generated template',
         style: 'storeCard',
@@ -1324,7 +1443,7 @@ export default function PassDesigner() {
     } else {
       // Original template format
       loadedPass = {
-        id: templateJson.id || `loaded_${Date.now()}`,
+        id: templateJson.id,
         templateName: templateJson.name || 'WalletPush',
         description: templateJson.description || 'Digital wallet pass template',
         style: templateJson.passStyle || templateJson.style || 'storeCard',
@@ -1445,27 +1564,102 @@ export default function PassDesigner() {
 
           {/* Templates */}
           <div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-3">Templates</h3>
+            <h3 className="text-xl font-semibold text-slate-900 mb-6">Templates</h3>
               {supabaseTemplates.length === 0 ? (
-                <div className="text-sm text-slate-500">No templates yet</div>
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">No templates yet</h3>
+                  <p className="text-slate-600 mb-4">Create your first pass template to get started</p>
+                  <Button onClick={() => setStep('create')}>
+                    Create New Template
+                  </Button>
+                </div>
               ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {supabaseTemplates.map((t: any) => (
-                <Card key={t.id}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      {t.programs?.name || t.template_json?.name || t.template_json?.templateName || 'WalletPush Template'}
-                      <span className="text-xs bg-slate-100 px-2 py-1 rounded">{new Date(t.created_at).toLocaleString()}</span>
-                    </CardTitle>
-                    <CardDescription className="text-slate-600">{t.template_json?.description || 'Digital wallet pass template'}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleLoadPass(t.template_json)}>Load</Button>
+                {supabaseTemplates.map((t: any) => {
+                  const templateName = t.programs?.name || t.template_json?.name || t.template_json?.templateName || 'WalletPush Template'
+                  const description = t.template_json?.description || 'Digital wallet pass template'
+                  const passType = t.template_json?.metadata?.pass_style || t.template_json?.style || 'storeCard'
+                  const fieldCount = t.template_json?.fields?.length || 0
+                  const hasImages = t.template_json?.images && Object.keys(t.template_json.images).length > 0
+                  
+                  return (
+                    <div key={t.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group">
+                      {/* Header with gradient */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-slate-100">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-lg font-semibold text-slate-900 truncate mb-1">
+                              {templateName}
+                            </h4>
+                            <div className="flex items-center gap-2 text-sm text-slate-500">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                                {passType.replace(/([A-Z])/g, ' $1').trim()}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <ClockIcon className="w-3 h-3" />
+                                {new Date(t.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteTemplate(t.id, templateName)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                            title="Delete template"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-4">
+                        <p className="text-slate-600 text-sm mb-4 line-clamp-2 min-h-[40px]">
+                          {description}
+                        </p>
+                        
+                        {/* Stats */}
+                        <div className="flex items-center gap-4 mb-4 text-xs text-slate-500">
+                          <div className="flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2v8h10V6H5z" clipRule="evenodd" />
+                            </svg>
+                            <span>{fieldCount} fields</span>
+                          </div>
+                          {hasImages && (
+                            <div className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                              </svg>
+                              <span>Has images</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>v{t.version}</span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => handleLoadPass(t.template_json)}
+                          >
+                            Load Template
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -1632,6 +1826,19 @@ export default function PassDesigner() {
                 disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier}
               >
                 Preview
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleSavePass}
+                disabled={!currentPass.templateName || !currentPass.style}
+              >
+                Save
+              </Button>
+              <Button 
+                onClick={handleSaveToSupabase}
+                disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier}
+              >
+                Save & Publish
               </Button>
             </div>
           </div>
@@ -1939,19 +2146,37 @@ export default function PassDesigner() {
                           </div>
                           <div>
                             <Label className="text-sm">Value</Label>
-                            <Input
-                              value={selectedField.value}
-                              onChange={(e) => {
-                                const updatedFields = currentPass.fields.map(field =>
-                                  field.id === selectedField.id
-                                    ? { ...field, value: e.target.value }
-                                    : field
-                                )
-                                setCurrentPass(prev => ({ ...prev, fields: updatedFields }))
-                                setSelectedField({ ...selectedField, value: e.target.value })
-                              }}
-                              placeholder="${FIRST_NAME}, ${POINTS}, etc."
-                            />
+                            {selectedField.type === 'backFields' ? (
+                              <Textarea
+                                value={selectedField.value}
+                                onChange={(e) => {
+                                  const updatedFields = currentPass.fields.map(field =>
+                                    field.id === selectedField.id
+                                      ? { ...field, value: e.target.value }
+                                      : field
+                                  )
+                                  setCurrentPass(prev => ({ ...prev, fields: updatedFields }))
+                                  setSelectedField({ ...selectedField, value: e.target.value })
+                                }}
+                                placeholder="${FIRST_NAME}, ${POINTS}, etc.&#10;Support for multiple lines&#10;Line breaks are preserved"
+                                rows={4}
+                                className="resize-vertical"
+                              />
+                            ) : (
+                              <Input
+                                value={selectedField.value}
+                                onChange={(e) => {
+                                  const updatedFields = currentPass.fields.map(field =>
+                                    field.id === selectedField.id
+                                      ? { ...field, value: e.target.value }
+                                      : field
+                                  )
+                                  setCurrentPass(prev => ({ ...prev, fields: updatedFields }))
+                                  setSelectedField({ ...selectedField, value: e.target.value })
+                                }}
+                                placeholder="${FIRST_NAME}, ${POINTS}, etc."
+                              />
+                            )}
                           </div>
                           <div>
                             <Label className="text-sm">Change Message</Label>

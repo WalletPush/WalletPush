@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -24,8 +24,21 @@ export function ModernLoginForm({ className, redirectTo = '/business/dashboard' 
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const router = useRouter()
   const { branding } = useBranding()
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Fallback branding for SSR
+  const safeBranding = isMounted ? branding : {
+    logo_url: '/images/walletpush-logo.png',
+    company_name: 'WalletPush',
+    welcome_message: 'Welcome to WalletPush',
+    tagline: 'Digital Wallet Solutions'
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,11 +69,11 @@ export function ModernLoginForm({ className, redirectTo = '/business/dashboard' 
     <div className={`w-full max-w-md mx-auto ${className}`}>
       {/* Logo and Branding */}
       <div className="text-center mb-8">
-        {branding.logo_url && (
+        {safeBranding.logo_url && (
           <div className="mb-6">
             <Image
-              src={branding.logo_url}
-              alt={`${branding.company_name} Logo`}
+              src={safeBranding.logo_url}
+              alt={`${safeBranding.company_name} Logo`}
               width={120}
               height={120}
               className="mx-auto h-16 w-auto object-contain"
@@ -69,11 +82,11 @@ export function ModernLoginForm({ className, redirectTo = '/business/dashboard' 
           </div>
         )}
         <h1 className="text-3xl font-bold tracking-tight text-white">
-          {branding.welcome_message}
+          {safeBranding.welcome_message}
         </h1>
-        {branding.tagline && (
+        {safeBranding.tagline && (
           <p className="mt-2" style={{ color: '#C6C8CC' }}>
-            {branding.tagline}
+            {safeBranding.tagline}
           </p>
         )}
       </div>

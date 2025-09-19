@@ -20,7 +20,7 @@ interface PassTemplate {
 
 interface ApplePassData {
   templateId: string
-  formData?: { [key: string]: string } // optional; IGNORED for build (kept only for storage/analytics)
+  formData?: { [key: string]: string } // optional; used for preview generation and overrides
   userId?: string
   deviceType?: string
 }
@@ -80,7 +80,8 @@ export class ApplePassKitGenerator {
       template,
       selectedPassTypeIdentifier, // expected PTID from template
       serialNumber,
-      passTypeID // pass the certificate info
+      passTypeID, // pass the certificate info
+      formData // pass form data for preview overrides
     )
 
     // 6) Prepare assets strictly from template DB
@@ -142,7 +143,8 @@ export class ApplePassKitGenerator {
     template: PassTemplate,
     expectedPassTypeIdFromTemplate: string,
     serialNumber: string,
-    passTypeID: any
+    passTypeID: any,
+    formData?: { [key: string]: string }
   ): Promise<{ passJson: any; actualData: Record<string, string> }> {
     if (!template.passkit_json) throw new Error(`❌ Template ${template.id} has no JSON snapshot`)
 
@@ -152,8 +154,8 @@ export class ApplePassKitGenerator {
     // Extract placeholders defined by the template (or empty object)
     const templatePlaceholders: Record<string, string> = snapshot.placeholders || {}
 
-    // ✅ The only values we use come from the template snapshot
-    const actualData = { ...templatePlaceholders }
+    // ✅ Use template placeholders as base, but allow formData overrides for previews
+    const actualData = { ...templatePlaceholders, ...(formData || {}) }
 
     // Remove placeholder metadata from the final JSON
     delete snapshot.placeholders

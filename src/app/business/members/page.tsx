@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MagnifyingGlassIcon, FunnelIcon, EllipsisVerticalIcon, UserPlusIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface Member {
@@ -188,11 +188,43 @@ const EditableField: React.FC<{
 }
 
 export default function MembersPage() {
-  const [members, setMembers] = useState<Member[]>(mockMembers)
+  const [members, setMembers] = useState<Member[]>([])
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [editingMember, setEditingMember] = useState<Member | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch real customers from the database
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/business/customers')
+        const result = await response.json()
+        
+        if (response.ok) {
+          setMembers(result.data || [])
+          console.log('✅ Loaded', result.data?.length || 0, 'customers')
+        } else {
+          setError(result.error || 'Failed to load customers')
+          console.error('❌ Failed to fetch customers:', result.error)
+          // Fallback to mock data for development
+          setMembers(mockMembers)
+        }
+      } catch (err: any) {
+        setError('Failed to connect to server')
+        console.error('❌ Network error:', err)
+        // Fallback to mock data for development
+        setMembers(mockMembers)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCustomers()
+  }, [])
 
   const handleEditMember = (member: Member) => {
     setEditingMember({ ...member })
@@ -225,10 +257,10 @@ export default function MembersPage() {
   }
 
   const filteredMembers = members.filter(member =>
-    member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.phone.includes(searchTerm)
+    (member.first_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.last_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.phone || '').includes(searchTerm)
   )
 
   return (
@@ -271,21 +303,39 @@ export default function MembersPage() {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-slate-600">Loading customers...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="bg-white rounded-lg shadow-sm border border-red-200 p-8 text-center">
+              <div className="text-red-600 mb-2">⚠️ Error loading customers</div>
+              <p className="text-slate-600 text-sm">{error}</p>
+              <p className="text-slate-500 text-xs mt-2">Showing sample data for development</p>
+            </div>
+          )}
+
           {/* Members Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Name</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Email</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Phone</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Created At</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Last Activity</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {filteredMembers.map((member) => (
+          {!loading && (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Name</th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Email</th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Phone</th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Created At</th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Last Activity</th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-slate-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filteredMembers.map((member) => (
                   <tr
                     key={member.id}
                     className="hover:bg-slate-50 cursor-pointer transition-colors"
@@ -317,13 +367,14 @@ export default function MembersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
 
-          {/* Empty State */}
-          {filteredMembers.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-slate-500">No members found matching your search.</p>
-            </div>
+            {/* Empty State */}
+            {filteredMembers.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-slate-500">No members found matching your search.</p>
+              </div>
+            )}
+          </div>
           )}
         </div>
 

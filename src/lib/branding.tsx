@@ -38,16 +38,26 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Handle hydration
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Load branding on mount
   useEffect(() => {
-    loadBranding()
-  }, [])
+    if (isMounted) {
+      loadBranding()
+    }
+  }, [isMounted])
 
-  // Apply custom CSS when branding changes
+  // Apply custom CSS when branding changes (only after mount to avoid hydration issues)
   useEffect(() => {
-    applyCustomStyles()
-  }, [branding])
+    if (isMounted) {
+      applyCustomStyles()
+    }
+  }, [branding, isMounted])
 
   const loadBranding = async (domain?: string) => {
     try {

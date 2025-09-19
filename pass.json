@@ -1,0 +1,78 @@
+{
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatQR",
+      "altText": "TEST_MEMBERSHIP_123",
+      "message": "${MEMBER_ID}",
+      "messageEncoding": "iso-8859-1"
+    }
+  ],
+  "storeCard": {
+    "backFields": [
+      {
+        "id": "back_1758254345269_0",
+        "key": "David",
+        "type": "backFields",
+        "label": "First Name",
+        "value": "David"
+      },
+      {
+        "id": "back_1758254345269_1",
+        "key": "Sambor",
+        "type": "backFields",
+        "label": "Last Name",
+        "value": "Sambor"
+      },
+      {
+        "id": "back_1758254345269_2",
+        "key": "david.sambor@icloud.com",
+        "type": "backFields",
+        "label": "Email",
+        "value": "david.sambor@icloud.com"
+      },
+      {
+        "id": "back_1758254345269_3",
+        "key": "082147213308",
+        "type": "backFields",
+        "label": "Phone",
+        "value": "082147213308"
+      },
+      {
+        "id": "field_1758255896798",
+        "key": "key_1758255896798",
+        "type": "backFields",
+        "label": "New back",
+        "value": "This is the back of the pass Multi Line text\n\nYay. This should work "
+      }
+    ],
+    "headerFields": [
+      {
+        "id": "header_1758254345269",
+        "key": "0",
+        "type": "headerFields",
+        "label": "Points",
+        "value": "0"
+      }
+    ],
+    "primaryFields": [],
+    "auxiliaryFields": [],
+    "secondaryFields": [
+      {
+        "id": "secondary_1758254345269",
+        "key": "20% off all services",
+        "type": "secondaryFields",
+        "label": "Welcome Offer",
+        "value": "20% off all services"
+      }
+    ]
+  },
+  "labelColor": "#625C51",
+  "description": "Welcome to our Wellness Journey Passport - complete 4 out of 6 wellness destinations within 90 days to unlock exclusive rewards",
+  "formatVersion": 1,
+  "backgroundColor": "#FFFFFF",
+  "foregroundColor": "#625C51",
+  "organizationName": "Blue Karma Secrets",
+  "passTypeIdentifier": "pass.come.globalwalletpush",
+  "serialNumber": "wp-1758258865357-mle24lcqf",
+  "teamIdentifier": "NC4W34D5LD"
+}
