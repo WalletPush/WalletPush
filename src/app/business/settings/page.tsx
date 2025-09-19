@@ -8,10 +8,12 @@ import {
   CreditCardIcon,
   UserGroupIcon,
   KeyIcon,
-  SparklesIcon
+  SparklesIcon,
+  AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline'
+import CustomFieldsManager from '@/components/settings/custom-fields-manager'
 
-type SettingsTab = 'domains' | 'smtp' | 'security' | 'billing' | 'team' | 'api'
+type SettingsTab = 'custom-fields' | 'domains' | 'smtp' | 'security' | 'billing' | 'team' | 'api'
 
 interface CustomDomain {
   id: string
@@ -40,7 +42,7 @@ interface OpenAISettings {
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('domains')
+  const [activeTab, setActiveTab] = useState<SettingsTab>('custom-fields')
   const [isLoading, setIsLoading] = useState(false)
   
   // Custom Domains State
@@ -188,6 +190,7 @@ export default function SettingsPage() {
   }
 
   const tabs = [
+    { id: 'custom-fields', name: 'Custom Fields', icon: AdjustmentsHorizontalIcon },
     { id: 'domains', name: 'Custom Domains', icon: GlobeAltIcon },
     { id: 'smtp', name: 'Email/SMTP', icon: EnvelopeIcon },
     { id: 'security', name: 'Security', icon: ShieldCheckIcon },
@@ -240,6 +243,11 @@ export default function SettingsPage() {
 
         {/* Tab Content */}
         <div className="p-6">
+          {/* Custom Fields Tab */}
+          {activeTab === 'custom-fields' && (
+            <CustomFieldsManager />
+          )}
+
           {/* Custom Domains Tab */}
           {activeTab === 'domains' && (
             <div className="space-y-6">
