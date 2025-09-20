@@ -124,7 +124,7 @@ export default function SaasConfiguratorPage() {
       
       setPackages(mockPackages)
     } catch (error) {
-      setError(`Failed to load packages: ${error.message}`)
+      setError(`Failed to load packages: ${error instanceof Error ? error.message : 'Unknown error'}`)
       setPackages([]) // Empty packages on error
     } finally {
       setIsLoading(false)
