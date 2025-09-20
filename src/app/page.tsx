@@ -27,10 +27,29 @@ import Image from 'next/image'
 
 export default function HomePage() {
   const [isVisible, setIsVisible] = useState(false)
+  const [packages, setPackages] = useState<any[]>([])
+  const [loadingPackages, setLoadingPackages] = useState(true)
 
   useEffect(() => {
     setIsVisible(true)
+    loadPackages()
   }, [])
+
+  const loadPackages = async () => {
+    try {
+      const response = await fetch('/api/public/agency-packages')
+      const result = await response.json()
+      
+      if (result.success && result.packages) {
+        setPackages(result.packages)
+      }
+    } catch (error) {
+      console.error('Error loading packages:', error)
+      // Keep default behavior if API fails
+    } finally {
+      setLoadingPackages(false)
+    }
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -251,140 +270,67 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Starter Plan */}
-            <div className="p-8 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl relative">
-              <div className="text-center text-white">
-                <h3 className="text-2xl font-bold mb-4 text-white">Starter</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-white">$29</span>
-                  <span className="text-white">/month</span>
-                </div>
-                <p className="text-white mb-8">Perfect for small businesses</p>
-              </div>
-              <div className="space-y-4 text-white">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">Up to 1,000 active passes</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">Unlimited push notifications</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">Basic analytics</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">Email support</span>
-                </div>
-                <div className="pt-6">
-                  <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 rounded-full font-semibold">
-                    Start Free Trial
-                  </Button>
-                </div>
-              </div>
+          {loadingPackages ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
             </div>
-
-            {/* Professional Plan - Featured */}
-            <div className="p-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl relative transform scale-105 border-2 border-yellow-400">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-full text-sm font-bold">
-                  MOST POPULAR
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {packages.map((pkg, index) => (
+                <div key={pkg.id} className={`p-8 rounded-xl relative ${pkg.isPopular ? 'bg-gradient-to-br from-blue-600 to-purple-600 transform scale-105 border-2 border-yellow-400' : 'bg-white/10 backdrop-blur-lg border border-white/20'}`}>
+                  {/* Popular Badge */}
+                  {pkg.isPopular && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <div className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-full text-sm font-bold">
+                        MOST POPULAR
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="text-center text-white">
+                    <h3 className="text-2xl font-bold mb-4 text-white">{pkg.name}</h3>
+                    <div className="mb-6">
+                      <span className="text-4xl font-bold text-white">${pkg.price}</span>
+                      <span className="text-white">/month</span>
+                    </div>
+                    <p className="text-white mb-8">{pkg.description}</p>
+                  </div>
+                  <div className="space-y-4 text-white">
+                    {pkg.features?.map((feature: any) => (
+                      <div key={feature.id} className="flex items-center space-x-3">
+                        <CheckCircle className={`w-5 h-5 ${pkg.isPopular ? 'text-green-300' : 'text-green-400'}`} />
+                        <span className="text-white">{feature.name}</span>
+                      </div>
+                    ))}
+                    <div className="pt-6">
+                      <Button className={`w-full py-3 rounded-full font-semibold ${
+                        pkg.isPopular 
+                          ? 'bg-white text-blue-600 hover:bg-gray-100 font-bold' 
+                          : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+                      }`}>
+                        {pkg.name === 'Enterprise' ? 'Contact Sales' : 'Start Free Trial'}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="text-center text-white">
-                <h3 className="text-2xl font-bold mb-4 text-white">Professional</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-white">$79</span>
-                  <span className="text-white">/month</span>
-                </div>
-                <p className="text-white mb-8">Best for growing businesses</p>
-              </div>
-              <div className="space-y-4 text-white">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-300" />
-                  <span className="text-white">Up to 10,000 active passes</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-300" />
-                  <span className="text-white">Advanced automation</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-300" />
-                  <span className="text-white">Custom branding</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-300" />
-                  <span className="text-white">Priority support</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-300" />
-                  <span className="text-white">API access</span>
-                </div>
-                <div className="pt-6">
-                  <Button className="w-full bg-white text-blue-600 hover:bg-gray-100 py-3 rounded-full font-bold">
-                    Start Free Trial
-                  </Button>
-                </div>
-              </div>
+              ))}
             </div>
-
-            {/* Enterprise Plan */}
-            <div className="p-8 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl relative">
-              <div className="text-center text-white">
-                <h3 className="text-2xl font-bold mb-4 text-white">Enterprise</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-white">$199</span>
-                  <span className="text-white">/month</span>
-                </div>
-                <p className="text-white mb-8">For large organizations</p>
-              </div>
-              <div className="space-y-4 text-white">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">Unlimited active passes</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">White-label solution</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">Dedicated account manager</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">24/7 phone support</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-white">Custom integrations</span>
-                </div>
-                <div className="pt-6">
-                  <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 rounded-full font-semibold">
-                    Contact Sales
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
 
           <div className="text-center mt-12">
             <p className="text-white mb-4">All plans include 14-day free trial • No setup fees • Cancel anytime</p>
             <div className="flex justify-center items-center space-x-8 text-sm text-white">
-              <div className="flex items-center">
-                <Shield className="w-4 h-4 mr-2" />
-                Enterprise Security
+              <div className="flex items-center text-white">
+                <Shield className="w-4 h-4 mr-2 text-white" />
+                <span className="text-white">Enterprise Security</span>
               </div>
-              <div className="flex items-center">
-                <Zap className="w-4 h-4 mr-2" />
-                99.9% Uptime SLA
+              <div className="flex items-center text-white">
+                <Zap className="w-4 h-4 mr-2 text-white" />
+                <span className="text-white">99.9% Uptime SLA</span>
               </div>
-              <div className="flex items-center">
-                <Users className="w-4 h-4 mr-2" />
-                24/7 Support
+              <div className="flex items-center text-white">
+                <Users className="w-4 h-4 mr-2 text-white" />
+                <span className="text-white">24/7 Support</span>
               </div>
             </div>
           </div>
