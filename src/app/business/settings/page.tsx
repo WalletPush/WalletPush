@@ -162,6 +162,8 @@ export default function SettingsPage() {
 
       const result = await response.json()
 
+      console.log('🔍 Domain API response:', { status: response.status, result })
+
       if (response.ok) {
         const newDomainObj: CustomDomain = {
           id: result.domain.id,
@@ -175,7 +177,8 @@ export default function SettingsPage() {
         setNewDomain('')
         alert('Domain added successfully! Please configure your DNS settings.')
       } else {
-        alert(`Failed to add domain: ${result.error}`)
+        console.error('❌ Domain API error:', result)
+        alert(`Failed to add domain: ${result.error || result.details || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error adding domain:', error)
