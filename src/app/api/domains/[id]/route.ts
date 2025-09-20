@@ -78,15 +78,24 @@ export async function DELETE(
     console.log(`🔍 Domain business_id: ${domain.business_id}`)
 
     // Step 1: Remove domain from Vercel if it exists
+    let vercelDeleted = false
     if (domain.vercel_domain_id) {
       try {
         console.log(`🌐 Removing domain from Vercel: ${domain.vercel_domain_id}`)
         await vercel.removeDomain(domain.vercel_domain_id)
         console.log(`✅ Domain removed from Vercel successfully`)
+        vercelDeleted = true
       } catch (vercelError) {
         console.error(`❌ Failed to remove domain from Vercel:`, vercelError)
-        // Continue with database deletion even if Vercel cleanup fails
+        console.error(`❌ Vercel error details:`, vercelError instanceof Error ? vercelError.message : vercelError)
+        // FAIL THE ENTIRE OPERATION if Vercel cleanup fails
+        return NextResponse.json({ 
+          error: `Failed to remove domain from Vercel: ${vercelError instanceof Error ? vercelError.message : 'Unknown error'}` 
+        }, { status: 500 })
       }
+    } else {
+      console.log(`⚠️ No vercel_domain_id found, skipping Vercel cleanup`)
+      vercelDeleted = true // Consider it "deleted" if it wasn't in Vercel
     }
 
     // Step 2: Delete domain from database
@@ -110,10 +119,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Domain not found or access denied' }, { status: 404 })
     }
 
-    console.log(`✅ Domain deleted successfully: ${domain.domain}`)
+    console.log(`✅ Domain deleted successfully from both Vercel and database: ${domain.domain}`)
 
     return NextResponse.json({ 
       success: true,
+      vercel_deleted: vercelDeleted,
+      database_deleted: true,
       message: `Domain ${domain.domain} deleted successfully. Removed from Vercel and database.`
     })
     
