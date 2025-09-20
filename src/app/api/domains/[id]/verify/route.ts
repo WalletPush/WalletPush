@@ -43,16 +43,28 @@ export async function POST(
 
     try {
       // Check CNAME record
-      const { stdout } = await execAsync(`nslookup ${domain.domain}`)
-      console.log(`📡 DNS lookup result for ${domain.domain}:`, stdout)
+      const { stdout, stderr } = await execAsync(`nslookup ${domain.domain}`)
+      console.log(`📡 DNS lookup result for ${domain.domain}:`)
+      console.log('STDOUT:', stdout)
+      console.log('STDERR:', stderr)
       
       // Check if it resolves to walletpush.io or our IP
-      if (stdout.includes('walletpush.io') || stdout.includes('216.198.79.1')) {
+      const hasWalletPush = stdout.includes('walletpush.io')
+      const hasCorrectIP = stdout.includes('216.198.79.1')
+      const hasCNAME = stdout.includes('canonical name')
+      
+      console.log(`🔍 Verification checks:`)
+      console.log(`  - Contains 'walletpush.io': ${hasWalletPush}`)
+      console.log(`  - Contains '216.198.79.1': ${hasCorrectIP}`)
+      console.log(`  - Has CNAME record: ${hasCNAME}`)
+      
+      if (hasWalletPush || hasCorrectIP) {
         verified = true
         sslVerified = true // For simplicity, assume SSL is OK if DNS is working
         console.log(`✅ DNS verification successful for ${domain.domain}`)
       } else {
         console.log(`❌ DNS verification failed for ${domain.domain} - not pointing to walletpush.io`)
+        console.log(`❌ Full stdout: "${stdout}"`)
       }
     } catch (dnsError) {
       console.error(`❌ DNS lookup failed for ${domain.domain}:`, dnsError)
