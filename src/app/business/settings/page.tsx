@@ -158,6 +158,53 @@ export default function SettingsPage() {
     }
   }
 
+  const handleRemoveDomain = async (domainId: string) => {
+    if (!confirm('Are you sure you want to remove this domain? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/domains/${domainId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setCustomDomains(customDomains.filter(d => d.id !== domainId))
+        alert('Domain removed successfully!')
+      } else {
+        const result = await response.json()
+        alert(`Failed to remove domain: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error removing domain:', error)
+      alert('Failed to remove domain. Please try again.')
+    }
+  }
+
+  const handleConfigureDomain = (domain: string) => {
+    const dnsInstructions = `
+DNS CONFIGURATION FOR: ${domain}
+
+To configure your domain, add these DNS records:
+
+1. CNAME Record:
+   - Host: @ (or your subdomain)
+   - Value: walletpush.io
+   - TTL: 3600
+
+2. TXT Record (for verification):
+   - Host: _walletpush-verification
+   - Value: ${domain}-${Date.now()}
+   - TTL: 3600
+
+Once configured, it may take up to 24 hours for changes to propagate.
+
+Need help? Contact support@walletpush.io
+    `
+    
+    alert(dnsInstructions)
+  }
+
   const handleSaveSMTP = async () => {
     setIsLoading(true)
     // Simulate API call
@@ -312,7 +359,18 @@ export default function SettingsPage() {
 
                 {/* Domains List */}
                 <div className="space-y-3">
-                  {customDomains.map((domain) => (
+                  {loadingDomains ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="text-slate-500 mt-2">Loading domains...</p>
+                    </div>
+                  ) : customDomains.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-slate-500">No domains configured yet.</p>
+                      <p className="text-sm text-slate-400 mt-1">Add a domain above to get started.</p>
+                    </div>
+                  ) : (
+                    customDomains.map((domain) => (
                     <div key={domain.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
@@ -341,15 +399,22 @@ export default function SettingsPage() {
                         )}
                       </div>
                       <div className="flex gap-2">
-                        <button className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded">
+                        <button 
+                          onClick={() => handleConfigureDomain(domain.domain)}
+                          className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                        >
                           Configure
                         </button>
-                        <button className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded">
+                        <button 
+                          onClick={() => handleRemoveDomain(domain.id)}
+                          className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+                        >
                           Remove
                         </button>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
