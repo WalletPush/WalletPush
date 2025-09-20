@@ -22,7 +22,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Domain ID is required' }, { status: 400 })
     }
 
-    // Get current active account
+    // Get current active account (same logic as working GET /api/domains)
     const { data: activeAccount } = await supabase
       .from('user_active_account')
       .select('active_account_id')
@@ -37,14 +37,29 @@ export async function DELETE(
         .select('account_id')
         .eq('user_id', user.id)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       accountId = userAccounts?.account_id
     }
 
+    // Fallback: check businesses table directly
     if (!accountId) {
+      const { data: businessAccount } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('owner_id', user.id)
+        .limit(1)
+        .maybeSingle()
+
+      accountId = businessAccount?.id
+    }
+
+    if (!accountId) {
+      console.error('❌ No account found for user:', user.id)
       return NextResponse.json({ error: 'No account found' }, { status: 404 })
     }
+
+    console.log('🔍 Delete domain - using accountId:', accountId)
 
     // Verify domain belongs to current account before deleting
     const { data: domain } = await supabase
