@@ -88,10 +88,9 @@ export async function DELETE(
       } catch (vercelError) {
         console.error(`❌ Failed to remove domain from Vercel:`, vercelError)
         console.error(`❌ Vercel error details:`, vercelError instanceof Error ? vercelError.message : vercelError)
-        // FAIL THE ENTIRE OPERATION if Vercel cleanup fails
-        return NextResponse.json({ 
-          error: `Failed to remove domain from Vercel: ${vercelError instanceof Error ? vercelError.message : 'Unknown error'}` 
-        }, { status: 500 })
+        // CONTINUE WITH DATABASE DELETION even if Vercel cleanup fails
+        console.log(`⚠️ Continuing with database deletion despite Vercel failure`)
+        vercelDeleted = false
       }
     } else {
       console.log(`⚠️ No vercel_domain_id found, skipping Vercel cleanup`)

@@ -119,8 +119,14 @@ class VercelAPI {
    */
   async removeDomain(domain: string): Promise<void> {
     console.log(`🗑️ Removing domain from Vercel: ${domain}`)
+    console.log(`🔍 Using projectId: ${this.projectId}`)
+    console.log(`🔍 Using teamId: ${this.teamId}`)
+    console.log(`🔍 Token exists: ${!!this.token}`)
     
-    await this.makeRequest(`/v9/projects/${this.projectId}/domains/${domain}`, {
+    const endpoint = `/v9/projects/${this.projectId}/domains/${domain}`
+    console.log(`🌐 DELETE endpoint: ${endpoint}`)
+    
+    await this.makeRequest(endpoint, {
       method: 'DELETE',
     })
 
