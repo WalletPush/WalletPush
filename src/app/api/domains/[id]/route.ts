@@ -23,15 +23,19 @@ export async function DELETE(
     }
 
     // Get current active account (same logic as working GET /api/domains)
+    console.log(`🔍 Looking up account for user: ${user.id}`)
+    
     const { data: activeAccount } = await supabase
       .from('user_active_account')
       .select('active_account_id')
       .eq('user_id', user.id)
       .maybeSingle()
 
+    console.log(`🔍 user_active_account result:`, activeAccount)
     let accountId = activeAccount?.active_account_id
 
     if (!accountId) {
+      console.log(`🔍 No active account, checking account_members...`)
       const { data: userAccounts } = await supabase
         .from('account_members')
         .select('account_id')
@@ -39,11 +43,13 @@ export async function DELETE(
         .limit(1)
         .maybeSingle()
 
+      console.log(`🔍 account_members result:`, userAccounts)
       accountId = userAccounts?.account_id
     }
 
     // Fallback: check businesses table directly
     if (!accountId) {
+      console.log(`🔍 No account_members, checking businesses table...`)
       const { data: businessAccount } = await supabase
         .from('businesses')
         .select('id')
@@ -51,8 +57,11 @@ export async function DELETE(
         .limit(1)
         .maybeSingle()
 
+      console.log(`🔍 businesses result:`, businessAccount)
       accountId = businessAccount?.id
     }
+
+    console.log(`🔍 Final accountId: ${accountId}`)
 
     if (!accountId) {
       console.error('❌ No account found for user:', user.id)
