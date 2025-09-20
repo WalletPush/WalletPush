@@ -64,7 +64,7 @@ export async function DELETE(
     // Verify domain belongs to current account before deleting
     const { data: domain } = await supabase
       .from('custom_domains')
-      .select('id, domain, vercel_domain_id')
+      .select('id, domain, vercel_domain_id, business_id')
       .eq('id', id)
       .eq('business_id', accountId)
       .single()
