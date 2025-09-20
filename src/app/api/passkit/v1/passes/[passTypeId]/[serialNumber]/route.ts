@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { ApplePassKitGenerator } from '../../../../../../lib/apple-passkit-generator'
+import { ApplePassKitGenerator } from '@/lib/apple-passkit-generator'
 
 // Apple PassKit Web Service - Get Latest Pass
 // https://developer.apple.com/documentation/walletpasses/adding_a_web_service_to_update_passes
