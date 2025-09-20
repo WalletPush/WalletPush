@@ -40,18 +40,20 @@ export async function POST(
     let verificationInstructions = null
 
     try {
-      // Step 1: Add domain to Vercel project
-      console.log(`🌐 Adding ${domain.domain} to Vercel project...`)
-      
-      const vercelResult = await vercel.addAndVerifyDomain(domain.domain)
-      
-      if (vercelResult.domain) {
-        vercelDomainId = vercelResult.domain.name
-        verified = vercelResult.verified
-        verificationInstructions = vercelResult.verificationInstructions
+      // Check if domain already exists in Vercel, if not add it
+      if (domain.vercel_domain_id) {
+        console.log(`🔍 Checking existing domain status in Vercel: ${domain.domain}`)
         
-        console.log(`✅ Domain added to Vercel:`, {
-          domain: vercelResult.domain.name,
+        const domainInfo = await vercel.getDomain(domain.domain)
+        vercelDomainId = domainInfo.name
+        verified = domainInfo.verified
+        
+        if (domainInfo.verification && domainInfo.verification.length > 0) {
+          verificationInstructions = domainInfo.verification
+        }
+        
+        console.log(`📊 Domain status from Vercel:`, {
+          domain: domainInfo.name,
           verified: verified,
           needsVerification: !!verificationInstructions
         })
@@ -60,8 +62,32 @@ export async function POST(
           sslVerified = true // Vercel handles SSL automatically
           console.log(`✅ Domain ${domain.domain} is verified and SSL enabled!`)
         } else {
-          console.log(`⏳ Domain added but requires DNS verification`)
+          console.log(`⏳ Domain requires DNS verification`)
           console.log(`📋 Verification instructions:`, verificationInstructions)
+        }
+      } else {
+        console.log(`🌐 Adding ${domain.domain} to Vercel project...`)
+        
+        const vercelResult = await vercel.addAndVerifyDomain(domain.domain)
+        
+        if (vercelResult.domain) {
+          vercelDomainId = vercelResult.domain.name
+          verified = vercelResult.verified
+          verificationInstructions = vercelResult.verificationInstructions
+          
+          console.log(`✅ Domain added to Vercel:`, {
+            domain: vercelResult.domain.name,
+            verified: verified,
+            needsVerification: !!verificationInstructions
+          })
+          
+          if (verified) {
+            sslVerified = true // Vercel handles SSL automatically
+            console.log(`✅ Domain ${domain.domain} is verified and SSL enabled!`)
+          } else {
+            console.log(`⏳ Domain added but requires DNS verification`)
+            console.log(`📋 Verification instructions:`, verificationInstructions)
+          }
         }
       }
     } catch (vercelError) {

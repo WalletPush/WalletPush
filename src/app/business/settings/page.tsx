@@ -495,7 +495,7 @@ Need help? Contact support@walletpush.io
                                 {domain.verificationInstructions.map((instruction, index) => (
                                   <div key={index} className="mb-2">
                                     <div>Type: {instruction.type}</div>
-                                    <div>Name: {instruction.domain}</div>
+                                    <div>Name: {instruction.domain.replace('.walletpush.io', '')}</div>
                                     <div className="break-all">Value: {instruction.value}</div>
                                     {instruction.reason && (
                                       <div className="text-blue-600 mt-1">Reason: {instruction.reason}</div>
