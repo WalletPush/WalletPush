@@ -371,7 +371,7 @@ export default function AgencyProfilePage() {
                       ? 'Free Trial' 
                       : profile?.subscription_status === 'active'
                       ? 'Agency Pro'
-                      : profile?.subscription_plan?.charAt(0).toUpperCase() + profile?.subscription_plan?.slice(1) || 'Agency Pro'}
+                      : (profile?.subscription_plan ? profile.subscription_plan.charAt(0).toUpperCase() + profile.subscription_plan.slice(1) : 'Agency Pro')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
