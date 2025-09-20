@@ -127,6 +127,9 @@ export default function DistributionPage() {
   const [isChatting, setIsChatting] = useState(false)
   const [debugMessages, setDebugMessages] = useState<string[]>([])
   const [currentLandingPageId, setCurrentLandingPageId] = useState<string | null>(null)
+  const [editingUrlId, setEditingUrlId] = useState<string | null>(null)
+  const [editingUrl, setEditingUrl] = useState('')
+  const [updatingUrl, setUpdatingUrl] = useState(false)
   const [wizardData, setWizardData] = useState<WizardData>({
     // Step 1
     pageTitle: '',
@@ -771,6 +774,52 @@ Make it modern, professional, and conversion-focused.`
     } catch (error) {
       console.error('Error deleting landing page:', error)
       alert(`Failed to delete landing page: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleStartEditUrl = (page: any) => {
+    setEditingUrlId(page.id)
+    setEditingUrl(page.custom_url)
+  }
+
+  const handleCancelEditUrl = () => {
+    setEditingUrlId(null)
+    setEditingUrl('')
+  }
+
+  const handleSaveUrl = async (pageId: string) => {
+    if (!editingUrl.trim()) {
+      alert('URL cannot be empty')
+      return
+    }
+
+    setUpdatingUrl(true)
+    try {
+      const response = await fetch(`/api/landing-pages/${pageId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          custom_url: editingUrl.trim()
+        })
+      })
+
+      if (response.ok) {
+        // Refresh the saved pages list
+        await loadSavedLandingPages()
+        setEditingUrlId(null)
+        setEditingUrl('')
+        alert('URL updated successfully!')
+      } else {
+        const result = await response.json()
+        alert(`Failed to update URL: ${result.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error updating URL:', error)
+      alert('Failed to update URL')
+    } finally {
+      setUpdatingUrl(false)
     }
   }
 
@@ -1776,7 +1825,48 @@ Make it modern, professional, and conversion-focused.`
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <span className="text-slate-500">URL:</span>
-                              <p className="font-medium text-blue-600">{page.custom_url}</p>
+                              {editingUrlId === page.id ? (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <input
+                                    type="text"
+                                    value={editingUrl}
+                                    onChange={(e) => setEditingUrl(e.target.value)}
+                                    className="flex-1 text-sm border border-slate-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+                                    placeholder="Enter URL slug..."
+                                  />
+                                  <button
+                                    onClick={() => handleSaveUrl(page.id)}
+                                    disabled={updatingUrl}
+                                    className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                                  >
+                                    {updatingUrl ? '...' : '✓'}
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEditUrl}
+                                    className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <a
+                                    href={`/api/public/landing-page/${page.custom_url}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                  >
+                                    {page.custom_url}
+                                  </a>
+                                  <button
+                                    onClick={() => handleStartEditUrl(page)}
+                                    className="text-slate-400 hover:text-slate-600"
+                                    title="Edit URL"
+                                  >
+                                    <PencilIcon className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                             <div>
                               <span className="text-slate-500">Pass Template:</span>
@@ -1798,19 +1888,15 @@ Make it modern, professional, and conversion-focused.`
                           </div>
                         </div>
                         <div className="flex gap-2 ml-4">
-                          <button 
-                            onClick={() => {
-                              const newWindow = window.open('', '_blank')
-                              if (newWindow && page.generated_html) {
-                                newWindow.document.write(page.generated_html)
-                                newWindow.document.close()
-                              }
-                            }}
+                          <a
+                            href={`/api/public/landing-page/${page.custom_url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="flex items-center gap-1 px-3 py-1 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-md hover:bg-blue-50"
                           >
                             <EyeIcon className="w-4 h-4" />
-                            Preview
-                          </button>
+                            Live Preview
+                          </a>
                           <button 
                             onClick={() => handleEditLandingPage(page)}
                             className="flex items-center gap-1 px-3 py-1 text-slate-600 hover:text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50"
