@@ -182,21 +182,16 @@ export default function PassDesignerWizardPage() {
     formData.append('type', type)
 
     try {
-      console.log(`🔄 Uploading ${type} image:`, file.name, `(${file.size} bytes)`)
       const response = await fetch('/api/upload-image', {
         method: 'POST',
         body: formData
       })
       
-      console.log('📡 Response status:', response.status, response.statusText)
+      const result = await response.json()
       
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ Upload failed - Response:', errorText)
-        throw new Error(`Upload failed (${response.status}): ${errorText}`)
+        throw new Error(result.error || 'Upload failed')
       }
-      
-      const result = await response.json()
       
       if (type === 'logo') {
         setWizardData(prev => ({ ...prev, logo: result.url }))
