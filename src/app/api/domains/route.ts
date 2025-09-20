@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
 
     // Get domains for this account
     const { data: domains, error: domainsError } = await supabase
-      .from('account_domains')
+      .from('custom_domains')
       .select('*')
-      .eq('account_id', accountId)
-      .order('is_primary', { ascending: false })
+      .eq('business_id', accountId)
+      .order('created_at', { ascending: false })
 
     if (domainsError) {
       console.error('❌ Error fetching domains:', domainsError)
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // Check if domain already exists
     const { data: existingDomain } = await supabase
-      .from('account_domains')
+      .from('custom_domains')
       .select('id')
       .eq('domain', domain)
       .single()
@@ -114,23 +114,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Domain already exists' }, { status: 409 })
     }
 
-    // If setting as primary, unset other primary domains
-    if (is_primary) {
-      await supabase
-        .from('account_domains')
-        .update({ is_primary: false })
-        .eq('account_id', accountId)
-        .eq('domain_type', domain_type)
-    }
-
     // Add new domain
     const { data: newDomain, error: insertError } = await supabase
-      .from('account_domains')
+      .from('custom_domains')
       .insert({
-        account_id: accountId,
+        business_id: accountId,
         domain,
-        domain_type,
-        is_primary: is_primary || false
+        status: 'pending',
+        ssl_status: 'pending'
       })
       .select()
       .single()
@@ -195,10 +186,10 @@ export async function DELETE(request: NextRequest) {
 
     // Delete domain (only if it belongs to current account)
     const { error: deleteError } = await supabase
-      .from('account_domains')
+      .from('custom_domains')
       .delete()
       .eq('id', domainId)
-      .eq('account_id', accountId)
+      .eq('business_id', accountId)
 
     if (deleteError) {
       console.error('❌ Error deleting domain:', deleteError)

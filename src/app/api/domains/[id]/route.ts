@@ -47,10 +47,10 @@ export async function DELETE(
 
     // Verify domain belongs to current account before deleting
     const { data: domain } = await supabase
-      .from('account_domains')
+      .from('custom_domains')
       .select('id, domain')
       .eq('id', id)
-      .eq('account_id', accountId)
+      .eq('business_id', accountId)
       .single()
 
     if (!domain) {
@@ -59,10 +59,10 @@ export async function DELETE(
 
     // Delete domain
     const { error: deleteError } = await supabase
-      .from('account_domains')
+      .from('custom_domains')
       .delete()
       .eq('id', id)
-      .eq('account_id', accountId)
+      .eq('business_id', accountId)
 
     if (deleteError) {
       console.error('❌ Error deleting domain:', deleteError)

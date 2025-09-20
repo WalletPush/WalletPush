@@ -46,9 +46,9 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
     
-    // Check if this domain is registered in account_domains using direct REST API
+    // Check if this domain is registered in custom_domains using direct REST API
     const domainResponse = await fetch(
-      `${supabaseUrl}/rest/v1/account_domains?select=domain,domain_type,account_id,accounts!inner(id,type,name)&domain=eq.${hostname}`,
+      `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id&domain=eq.${hostname}`,
       {
         headers: {
           'apikey': serviceRoleKey,
@@ -73,7 +73,7 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
 
     // Look for landing pages for this business/account
     const landingPageResponse = await fetch(
-      `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${domain.account_id}&custom_url=eq.${slug}&is_published=eq.true`,
+      `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${domain.business_id}&custom_url=eq.${slug}&is_published=eq.true`,
       {
         headers: {
           'apikey': serviceRoleKey,
@@ -88,21 +88,21 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
       
       if (landingPages && landingPages.length > 0) {
         const landingPage = landingPages[0]
-        return new NextResponse(landingPage.generated_html, {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/html',
-            'X-Custom-Domain': hostname,
-            'X-Account-ID': domain.account_id
-          }
-        })
+          return new NextResponse(landingPage.generated_html, {
+            status: 200,
+            headers: {
+              'Content-Type': 'text/html',
+              'X-Custom-Domain': hostname,
+              'X-Account-ID': domain.business_id
+            }
+          })
       }
     }
 
     // If no specific landing page found and pathname is root, check for default homepage
     if (pathname === '/') {
       const defaultPageResponse = await fetch(
-        `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${domain.account_id}&is_published=eq.true&order=created_at.desc&limit=1`,
+        `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${domain.business_id}&is_published=eq.true&order=created_at.desc&limit=1`,
         {
           headers: {
             'apikey': serviceRoleKey,
@@ -122,7 +122,7 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
             headers: {
               'Content-Type': 'text/html',
               'X-Custom-Domain': hostname,
-              'X-Account-ID': domain.account_id
+              'X-Account-ID': domain.business_id
             }
           })
         }
