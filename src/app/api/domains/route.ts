@@ -100,8 +100,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!accountId) {
-      return NextResponse.json({ error: 'No account found' }, { status: 404 })
+      console.error('❌ No account ID found for user:', user.id)
+      return NextResponse.json({ 
+        error: 'No account found',
+        details: 'User has no associated business account'
+      }, { status: 404 })
     }
+
+    console.log('✅ Found account ID:', accountId)
 
     // Check if domain already exists
     const { data: existingDomain } = await supabase
@@ -128,7 +134,11 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('❌ Error adding domain:', insertError)
-      return NextResponse.json({ error: 'Failed to add domain' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Failed to add domain', 
+        details: insertError.message,
+        code: insertError.code 
+      }, { status: 500 })
     }
 
     return NextResponse.json({ 
@@ -138,7 +148,10 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Add domain error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
