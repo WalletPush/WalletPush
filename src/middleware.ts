@@ -1,6 +1,5 @@
 import { updateSession } from '@/lib/supabase/middleware'
 import { type NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || 'localhost:3000'
@@ -44,78 +43,89 @@ export async function middleware(request: NextRequest) {
 // Handle custom domains for landing pages
 async function handleCustomDomainLandingPage(request: NextRequest, hostname: string, pathname: string) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    
+    // Check if this domain is registered in account_domains using direct REST API
+    const domainResponse = await fetch(
+      `${supabaseUrl}/rest/v1/account_domains?select=domain,domain_type,account_id,accounts!inner(id,type,name)&domain=eq.${hostname}`,
       {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
         }
       }
     )
 
-    // Check if this domain is registered in account_domains
-    const { data: domainData } = await supabase
-      .from('account_domains')
-      .select(`
-        domain,
-        domain_type,
-        account_id,
-        accounts!inner (
-          id,
-          type,
-          name
-        )
-      `)
-      .eq('domain', hostname)
-      .single()
+    if (!domainResponse.ok) {
+      return null
+    }
 
-    if (!domainData) {
+    const domainData = await domainResponse.json()
+    
+    if (!domainData || domainData.length === 0) {
       return null // Not a registered custom domain
     }
 
+    const domain = domainData[0]
+    const slug = pathname.slice(1) // Remove leading slash
+
     // Look for landing pages for this business/account
-    const { data: landingPage } = await supabase
-      .from('landing_pages')
-      .select('*')
-      .eq('business_id', domainData.account_id)
-      .or(`custom_url.eq.${pathname.slice(1)},custom_url.ilike.%/${pathname.slice(1)}`)
-      .eq('is_published', true)
-      .single()
-
-    if (landingPage) {
-      // Serve the landing page HTML directly
-      return new NextResponse(landingPage.generated_html, {
-        status: 200,
+    const landingPageResponse = await fetch(
+      `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${domain.account_id}&custom_url=eq.${slug}&is_published=eq.true`,
+      {
         headers: {
-          'Content-Type': 'text/html',
-          'X-Custom-Domain': hostname,
-          'X-Account-ID': domainData.account_id
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
         }
-      })
-    }
+      }
+    )
 
-    // If no specific landing page found, check for default homepage
-    if (pathname === '/') {
-      const { data: defaultPage } = await supabase
-        .from('landing_pages')
-        .select('*')
-        .eq('business_id', domainData.account_id)
-        .eq('is_published', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (defaultPage) {
-        return new NextResponse(defaultPage.generated_html, {
+    if (landingPageResponse.ok) {
+      const landingPages = await landingPageResponse.json()
+      
+      if (landingPages && landingPages.length > 0) {
+        const landingPage = landingPages[0]
+        return new NextResponse(landingPage.generated_html, {
           status: 200,
           headers: {
             'Content-Type': 'text/html',
             'X-Custom-Domain': hostname,
-            'X-Account-ID': domainData.account_id
+            'X-Account-ID': domain.account_id
           }
         })
+      }
+    }
+
+    // If no specific landing page found and pathname is root, check for default homepage
+    if (pathname === '/') {
+      const defaultPageResponse = await fetch(
+        `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${domain.account_id}&is_published=eq.true&order=created_at.desc&limit=1`,
+        {
+          headers: {
+            'apikey': serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+
+      if (defaultPageResponse.ok) {
+        const defaultPages = await defaultPageResponse.json()
+        
+        if (defaultPages && defaultPages.length > 0) {
+          const defaultPage = defaultPages[0]
+          return new NextResponse(defaultPage.generated_html, {
+            status: 200,
+            headers: {
+              'Content-Type': 'text/html',
+              'X-Custom-Domain': hostname,
+              'X-Account-ID': domain.account_id
+            }
+          })
+        }
       }
     }
 
@@ -135,42 +145,57 @@ async function handleSubdomainRouting(request: NextRequest, hostname: string, pa
       return null // Skip common subdomains
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    // Look for business by subdomain or account name using direct REST API
+    const accountResponse = await fetch(
+      `${supabaseUrl}/rest/v1/accounts?select=id,name,type&or=(name.ilike.${subdomain},custom_subdomain.eq.${subdomain})&type=eq.business`,
       {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
         }
       }
     )
 
-    // Look for business by subdomain or account name
-    const { data: accountData } = await supabase
-      .from('accounts')
-      .select('id, name, type')
-      .or(`name.ilike.${subdomain},custom_subdomain.eq.${subdomain}`)
-      .eq('type', 'business')
-      .single()
+    if (!accountResponse.ok) {
+      return null
+    }
 
-    if (accountData) {
-      // Look for landing pages for this business
-      const { data: landingPage } = await supabase
-        .from('landing_pages')
-        .select('*')
-        .eq('business_id', accountData.id)
-        .or(`custom_url.eq.${pathname.slice(1)},custom_url.ilike.%/${pathname.slice(1)}`)
-        .eq('is_published', true)
-        .single()
+    const accountData = await accountResponse.json()
+    
+    if (!accountData || accountData.length === 0) {
+      return null
+    }
 
-      if (landingPage) {
+    const account = accountData[0]
+    const slug = pathname.slice(1) // Remove leading slash
+
+    // Look for landing pages for this business
+    const landingPageResponse = await fetch(
+      `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${account.id}&custom_url=eq.${slug}&is_published=eq.true`,
+      {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (landingPageResponse.ok) {
+      const landingPages = await landingPageResponse.json()
+      
+      if (landingPages && landingPages.length > 0) {
+        const landingPage = landingPages[0]
         return new NextResponse(landingPage.generated_html, {
           status: 200,
           headers: {
             'Content-Type': 'text/html',
             'X-Subdomain': subdomain,
-            'X-Account-ID': accountData.id
+            'X-Account-ID': account.id
           }
         })
       }
