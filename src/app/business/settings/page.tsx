@@ -89,26 +89,23 @@ export default function SettingsPage() {
         return
       }
 
-      const response = await fetch('/api/domains', {
+      const response = await fetch(`/api/domains?t=${Date.now()}`, {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`,
+          'Cache-Control': 'no-cache'
         }
       })
       const result = await response.json()
       
       if (response.ok) {
-        console.log('🔍 Raw domains from API:', result.domains)
-        setCustomDomains(result.domains?.map((d: any) => {
-          console.log(`🔍 Processing domain ${d.domain}:`, { status: d.status, ssl_status: d.ssl_status })
-          return {
-            id: d.id,
-            domain: d.domain,
-            status: d.status === 'active' ? 'active' : 'pending',
-            sslStatus: d.ssl_status || 'pending',
-            createdAt: new Date(d.created_at).toLocaleDateString(),
-            verificationInstructions: d.verification_instructions ? JSON.parse(d.verification_instructions) : undefined
-          }
-        }) || [])
+        setCustomDomains(result.domains?.map((d: any) => ({
+          id: d.id,
+          domain: d.domain,
+          status: d.status,
+          sslStatus: d.ssl_status,
+          createdAt: new Date(d.created_at).toLocaleDateString(),
+          verificationInstructions: d.verification_instructions ? JSON.parse(d.verification_instructions) : undefined
+        })) || [])
       }
     } catch (error) {
       console.error('Error loading domains:', error)
