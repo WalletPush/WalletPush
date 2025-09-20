@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
         programLimit: pkg.program_limit,
         staffLimit: pkg.staff_limit,
         features: features,
-        isPopular: pkg.package_name.toLowerCase().includes('business') || pkg.package_name.toLowerCase().includes('pro')
+        isPopular: pkg.package_name.toLowerCase().includes('business')
       }
     })
 
