@@ -92,14 +92,29 @@ export default function SettingsPage() {
 
     const loadDomains = async () => {
       try {
-        const response = await fetch('/api/domains')
+        // Get the session for authentication
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session) {
+          console.log('No session found for loading domains')
+          setLoadingDomains(false)
+          return
+        }
+
+        const response = await fetch('/api/domains', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        })
         const result = await response.json()
         
         if (response.ok) {
           setCustomDomains(result.domains?.map((d: any) => ({
             id: d.id,
             domain: d.domain,
-            status: d.is_verified ? 'active' : 'pending',
+            status: d.status === 'active' ? 'active' : 'pending',
             sslStatus: d.ssl_status || 'pending',
             createdAt: new Date(d.created_at).toLocaleDateString()
           })) || [])
@@ -121,10 +136,22 @@ export default function SettingsPage() {
     setIsLoading(true)
     
     try {
+      // Get the session for authentication
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        alert('You must be logged in to add domains')
+        setIsLoading(false)
+        return
+      }
+
       const response = await fetch('/api/domains', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           domain: newDomain,
