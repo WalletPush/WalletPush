@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Toaster } from 'react-hot-toast'
 
 export default function BusinessLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -67,11 +68,17 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
                 </svg>
                 <span>Points & Transactions</span>
               </Link>
-              <Link href="/business/distribution" className="sidebar-item">
+              <Link href="/business/distribution" className={`sidebar-item ${pathname === '/business/distribution' ? 'active' : ''}`}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                 </svg>
                 <span>Distribution</span>
+              </Link>
+              <Link href="/business/automations" className={`sidebar-item ${pathname === '/business/automations' ? 'active' : ''}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077l1.41-.513m14.095-5.13l1.41-.513M5.106 17.785l1.15-.964m11.49-9.642l1.149-.964M7.501 19.795l.75-1.3m7.5-12.99l.75-1.3m-6.063 16.658l.26-1.477m2.605-14.772l.26-1.477m0 17.726l-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205L12 12M6.894 4.785l.149-.964M17.106 4.785l-.149-.964" />
+                </svg>
+                <span>Automations</span>
               </Link>
             </div>
             
@@ -102,6 +109,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
       <main className="dashboard-main">
         {children}
       </main>
+      <Toaster position="top-right" />
     </div>
   )
 }

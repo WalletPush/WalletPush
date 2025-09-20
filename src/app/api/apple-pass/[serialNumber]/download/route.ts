@@ -125,19 +125,74 @@ export async function GET(
     console.log(`🔍 Pass found in store: ${!!passData}`)
     
     if (!passData) {
-      // If not found, this might be a preview pass, try to generate with default data
-      console.log(`⚠️ Pass ${serialNumber} not found in store, generating with preview data`)
+      // If not found in store, look up customer data from database
+      console.log(`⚠️ Pass ${serialNumber} not found in store, looking up customer data`)
       
-      // Force Blue Karma template for testing
-      const templateId = 'ae76dc2a-e295-4219-b5ce-f6ecd8961de1'
-      
-      // DYNAMIC: Use the template's stored placeholder defaults
-      const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId)
+      try {
+        // Import Supabase client
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        )
+        
+        // Look up customer by serial number
+        const { data: customer, error: customerError } = await supabase
+          .from('customers')
+          .select('template_id, form_data, first_name, last_name, email, phone')
+          .eq('pass_serial_number', serialNumber)
+          .single()
+        
+        if (customer && !customerError) {
+          console.log(`✅ Found customer data for pass ${serialNumber}`)
+          
+          // Use customer's actual form data if available, otherwise build from customer fields
+          let customerFormData = customer.form_data || {}
+          
+          // Ensure we have the customer's actual data
+          if (customer.first_name) customerFormData.First_Name = customer.first_name
+          if (customer.last_name) customerFormData.Last_Name = customer.last_name  
+          if (customer.email) customerFormData.Email = customer.email
+          if (customer.phone) customerFormData.Phone = customer.phone
+          
+          console.log(`📋 Using customer form data:`, customerFormData)
+          
+          passData = {
+            templateId: customer.template_id,
+            formData: customerFormData,
+            createdAt: new Date()
+          }
+        } else {
+          console.log(`⚠️ No customer found for serial ${serialNumber}, using template defaults`)
+          
+          // Fallback to template defaults only if no customer found
+          const templateId = 'ae76dc2a-e295-4219-b5ce-f6ecd8961de1'
+          const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId)
 
-      passData = {
-        templateId,
-        formData: sampleFormData,
-        createdAt: new Date()
+          passData = {
+            templateId,
+            formData: sampleFormData,
+            createdAt: new Date()
+          }
+        }
+      } catch (dbError) {
+        console.error(`❌ Database lookup failed for ${serialNumber}:`, dbError)
+        
+        // Final fallback to template defaults
+        const templateId = 'ae76dc2a-e295-4219-b5ce-f6ecd8961de1'
+        const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId)
+
+        passData = {
+          templateId,
+          formData: sampleFormData,
+          createdAt: new Date()
+        }
       }
     }
 

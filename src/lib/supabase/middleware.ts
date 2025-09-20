@@ -95,7 +95,8 @@ const publicRoutes = [
   '/api/public/join', // Public form submission endpoint
   '/admin/global-pass-type-id', // Admin page for global Pass Type ID management
   '/api/admin/global-pass-type-id', // API for global Pass Type ID management
-  '/api/admin/wwdr-certificate' // API for WWDR certificate upload
+  '/api/admin/wwdr-certificate', // API for WWDR certificate upload
+  '/api/webhooks/apple-wallet' // Apple Wallet webhook for automation triggers
 ]
 
   const isPublicRoute = publicRoutes.some(route => 
