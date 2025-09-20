@@ -70,6 +70,42 @@ export default function SettingsPage() {
     lastTested: null
   })
 
+  const loadDomains = async () => {
+    try {
+      // Get the session for authentication
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        console.log('No session found for loading domains')
+        setLoadingDomains(false)
+        return
+      }
+
+      const response = await fetch('/api/domains', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+      const result = await response.json()
+      
+      if (response.ok) {
+        setCustomDomains(result.domains?.map((d: any) => ({
+          id: d.id,
+          domain: d.domain,
+          status: d.status === 'active' ? 'active' : 'pending',
+          sslStatus: d.ssl_status || 'pending',
+          createdAt: new Date(d.created_at).toLocaleDateString()
+        })) || [])
+      }
+    } catch (error) {
+      console.error('Error loading domains:', error)
+    } finally {
+      setLoadingDomains(false)
+    }
+  }
+
   // Load existing settings on component mount
   React.useEffect(() => {
     const loadSettings = async () => {
@@ -87,42 +123,6 @@ export default function SettingsPage() {
         }
       } catch (error) {
         console.error('Error loading OpenRouter settings:', error)
-      }
-    }
-
-    const loadDomains = async () => {
-      try {
-        // Get the session for authentication
-        const { createClient } = await import('@/lib/supabase/client')
-        const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (!session) {
-          console.log('No session found for loading domains')
-          setLoadingDomains(false)
-          return
-        }
-
-        const response = await fetch('/api/domains', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        })
-        const result = await response.json()
-        
-        if (response.ok) {
-          setCustomDomains(result.domains?.map((d: any) => ({
-            id: d.id,
-            domain: d.domain,
-            status: d.status === 'active' ? 'active' : 'pending',
-            sslStatus: d.ssl_status || 'pending',
-            createdAt: new Date(d.created_at).toLocaleDateString()
-          })) || [])
-        }
-      } catch (error) {
-        console.error('Error loading domains:', error)
-      } finally {
-        setLoadingDomains(false)
       }
     }
     
