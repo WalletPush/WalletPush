@@ -230,12 +230,9 @@ export default function SettingsPage() {
 
       if (response.ok) {
         console.log('✅ Delete successful, updating UI...')
-        // Remove from local state immediately
+        // Remove from local state immediately - no need to reload since we know it's deleted
         setCustomDomains(customDomains.filter(d => d.id !== domainId))
         alert('Domain removed successfully!')
-        
-        // Reload domains to ensure consistency
-        await loadDomains()
       } else {
         const result = await response.json()
         console.error('❌ Delete failed:', result)
