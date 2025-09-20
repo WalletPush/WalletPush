@@ -25,11 +25,15 @@ export interface CloudflareZoneSettings {
 }
 
 class CloudflareAPI {
-  private apiToken: string
-  private zoneId: string
+  private apiToken: string | null = null
+  private zoneId: string | null = null
   private baseUrl = 'https://api.cloudflare.com/client/v4'
 
-  constructor() {
+  private initialize() {
+    if (this.apiToken && this.zoneId) {
+      return // Already initialized
+    }
+
     this.apiToken = process.env.CLOUDFLARE_API_TOKEN || ''
     this.zoneId = process.env.CLOUDFLARE_ZONE_ID || ''
     
@@ -42,6 +46,8 @@ class CloudflareAPI {
   }
 
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
+    this.initialize() // Ensure API credentials are loaded
+    
     const url = `${this.baseUrl}${endpoint}`
     
     const response = await fetch(url, {
@@ -120,6 +126,8 @@ class CloudflareAPI {
    * List DNS records for a domain
    */
   async listDNSRecords(name?: string, type?: string): Promise<CloudflareRecord[]> {
+    this.initialize() // Ensure API credentials are loaded
+    
     const params = new URLSearchParams()
     if (name) params.append('name', name)
     if (type) params.append('type', type)
@@ -222,6 +230,3 @@ class CloudflareAPI {
 
 // Export singleton instance
 export const cloudflare = new CloudflareAPI()
-
-// Export types
-export type { CloudflareRecord, CloudflareDNSResponse }
