@@ -10,15 +10,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Upload, Palette, Type, Eye } from 'lucide-react'
 
 export function BrandingSettings() {
-  const { branding, updateBranding, isLoading, error } = useBranding()
+  const { branding, updateBranding } = useBranding()
   const [formData, setFormData] = useState({
-    company_name: branding.company_name || '',
-    welcome_message: branding.welcome_message || '',
-    tagline: branding.tagline || '',
-    primary_color: branding.primary_color || '#3862EA',
-    secondary_color: branding.secondary_color || '#2D4FD7',
-    background_color: branding.background_color || '#ffffff',
-    text_color: branding.text_color || '#1a1a1a'
+    company_name: branding.companyName || '',
+    welcome_message: (branding as any).welcomeMessage || '',
+    tagline: (branding as any).tagline || '',
+    primary_color: branding.primaryColor || '#3862EA',
+    secondary_color: branding.secondaryColor || '#2D4FD7',
+    background_color: (branding as any).backgroundColor || '#ffffff',
+    text_color: (branding as any).textColor || '#1a1a1a'
   })
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -35,7 +35,14 @@ export function BrandingSettings() {
     setSaveSuccess(false)
 
     try {
-      await updateBranding(formData)
+      // Transform formData to match BrandingConfig interface
+      const brandingUpdate = {
+        companyName: formData.company_name,
+        primaryColor: formData.primary_color,
+        secondaryColor: formData.secondary_color,
+        logoUrl: branding.logoUrl // Keep existing logo URL
+      }
+      await updateBranding(brandingUpdate)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch (err) {
@@ -62,9 +69,9 @@ export function BrandingSettings() {
         </p>
       </div>
 
-      {error && (
+      {saveError && (
         <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{saveError}</AlertDescription>
         </Alert>
       )}
 
@@ -140,10 +147,10 @@ export function BrandingSettings() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {branding.logo_url && (
+              {branding.logoUrl && (
                 <div className="flex items-center justify-center p-4 border rounded-lg bg-gray-50">
                   <img
-                    src={branding.logo_url}
+                    src={branding.logoUrl}
                     alt="Current logo"
                     className="max-h-16 max-w-32 object-contain"
                   />
@@ -279,10 +286,10 @@ export function BrandingSettings() {
               }}
             >
               <div className="text-center space-y-3">
-                {branding.logo_url && (
+                {branding.logoUrl && (
                   <div className="flex justify-center">
                     <img
-                      src={branding.logo_url}
+                      src={branding.logoUrl}
                       alt="Logo preview"
                       className="h-12 w-auto object-contain"
                     />
@@ -318,7 +325,7 @@ export function BrandingSettings() {
       <div className="flex justify-end">
         <Button
           onClick={handleSave}
-          disabled={isSaving || isLoading}
+          disabled={isSaving}
           className="min-w-32"
         >
           {isSaving ? (

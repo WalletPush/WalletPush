@@ -26,8 +26,10 @@ interface Automation {
   template_id?: string
   total_enrolled: number
   active_enrolled: number
+  total_executions: number
   created_at: string
   updated_at: string
+  last_executed_at?: string
 }
 
 interface Template {

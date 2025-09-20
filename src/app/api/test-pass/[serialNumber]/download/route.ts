@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PassTypeIDStore } from '../../../../../lib/pass-type-id-store'
 import { createHash } from 'crypto'
+// @ts-ignore - archiver doesn't have TypeScript types
 import archiver from 'archiver'
 
 export async function GET(
@@ -161,7 +162,7 @@ export async function GET(
       })
       const chunks: Buffer[] = []
 
-      archive.on('data', (chunk) => chunks.push(chunk))
+      archive.on('data', (chunk: Buffer) => chunks.push(chunk))
       archive.on('end', () => resolve(Buffer.concat(chunks)))
       archive.on('error', reject)
 
@@ -187,7 +188,7 @@ export async function GET(
     headers.set('Content-Length', passBuffer.length.toString())
     headers.set('Cache-Control', 'no-cache')
 
-    return new NextResponse(passBuffer, {
+    return new NextResponse(passBuffer as BodyInit, {
       status: 200,
       headers
     })

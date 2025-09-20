@@ -47,16 +47,15 @@ export async function POST(request: Request) {
     console.log(`📦 Stored pass ${response.serialNumber} in memory store (size: ${getPassStoreSize()})`)
 
     console.log('✅ Apple Pass Generated Successfully!')
-    console.log('🔗 Pass URL:', response.url)
+    console.log('🔗 Download URL:', response.downloadUrl)
     console.log('🆔 Serial Number:', response.serialNumber)
     console.log('📱 Pass Type ID:', response.passTypeIdentifier)
 
     // Return Apple-compliant response format
     return NextResponse.json({
-      url: response.url,
+      url: response.downloadUrl,
       passTypeIdentifier: response.passTypeIdentifier,
       serialNumber: response.serialNumber,
-      device: response.device,
       
       // Additional WalletPush metadata
       meta: {

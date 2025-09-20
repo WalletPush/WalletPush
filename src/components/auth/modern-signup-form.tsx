@@ -124,11 +124,11 @@ export function ModernSignUpForm({ className, accountType = 'business' }: Modern
     <div className={`w-full max-w-md mx-auto ${className}`}>
       {/* Logo and Branding */}
       <div className="text-center mb-8">
-        {branding.logo_url && (
+        {branding.logoUrl && (
           <div className="mb-6">
             <Image
-              src={branding.logo_url}
-              alt={`${branding.company_name} Logo`}
+              src={branding.logoUrl}
+              alt={`${branding.companyName} Logo`}
               width={120}
               height={120}
               className="mx-auto h-16 w-auto object-contain"
@@ -140,7 +140,7 @@ export function ModernSignUpForm({ className, accountType = 'business' }: Modern
           Create your account
         </h1>
         <p className="mt-2" style={{ color: '#C6C8CC' }}>
-          Join {branding.company_name} and start managing your digital wallet passes
+          Join {branding.companyName} and start managing your digital wallet passes
         </p>
       </div>
 

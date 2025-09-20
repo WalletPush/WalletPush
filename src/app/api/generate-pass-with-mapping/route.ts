@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
         if (returnType === 'pass') {
           // Return the pass file directly
-          return new NextResponse(passResult.passBuffer, {
+          return new NextResponse(passResult.passBuffer as BodyInit, {
             headers: {
               'Content-Type': 'application/vnd.apple.pkpass',
               'Content-Disposition': `attachment; filename="wallet-pass-${customerId}.pkpass"`

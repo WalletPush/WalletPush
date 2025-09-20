@@ -18,11 +18,11 @@ export function ModernSignUpSuccess({ className }: ModernSignUpSuccessProps) {
     <div className={`w-full max-w-md mx-auto ${className}`}>
       {/* Logo and Branding */}
       <div className="text-center mb-8">
-        {branding.logo_url && (
+        {branding.logoUrl && (
           <div className="mb-6">
             <Image
-              src={branding.logo_url}
-              alt={`${branding.company_name} Logo`}
+              src={branding.logoUrl}
+              alt={`${branding.companyName} Logo`}
               width={120}
               height={120}
               className="mx-auto h-16 w-auto object-contain"
@@ -31,7 +31,7 @@ export function ModernSignUpSuccess({ className }: ModernSignUpSuccessProps) {
           </div>
         )}
         <h1 className="text-3xl font-bold tracking-tight text-white">
-          Welcome to {branding.company_name}!
+          Welcome to {branding.companyName}!
         </h1>
         <p className="mt-2" style={{ color: '#C6C8CC' }}>
           Your account has been created successfully
@@ -59,7 +59,7 @@ export function ModernSignUpSuccess({ className }: ModernSignUpSuccessProps) {
                 <div className="text-left">
                   <h3 className="text-sm font-medium text-blue-900">Check your email</h3>
                   <p className="text-xs text-blue-700 mt-1">
-                    Click the verification link in your email to activate your account and start using {branding.company_name}.
+                    Click the verification link in your email to activate your account and start using {branding.companyName}.
                   </p>
                 </div>
               </div>

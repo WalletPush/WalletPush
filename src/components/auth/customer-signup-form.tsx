@@ -79,11 +79,11 @@ export function CustomerSignUpForm() {
     <div className="w-full max-w-md mx-auto">
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl">
         {/* Logo */}
-        {branding?.logo_url && (
+        {branding?.logoUrl && (
           <div className="flex justify-center mb-6">
             <img 
-              src={branding.logo_url} 
-              alt={branding.company_name || 'Logo'} 
+              src={branding.logoUrl} 
+              alt={branding.companyName || 'Logo'} 
               className="h-12 w-auto"
             />
           </div>
@@ -92,7 +92,7 @@ export function CustomerSignUpForm() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">
-            Join {branding?.company_name || 'Us'}
+            Join {branding?.companyName || 'Us'}
           </h1>
           <p className="text-[#C6C8CC]">
             Create your account and start earning rewards

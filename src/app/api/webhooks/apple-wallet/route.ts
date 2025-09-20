@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 // Create service role client for webhook processing
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   {
     auth: {
@@ -57,7 +57,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 })
     }
 
-    const businessId = template.programs.account_id
+    const businessId = (() => {
+      const programs = template.programs
+      if (Array.isArray(programs) && programs[0]) {
+        return programs[0].account_id
+      }
+      return (programs as any)?.account_id
+    })()
     console.log(`🏢 Business ID: ${businessId}`)
 
     // Find automations that match this event type and template
@@ -171,7 +177,7 @@ export async function POST(request: NextRequest) {
             actionsExecuted.push({
               type: action.type,
               status: 'failed',
-              error: actionError.message,
+              error: actionError instanceof Error ? actionError.message : String(actionError),
               executed_at: new Date().toISOString()
             })
             hasError = true

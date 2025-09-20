@@ -148,7 +148,23 @@ export async function GET(request: NextRequest) {
       
       // Additional fields for debugging
       signupSource: customer.signup_source,
-      templateName: customer.templates?.programs?.name || 'Unknown Program'
+      templateName: (() => {
+        if (Array.isArray(customer.templates) && customer.templates[0]) {
+          const programs = customer.templates[0].programs
+          if (Array.isArray(programs) && programs[0]) {
+            return programs[0].name || 'Unknown Program'
+          }
+          return (programs as any)?.name || 'Unknown Program'
+        }
+        const templates = customer.templates as any
+        if (templates?.programs) {
+          if (Array.isArray(templates.programs) && templates.programs[0]) {
+            return templates.programs[0].name || 'Unknown Program'
+          }
+          return templates.programs?.name || 'Unknown Program'
+        }
+        return 'Unknown Program'
+      })()
     })) || []
 
     return NextResponse.json({ 

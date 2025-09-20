@@ -294,7 +294,7 @@ export default function PassDesignerWizardPage() {
       // Redirect to pass designer
       window.location.href = '/business/pass-designer?fromWizard=true'
     } catch (error) {
-      alert('Error finishing wizard: ' + error.message)
+      alert('Error finishing wizard: ' + (error instanceof Error ? error.message : error))
     }
   }
 

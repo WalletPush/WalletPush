@@ -36,16 +36,16 @@ export default function CustomerDashboard() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">
-                Welcome to {branding?.company_name || 'Your Account'}
+                Welcome to {branding?.companyName || 'Your Account'}
               </h1>
               <p className="text-[#C6C8CC]">
                 {user?.email}
               </p>
             </div>
-            {branding?.logo_url && (
+            {branding?.logoUrl && (
               <img 
-                src={branding.logo_url} 
-                alt={branding.company_name || 'Logo'} 
+                src={branding.logoUrl} 
+                alt={branding.companyName || 'Logo'} 
                 className="h-12 w-auto"
               />
             )}

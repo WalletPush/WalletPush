@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+// @ts-ignore - archiver doesn't have TypeScript types
 import archiver from 'archiver'
 
 export async function GET(

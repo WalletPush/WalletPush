@@ -159,11 +159,11 @@ function extractVisualAssets(crawledData: any[], imageSearchResults?: any) {
   }
 
   // Remove duplicates and clean up URLs
-  assets.logos = [...new Set(assets.logos)].filter(url => url && url.length > 0)
-  assets.heroImages = [...new Set(assets.heroImages)].filter(url => url && url.length > 0)
-  assets.productImages = [...new Set(assets.productImages)].filter(url => url && url.length > 0)
-  assets.allImages = [...new Set(assets.allImages)].filter(url => url && url.length > 0)
-  assets.brandColors = [...new Set(assets.brandColors)].filter(color => color && color.length > 0)
+  assets.logos = Array.from(new Set(assets.logos)).filter(url => url && url.length > 0)
+  assets.heroImages = Array.from(new Set(assets.heroImages)).filter(url => url && url.length > 0)
+  assets.productImages = Array.from(new Set(assets.productImages)).filter(url => url && url.length > 0)
+  assets.allImages = Array.from(new Set(assets.allImages)).filter(url => url && url.length > 0)
+  assets.brandColors = Array.from(new Set(assets.brandColors)).filter(color => color && color.length > 0)
 
   return assets
 }

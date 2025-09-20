@@ -37,7 +37,13 @@ export async function middleware(request: NextRequest) {
             headers: requestHeaders,
           },
         })
-        return await updateSession(response)
+        // Update session and merge with our custom response
+        const sessionResponse = await updateSession(request)
+        // Copy our custom headers to the session response
+        requestHeaders.forEach((value, key) => {
+          sessionResponse.headers.set(key, value)
+        })
+        return sessionResponse
       }
     }
     
@@ -47,7 +53,12 @@ export async function middleware(request: NextRequest) {
         headers: requestHeaders,
       },
     })
-    return await updateSession(response)
+    const sessionResponse = await updateSession(request)
+    // Copy our custom headers to the session response
+    requestHeaders.forEach((value, key) => {
+      sessionResponse.headers.set(key, value)
+    })
+    return sessionResponse
   }
   
   // For localhost development, allow direct access to portal routes
@@ -87,10 +98,11 @@ async function detectTenantFromDomain(hostname: string) {
       .single()
     
     if (domainData) {
+      const account = Array.isArray(domainData.accounts) ? domainData.accounts[0] : domainData.accounts
       return {
-        accountId: domainData.accounts.id,
-        accountType: domainData.accounts.type,
-        accountName: domainData.accounts.name,
+        accountId: account?.id,
+        accountType: account?.type,
+        accountName: account?.name,
         portalType: domainData.domain_type, // 'customer', 'admin', 'main'
         domain: domainData.domain
       }
@@ -120,14 +132,15 @@ async function detectTenantFromDomain(hostname: string) {
       if (baseDomainData) {
         // Determine portal type based on subdomain and account type
         let portalType = 'admin'
-        if (subdomain === 'portal' && baseDomainData.accounts.type === 'agency') {
+        const baseAccount = Array.isArray(baseDomainData.accounts) ? baseDomainData.accounts[0] : baseDomainData.accounts
+        if (subdomain === 'portal' && baseAccount?.type === 'agency') {
           portalType = 'admin'
         }
         
         return {
-          accountId: baseDomainData.accounts.id,
-          accountType: baseDomainData.accounts.type,
-          accountName: baseDomainData.accounts.name,
+          accountId: baseAccount?.id,
+          accountType: baseAccount?.type,
+          accountName: baseAccount?.name,
           portalType,
           domain: hostname
         }

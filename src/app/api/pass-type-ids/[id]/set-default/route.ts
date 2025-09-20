@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { PassTypeIDStore } from '../../../../../lib/pass-type-id-store'
+import { createClient } from '../../../../../lib/supabase/server'
 
 /**
  * POST - Set a Pass Type ID as default
@@ -10,11 +10,22 @@ export async function POST(
 ) {
   try {
     const { id } = params
+    const supabase = await createClient()
 
-    // Set as default using store
-    const success = await PassTypeIDStore.setDefault(id)
+    // First, unset all current defaults
+    await supabase
+      .from('pass_type_ids')
+      .update({ is_default: false })
+      .eq('is_default', true)
+
+    // Set the specified ID as default
+    const { data, error } = await supabase
+      .from('pass_type_ids')
+      .update({ is_default: true })
+      .eq('id', id)
+      .select()
     
-    if (!success) {
+    if (error || !data || data.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Pass Type ID not found' },
         { status: 404 }

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get current template
     const { data: template, error: fetchError } = await supabase

@@ -69,11 +69,11 @@ export function ModernLoginForm({ className, redirectTo = '/business/dashboard' 
     <div className={`w-full max-w-md mx-auto ${className}`}>
       {/* Logo and Branding */}
       <div className="text-center mb-8">
-        {safeBranding.logo_url && (
+        {((safeBranding as any).logoUrl || (safeBranding as any).logo_url) && (
           <div className="mb-6">
             <Image
-              src={safeBranding.logo_url}
-              alt={`${safeBranding.company_name} Logo`}
+              src={(safeBranding as any).logoUrl || (safeBranding as any).logo_url}
+              alt={`${(safeBranding as any).companyName || (safeBranding as any).company_name} Logo`}
               width={120}
               height={120}
               className="mx-auto h-16 w-auto object-contain"
@@ -82,11 +82,11 @@ export function ModernLoginForm({ className, redirectTo = '/business/dashboard' 
           </div>
         )}
         <h1 className="text-3xl font-bold tracking-tight text-white">
-          {safeBranding.welcome_message}
+          {(safeBranding as any).welcomeMessage || (safeBranding as any).welcome_message}
         </h1>
-        {safeBranding.tagline && (
+        {((safeBranding as any).tagline) && (
           <p className="mt-2" style={{ color: '#C6C8CC' }}>
-            {safeBranding.tagline}
+            {(safeBranding as any).tagline}
           </p>
         )}
       </div>

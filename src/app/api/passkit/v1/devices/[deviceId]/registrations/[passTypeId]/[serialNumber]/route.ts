@@ -32,7 +32,7 @@ export async function POST(
       )
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Find the template and business for this pass
     const { data: template, error: templateError } = await supabase
@@ -63,8 +63,16 @@ export async function POST(
       )
     } else {
       // Register device with proper business and template association
+      const accountId = (() => {
+        const programs = template.programs
+        if (Array.isArray(programs) && programs[0]) {
+          return programs[0].account_id
+        }
+        return (programs as any)?.account_id
+      })()
+      
       await apnsService.registerDevice(
-        template.programs.account_id,
+        accountId,
         template.id,
         passTypeId,
         serialNumber,

@@ -158,7 +158,9 @@ export class PassTypeIDStore {
         return await this.getDefault() // Fallback to default
       }
       
-      const passTypeData = templateData.programs.pass_type_ids
+      const passTypeData = Array.isArray(templateData.programs) 
+        ? templateData.programs[0]?.pass_type_ids 
+        : (templateData.programs as any)?.pass_type_ids
       
       return {
         id: passTypeData.id,

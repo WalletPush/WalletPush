@@ -345,7 +345,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Save SAAS packages API error:', error)
     return NextResponse.json({ 
-      error: `SAVE_ERROR: ${error.message || error}`,
+      error: `SAVE_ERROR: ${error instanceof Error ? error.message : error}`,
       details: error
     }, { status: 500 })
   }

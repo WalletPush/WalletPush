@@ -713,7 +713,13 @@ Make it modern, professional, and conversion-focused.`
         customTemplate: settings.customTemplate || '',
         
         // Step 6
-        generatedHtml: page.generated_html || ''
+        generatedHtml: page.generated_html || '',
+        
+        // Missing required properties
+        primaryColor: settings.primaryColor || '#3862EA',
+        secondaryColor: settings.secondaryColor || '#10B981',
+        imageUrls: settings.imageUrls || {},
+        customInstructions: settings.customInstructions || ''
       })
       
       // Switch to create tab and go to the last step (step 6)

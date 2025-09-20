@@ -69,6 +69,14 @@ interface WizardData {
   
   // Step 6: Generated Result
   generatedHtml: string
+  
+  // Form field configuration
+  requiredFields: string[]
+  optionalFields: string[]
+  
+  // Template configuration
+  selectedTemplate: string
+  customTemplate: string
 }
 
 interface ProgramTemplate {
@@ -198,7 +206,15 @@ export default function SalesPageDesignerPage() {
     customInstructions: '',
     
     // Step 6
-    generatedHtml: ''
+    generatedHtml: '',
+    
+    // Form field configuration
+    requiredFields: [],
+    optionalFields: [],
+    
+    // Template configuration
+    selectedTemplate: 'custom',
+    customTemplate: ''
   })
 
   // File input refs
@@ -604,7 +620,7 @@ export default function SalesPageDesignerPage() {
       }
     } catch (error) {
       console.error('Error saving sales page:', error)
-      alert(`SAVE FAILED: ${error.message}`)
+      alert(`SAVE FAILED: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -699,10 +715,20 @@ export default function SalesPageDesignerPage() {
       
       selectedPackages: page.selected_packages || [],
       
+      // Missing required properties with defaults
+      primaryColor: page.primary_color || '#3862EA',
+      secondaryColor: page.secondary_color || '#10B981',
+      imageUrls: page.image_urls || {},
+      customInstructions: page.custom_instructions || '',
+      
       selectedTemplate: page.template_style || 'custom',
       customTemplate: page.template_style === 'custom' ? 'custom' : '',
       
-      generatedHtml: page.html_content || ''
+      generatedHtml: page.html_content || '',
+      
+      // Form field configuration
+      requiredFields: page.required_fields || [],
+      optionalFields: page.optional_fields || []
     })
     
     // Switch to create tab and go to the last step to show the generated content
@@ -751,7 +777,7 @@ export default function SalesPageDesignerPage() {
         setCurrentHomepageId(null)
         alert('✅ Homepage reset to default! React homepage is now active.')
       } catch (error) {
-        alert(`❌ RESET FAILED: ${error.message}`)
+        alert(`❌ RESET FAILED: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     } else {
       // Set as homepage
@@ -797,7 +823,7 @@ export default function SalesPageDesignerPage() {
         setCurrentHomepageId(page.id)
         alert('✅ Homepage saved successfully! Your sales page is now live at http://localhost:3000/')
       } catch (error) {
-        alert(`❌ SAVE HOMEPAGE FAILED: ${error.message}`)
+        alert(`❌ SAVE HOMEPAGE FAILED: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     }
   }

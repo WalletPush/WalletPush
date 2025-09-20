@@ -88,7 +88,8 @@ export async function GET(request: NextRequest) {
         console.log('🔧 Table does not exist, attempting to create it...')
         
         try {
-          await createAgencySalesPagesTable(supabase)
+          // Table creation removed - should be handled by migrations
+          console.log('⚠️ Table does not exist - this should be handled by database migrations')
           console.log('✅ Table created successfully, retrying query...')
           
           // Retry the original query

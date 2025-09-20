@@ -88,8 +88,8 @@ export class ApplePassKitGenerator {
     const assets = await this.prepareAssets(template)
 
     // 7) Paths for signing
-    const p12Path = passTypeID.certificate_file_path || passTypeID.p12_path
-    const p12Password = passTypeID.certificate_password || passTypeID.p12_password_enc
+    const p12Path = passTypeID.certificate_file_path || (passTypeID as any).p12_path
+    const p12Password = passTypeID.certificate_password || (passTypeID as any).p12_password_enc
     // GLOBAL WWDR (use your real global path or env)
     const wwdrPath =
       process.env.GLOBAL_WWDR_CER_PATH || path.join(process.cwd(), 'private', 'certificates', 'global', 'AppleWWDRCAG4.cer')

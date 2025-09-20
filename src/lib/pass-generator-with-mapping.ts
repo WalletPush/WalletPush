@@ -126,9 +126,9 @@ export class PassGeneratorWithMapping {
     }
 
     return values?.map(v => ({
-      field_key: v.custom_field.field_key,
+      field_key: Array.isArray(v.custom_field) ? v.custom_field[0]?.field_key : (v.custom_field as any)?.field_key,
       field_value: v.field_value,
-      field_type: v.custom_field.field_type
+      field_type: Array.isArray(v.custom_field) ? v.custom_field[0]?.field_type : (v.custom_field as any)?.field_type
     })) || []
   }
 
@@ -167,9 +167,9 @@ export class PassGeneratorWithMapping {
     }
 
     return values?.map(v => ({
-      field_key: v.custom_field.field_key,
+      field_key: Array.isArray(v.custom_field) ? v.custom_field[0]?.field_key : (v.custom_field as any)?.field_key,
       field_value: v.field_value,
-      field_type: v.custom_field.field_type
+      field_type: Array.isArray(v.custom_field) ? v.custom_field[0]?.field_type : (v.custom_field as any)?.field_type
     })) || []
   }
 

@@ -257,8 +257,8 @@ export default function MembersPage() {
   }
 
   const filteredMembers = members.filter(member =>
-    (member.first_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (member.last_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.lastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (member.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (member.phone || '').includes(searchTerm)
   )

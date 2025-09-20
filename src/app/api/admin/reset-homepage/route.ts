@@ -53,10 +53,10 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    return NextResponse.json({ 
-      error: `Reset failed: ${error?.message || 'Unknown error'}`,
-      details: error?.details || null,
-      code: error?.code || null
+    return NextResponse.json({
+      error: `Reset failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      details: (error as any)?.details || null,
+      code: (error as any)?.code || null
     }, { status: 500 })
   }
 }

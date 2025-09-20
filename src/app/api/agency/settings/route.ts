@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Merge defaults with actual data from database
-    const finalData = { ...defaultData, ...responseData }
+    const finalData = { ...defaultData, ...(settings?.setting_value || {}) }
 
     console.log(`✅ Returning settings for key: ${key}`, finalData)
 

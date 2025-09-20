@@ -40,11 +40,14 @@ export async function GET(request: NextRequest) {
         .eq('domain', domain)
         .single()
       
-      branding = domainData?.accounts?.branding || null
+      branding = Array.isArray(domainData?.accounts) 
+        ? domainData.accounts[0]?.branding || null
+        : (domainData?.accounts as any)?.branding || null
       
-      if (branding) {
-        branding.account_name = domainData.accounts.name
-        branding.account_type = domainData.accounts.type
+      if (branding && domainData) {
+        const account = Array.isArray(domainData.accounts) ? domainData.accounts[0] : domainData.accounts
+        branding.account_name = account?.name
+        branding.account_type = account?.type
       }
     } else {
       // Get branding for current active account

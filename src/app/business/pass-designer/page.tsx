@@ -1126,7 +1126,7 @@ export default function PassDesigner() {
     const sampleData: Record<string, string> = {}
     
     // First, use any default values set by user in Dynamic Placeholders
-    currentPass.placeholders.forEach(placeholder => {
+    currentPass.placeholders?.forEach(placeholder => {
       if (placeholder.defaultValue && placeholder.defaultValue.trim()) {
         sampleData[placeholder.key] = placeholder.defaultValue
       }

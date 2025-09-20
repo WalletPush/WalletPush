@@ -135,7 +135,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('✅ Found template:', template.id)
+    const actualTemplate = Array.isArray(template) ? template[0] : template
+    console.log('✅ Found template:', actualTemplate.id)
 
     // 2. Determine the business_id for multi-tenant architecture
     let business_id = null
@@ -144,13 +145,19 @@ export async function POST(request: NextRequest) {
       // Get business_id from landing page
       business_id = landingPage.business_id
       console.log('🏢 Business ID from landing page:', business_id)
-    } else if (template?.programs) {
+    } else if (actualTemplate?.programs) {
       // Get business_id from template's program account relationship
       // First, get the program's account_id which is the business_id
       const { data: program, error: programError } = await supabase
         .from('programs')
         .select('account_id')
-        .eq('id', template.programs.id)
+        .eq('id', (() => {
+          const programs = actualTemplate.programs
+          if (Array.isArray(programs) && programs[0]) {
+            return programs[0].id
+          }
+          return (programs as any)?.id
+        })())
         .single()
       
       if (program && !programError) {
@@ -164,9 +171,15 @@ export async function POST(request: NextRequest) {
       console.error('❌ Debug info:', {
         hasLandingPage: !!landingPage,
         landingPageBusinessId: landingPage?.business_id,
-        hasTemplate: !!template,
-        hasTemplatePrograms: !!template?.programs,
-        templateProgramsId: template?.programs?.id
+        hasTemplate: !!actualTemplate,
+        hasTemplatePrograms: !!actualTemplate?.programs,
+        templateProgramsId: (() => {
+          const programs = actualTemplate?.programs
+          if (Array.isArray(programs) && programs[0]) {
+            return programs[0].id
+          }
+          return (programs as any)?.id
+        })()
       })
       
       // For development: Use hardcoded business ID if we can't determine it
@@ -200,7 +213,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Get template placeholders (business-defined default values)
-    const templateDefaults = template?.passkit_json?.placeholders || {}
+    const templateDefaults = actualTemplate?.passkit_json?.placeholders || {}
     const templatePlaceholders = Object.keys(templateDefaults)
 
     console.log('🎯 Template placeholders from Pass Designer:', templatePlaceholders)
@@ -285,7 +298,7 @@ export async function POST(request: NextRequest) {
     // 4. Generate the Apple Pass
     try {
       const passResult = await ApplePassKitGenerator.generateApplePass({
-        templateId: template.id,
+        templateId: actualTemplate.id,
         formData: formData,
         userId: email, // Use email as user identifier
         deviceType: 'web'
@@ -302,7 +315,7 @@ export async function POST(request: NextRequest) {
         .insert({
           business_id, // 🎯 CRITICAL: Link customer to business for multi-tenant
           landing_page_id: landing_page_id || null, // Allow null if no landing page
-          template_id: template.id,
+          template_id: actualTemplate.id,
           
           // 👤 Customer personal information
           first_name,
@@ -372,7 +385,7 @@ export async function POST(request: NextRequest) {
         console.error('❌ Customer insert data:', {
           business_id,
           landing_page_id: landing_page_id || null,
-          template_id: template.id,
+          template_id: actualTemplate.id,
           email
         })
         return NextResponse.json(

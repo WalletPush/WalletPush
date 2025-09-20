@@ -34,15 +34,15 @@ export function AuthLayout({ children, className }: AuthLayoutProps) {
         {/* Large gradient orbs */}
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-20 animate-pulse"
              style={{ 
-               background: `radial-gradient(circle, ${safeBranding.primary_color}40 0%, transparent 70%)` 
+               background: `radial-gradient(circle, ${(safeBranding as any).primaryColor || (safeBranding as any).primary_color}40 0%, transparent 70%)` 
              }} />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full opacity-15 animate-pulse delay-1000"
              style={{ 
-               background: `radial-gradient(circle, ${safeBranding.secondary_color || '#4F46E5'}30 0%, transparent 70%)` 
+               background: `radial-gradient(circle, ${(safeBranding as any).secondaryColor || (safeBranding as any).secondary_color || '#4F46E5'}30 0%, transparent 70%)` 
              }} />
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-10 animate-pulse delay-500"
              style={{ 
-               background: `radial-gradient(circle, ${safeBranding.primary_color}20 0%, transparent 70%)` 
+               background: `radial-gradient(circle, ${(safeBranding as any).primaryColor || (safeBranding as any).primary_color}20 0%, transparent 70%)` 
              }} />
         
         {/* Subtle grid pattern */}

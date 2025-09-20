@@ -37,7 +37,7 @@ export async function GET(
     headers.set('Content-Disposition', `attachment; filename="pass-${serialNumber}.pkpass"`)
     headers.set('Content-Length', passBuffer.length.toString())
 
-    return new NextResponse(passBuffer, {
+    return new NextResponse(passBuffer as BodyInit, {
       status: 200,
       headers
     })

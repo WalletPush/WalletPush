@@ -356,7 +356,7 @@ export default function AICopilotChatPage() {
           conversationHistory: conversation,
           websiteUrl,
           visualAssets: crawlData?.visualAssets,
-          screenshot: crawlData?.screenshot // Pass screenshot for visual design matching
+          screenshot: (crawlData as any)?.screenshot // Pass screenshot for visual design matching
         })
       })
 

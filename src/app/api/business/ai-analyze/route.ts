@@ -25,7 +25,7 @@ Content: ${page.content.slice(0, 1000)}...
     // Prepare visual assets summary
     let visualAssetsSummary = ''
     if (visualAssets && visualAssets.allImages?.length > 0) {
-      const uniqueColors = [...new Set(visualAssets.brandColors || [])].slice(0, 5) // Limit to 5 colors
+      const uniqueColors = Array.from(new Set(visualAssets.brandColors || [])).slice(0, 5) // Limit to 5 colors
       visualAssetsSummary = `
 **VISUAL ASSETS DISCOVERED:**
 - Business Name: ${visualAssets.businessInfo?.name || 'Extracted from page title'}

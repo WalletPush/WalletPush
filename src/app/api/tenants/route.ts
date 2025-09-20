@@ -44,15 +44,18 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     // Format accounts for response
-    const accounts = userAccounts?.map(ua => ({
-      id: ua.accounts.id,
-      name: ua.accounts.name,
-      type: ua.accounts.type,
-      role: ua.role,
-      status: ua.accounts.status,
-      parent_agency_id: ua.accounts.parent_agency_id,
-      created_at: ua.accounts.created_at
-    })) || []
+    const accounts = userAccounts?.map(ua => {
+      const account = Array.isArray(ua.accounts) ? ua.accounts[0] : ua.accounts
+      return {
+        id: account?.id,
+        name: account?.name,
+        type: account?.type,
+        role: ua.role,
+        status: account?.status,
+        parent_agency_id: account?.parent_agency_id,
+        created_at: account?.created_at
+      }
+    }) || []
 
     // Find current account (either active or first available)
     let currentAccount = null

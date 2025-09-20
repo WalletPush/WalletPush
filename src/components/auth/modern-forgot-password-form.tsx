@@ -57,11 +57,11 @@ export function ModernForgotPasswordForm({ className }: ModernForgotPasswordForm
       <div className={`w-full max-w-md mx-auto ${className}`}>
         {/* Logo and Branding */}
         <div className="text-center mb-8">
-          {branding.logo_url && (
+          {branding.logoUrl && (
             <div className="mb-6">
               <Image
-                src={branding.logo_url}
-                alt={`${branding.company_name} Logo`}
+                src={branding.logoUrl}
+                alt={`${branding.companyName} Logo`}
                 width={120}
                 height={120}
                 className="mx-auto h-16 w-auto object-contain"
@@ -101,7 +101,7 @@ export function ModernForgotPasswordForm({ className }: ModernForgotPasswordForm
                   <button
                     onClick={() => setIsEmailSent(false)}
                     className="font-medium hover:underline"
-                    style={{ color: branding.primary_color }}
+                    style={{ color: branding.primaryColor }}
                   >
                     try again
                   </button>
@@ -128,11 +128,11 @@ export function ModernForgotPasswordForm({ className }: ModernForgotPasswordForm
     <div className={`w-full max-w-md mx-auto ${className}`}>
       {/* Logo and Branding */}
       <div className="text-center mb-8">
-        {branding.logo_url && (
+        {branding.logoUrl && (
           <div className="mb-6">
             <Image
-              src={branding.logo_url}
-              alt={`${branding.company_name} Logo`}
+              src={branding.logoUrl}
+              alt={`${branding.companyName} Logo`}
               width={120}
               height={120}
               className="mx-auto h-16 w-auto object-contain"

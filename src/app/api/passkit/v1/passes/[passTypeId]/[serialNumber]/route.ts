@@ -64,7 +64,7 @@ export async function GET(
     headers.set('Last-Modified', lastModified.toUTCString())
     headers.set('Cache-Control', 'no-cache')
 
-    return new NextResponse(passBuffer, {
+    return new NextResponse(passBuffer as BodyInit, {
       status: 200,
       headers
     })

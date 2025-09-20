@@ -132,7 +132,7 @@ export async function GET(
         // Import Supabase client
         const { createClient } = await import('@supabase/supabase-js')
         const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY!,
           {
             auth: {
@@ -236,7 +236,7 @@ export async function GET(
     headers.set('Access-Control-Allow-Methods', 'GET')
     headers.set('Access-Control-Allow-Headers', 'Content-Type')
 
-    return new NextResponse(passBuffer, {
+    return new NextResponse(passBuffer as BodyInit, {
       status: 200,
       headers
     })

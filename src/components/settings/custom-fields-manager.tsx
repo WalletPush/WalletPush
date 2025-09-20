@@ -62,7 +62,7 @@ export default function CustomFieldsManager() {
     setFormData({
       field_label: '',
       field_type: 'text',
-      applies_to: selectedTab,
+      applies_to: selectedTab as "customer",
       is_required: false
     })
   }

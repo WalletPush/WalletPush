@@ -137,11 +137,11 @@ Requirements: ${sanitizedPrompt}`
       
       console.log('OpenRouter response:', JSON.stringify(completion, null, 2))
 
-      // Check for API errors
-      if (completion.choices[0]?.error) {
-        const error = completion.choices[0].error
+      // Check for API errors (OpenRouter format)
+      if ((completion as any).error) {
+        const error = (completion as any).error
         console.error('API Error:', error)
-        throw new Error(`API Error: ${error.message} (${error.code})`)
+        throw new Error(`API Error: ${error.message || error} (${error.code || 'unknown'})`)
       }
 
       const fullResponse = completion.choices[0]?.message?.content
@@ -206,7 +206,7 @@ Requirements: ${sanitizedPrompt}`
       return NextResponse.json({ 
         data: { 
           html: mockHtml,
-          message: `OpenRouter failed, generated with mock data. Error: ${error.message}`
+          message: `OpenRouter failed, generated with mock data. Error: ${error instanceof Error ? error.message : error}`
         }, 
         error: null 
       })
@@ -296,7 +296,7 @@ async function generateMockHTML(
         
         // Analyze placeholders to suggest customer-facing fields
         const placeholders = Object.keys(template.passkit_json.placeholders)
-        const suggestedFields = []
+        const suggestedFields: any[] = []
         
         // Smart mapping: placeholder patterns → form fields
         for (const placeholder of placeholders) {

@@ -3,6 +3,7 @@ import { extractPlaceholdersFromTemplate, validatePlaceholderMapping } from './p
 import fs from 'fs'
 import path from 'path'
 import { createHash } from 'crypto'
+// @ts-ignore - archiver doesn't have TypeScript types
 import archiver from 'archiver'
 import forge from 'node-forge'
 
@@ -58,7 +59,7 @@ export class PassKitGenerator {
     const validationResult = validatePlaceholderMapping(template.template_json, formData)
     
     if (!validationResult.isValid) {
-      throw new Error(`Missing required data: ${validationResult.missing.join(', ')}`)
+      throw new Error(`Missing required data: ${validationResult.missingPlaceholders.join(', ')}`)
     }
 
     // 4. Create pass.json
@@ -277,7 +278,7 @@ export class PassKitGenerator {
       const archive = archiver('zip', { zlib: { level: 9 } })
       const chunks: Buffer[] = []
 
-      archive.on('data', (chunk) => chunks.push(chunk))
+      archive.on('data', (chunk: Buffer) => chunks.push(chunk))
       archive.on('end', () => resolve(Buffer.concat(chunks)))
       archive.on('error', reject)
 

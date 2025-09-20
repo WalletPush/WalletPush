@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
         console.log(`✅ WWDR certificate converted to PEM (PEM format): ${pemPath}`)
       } catch (pemError) {
         console.error('⚠️ Failed to convert WWDR to PEM (tried both DER and PEM formats):', {
-          derError: derError.message,
-          pemError: pemError.message
+          derError: derError instanceof Error ? derError.message : 'Unknown error',
+          pemError: pemError instanceof Error ? pemError.message : 'Unknown error'
         })
         // Continue anyway, the .cer file might still work for signing
       }

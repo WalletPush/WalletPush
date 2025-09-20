@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     console.log('✅ Pass generated successfully')
 
-    return new NextResponse(passBuffer, {
+    return new NextResponse(passBuffer as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.apple.pkpass',

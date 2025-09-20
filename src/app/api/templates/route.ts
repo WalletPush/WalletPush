@@ -108,7 +108,7 @@ export async function GET(request: Request) {
     } catch (dbError) {
       // GOLDEN TRUTH: No fallbacks - fail hard if database fails
       console.error('❌ Database connection failed:', dbError)
-      throw new Error(`Database connection failed: ${dbError.message}`)
+      throw new Error(`Database connection failed: ${dbError instanceof Error ? dbError.message : dbError}`)
     }
 
   } catch (error) {

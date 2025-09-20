@@ -119,7 +119,9 @@ export async function GET(request: NextRequest) {
     existingAssignments?.forEach(assignment => {
       passTypeAssignmentMap.set(assignment.pass_type_id, {
         business_id: assignment.business_account_id,
-        business_name: assignment.business_accounts?.name
+        business_name: Array.isArray(assignment.business_accounts) 
+          ? assignment.business_accounts[0]?.name 
+          : (assignment.business_accounts as any)?.name
       })
     })
 

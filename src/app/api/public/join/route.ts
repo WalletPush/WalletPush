@@ -7,9 +7,9 @@ export async function POST(request: NextRequest) {
     
     // Convert FormData to JSON object
     const data: any = {}
-    for (const [key, value] of formData.entries()) {
+    Array.from(formData.entries()).forEach(([key, value]) => {
       data[key] = value
-    }
+    })
     
     console.log('🔄 Public join request, redirecting to customer-signup:', data)
     console.log('🔄 Original form data keys:', Object.keys(data))

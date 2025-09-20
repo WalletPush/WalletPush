@@ -100,8 +100,12 @@ export async function GET(request: NextRequest) {
     const assignedFormatted = (assignedPassTypes || []).map(apt => ({
       ...apt.pass_type_ids,
       source: 'assigned',
-      assigned_by: apt.assigned_by_accounts?.name,
-      assigned_by_type: apt.assigned_by_accounts?.type,
+      assigned_by: Array.isArray(apt.assigned_by_accounts) 
+        ? apt.assigned_by_accounts[0]?.name 
+        : (apt.assigned_by_accounts as any)?.name,
+      assigned_by_type: Array.isArray(apt.assigned_by_accounts) 
+        ? apt.assigned_by_accounts[0]?.type 
+        : (apt.assigned_by_accounts as any)?.type,
       assignment_id: apt.id,
       assignment_date: apt.created_at
     }))

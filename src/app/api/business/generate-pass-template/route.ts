@@ -37,7 +37,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the business account (type = 'business')
-    const businessAccount = userAccounts.find(ua => ua.accounts.type === 'business')
+    const businessAccount = userAccounts.find(ua => {
+      const accounts = ua.accounts
+      if (Array.isArray(accounts)) {
+        return accounts.some(acc => acc.type === 'business')
+      }
+      return (accounts as any)?.type === 'business'
+    })
     if (!businessAccount) {
       return NextResponse.json({ error: 'User does not have access to a business account' }, { status: 403 })
     }
