@@ -3,6 +3,17 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export async function middleware(request: NextRequest) {
+  // COMPLETELY DISABLE MIDDLEWARE TO FIX VERCEL CRASHES
+  // Just pass through with basic session update
+  try {
+    return await updateSession(request)
+  } catch (error) {
+    console.error('Middleware error:', error)
+    return NextResponse.next()
+  }
+
+  // DISABLED CODE BELOW - CAUSING CRASHES
+  /*
   const hostname = request.headers.get('host') || 'localhost:3000'
   const pathname = request.nextUrl.pathname
   
@@ -181,6 +192,7 @@ function getPortalRoute(portalType: string, pathname: string): string {
   
   return pathname
 }
+*/
 
 export const config = {
   matcher: [
