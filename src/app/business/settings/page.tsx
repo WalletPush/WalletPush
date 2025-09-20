@@ -21,6 +21,12 @@ interface CustomDomain {
   status: 'pending' | 'active' | 'failed'
   sslStatus: 'pending' | 'active' | 'failed'
   createdAt: string
+  verificationInstructions?: Array<{
+    type: string
+    domain: string
+    value: string
+    reason: string
+  }>
 }
 
 interface SMTPSettings {
@@ -96,7 +102,8 @@ export default function SettingsPage() {
           domain: d.domain,
           status: d.status === 'active' ? 'active' : 'pending',
           sslStatus: d.ssl_status || 'pending',
-          createdAt: new Date(d.created_at).toLocaleDateString()
+          createdAt: new Date(d.created_at).toLocaleDateString(),
+          verificationInstructions: d.verification_instructions ? JSON.parse(d.verification_instructions) : undefined
         })) || [])
       }
     } catch (error) {
@@ -472,11 +479,34 @@ Need help? Contact support@walletpush.io
                             <p className="text-yellow-700 mt-1">
                               Please add these DNS records to your domain:
                             </p>
+                            
+                            {/* CNAME Record */}
                             <div className="mt-2 font-mono text-xs bg-yellow-100 p-2 rounded">
+                              <div className="font-semibold mb-1">1. CNAME Record:</div>
                               <div>Type: CNAME</div>
                               <div>Name: @ (for {domain.domain})</div>
                               <div>Value: walletpush.io</div>
                             </div>
+                            
+                            {/* Vercel TXT Record (if exists) */}
+                            {domain.verificationInstructions && domain.verificationInstructions.length > 0 && (
+                              <div className="mt-2 font-mono text-xs bg-blue-100 p-2 rounded border border-blue-200">
+                                <div className="font-semibold mb-1 text-blue-800">2. Vercel Verification Record:</div>
+                                {domain.verificationInstructions.map((instruction, index) => (
+                                  <div key={index} className="mb-2">
+                                    <div>Type: {instruction.type}</div>
+                                    <div>Name: {instruction.domain}</div>
+                                    <div className="break-all">Value: {instruction.value}</div>
+                                    {instruction.reason && (
+                                      <div className="text-blue-600 mt-1">Reason: {instruction.reason}</div>
+                                    )}
+                                  </div>
+                                ))}
+                                <div className="text-blue-700 mt-2 text-xs">
+                                  ⚠️ Both records are required for full domain verification and SSL certificate
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

@@ -96,7 +96,7 @@ export async function POST(
 
     // Store Vercel domain info for future management
     let updateData: any = {
-      status: verified ? 'active' : 'pending',
+      status: (verified && sslVerified) ? 'active' : 'pending',
       ssl_status: sslVerified ? 'active' : 'pending',
       dns_configured: verified,
       updated_at: new Date().toISOString()
