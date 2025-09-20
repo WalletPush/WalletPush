@@ -15,13 +15,40 @@ function transformFeaturesToArray(featuresObject: any): PackageFeature[] {
     return []
   }
 
-  // Transform object format to array format
-  return Object.entries(featuresObject).map(([key, value]: [string, any]) => ({
-    id: key,
-    name: value.name || key,
-    description: value.description || '',
-    included: value.included !== false // Default to true if not specified
-  })).filter(feature => feature.included)
+  // Transform object format to array format for your specific database structure
+  const features: PackageFeature[] = []
+  
+  if (featuresObject.analytics) {
+    features.push({ id: 'analytics', name: 'Advanced Analytics', included: true })
+  }
+  if (featuresObject.apiAccess) {
+    features.push({ id: 'api', name: 'API Access', included: true })
+  }
+  if (featuresObject.customBranding) {
+    features.push({ id: 'branding', name: 'Custom Branding', included: true })
+  }
+  if (featuresObject.webhookSupport) {
+    features.push({ id: 'webhooks', name: 'Webhook Support', included: true })
+  }
+  if (featuresObject.prioritySupport) {
+    features.push({ id: 'priority', name: 'Priority Support', included: true })
+  } else {
+    features.push({ id: 'support', name: 'Email Support', included: true })
+  }
+  if (featuresObject.whitelabelDomain) {
+    features.push({ id: 'whitelabel', name: 'White-label Domain', included: true })
+  }
+  if (featuresObject.smtpConfiguration) {
+    features.push({ id: 'smtp', name: 'SMTP Configuration', included: true })
+  }
+  if (featuresObject.multilocationSupport) {
+    features.push({ id: 'multilocation', name: 'Multi-location Support', included: true })
+  }
+  
+  // Add basic features for all packages
+  features.unshift({ id: 'notifications', name: 'Push Notifications', included: true })
+  
+  return features
 }
 
 // GET - Fetch public agency packages for homepage
@@ -41,20 +68,8 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Fetching public agency packages for homepage')
 
-    // Get the first agency account (could be yours specifically)
-    // For now, get the first agency with packages
-    const { data: agencies, error: agencyError } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('type', 'agency')
-      .limit(1)
-
-    if (agencyError || !agencies || agencies.length === 0) {
-      console.log('❌ No agency accounts found, using default packages')
-      return getDefaultPackages()
-    }
-
-    const agencyId = agencies[0].id
+    // Use the specific agency account ID that has packages
+    const agencyId = 'a7d7baa2-0b71-453e-ab7f-0c19b9214be4'
 
     // Fetch packages from database
     const { data: packages, error: packagesError } = await supabase
@@ -75,17 +90,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform database format to frontend format
-    const formattedPackages = packages.map(pkg => ({
-      id: pkg.id,
-      name: pkg.package_name,
-      description: pkg.package_description,
-      price: parseFloat(pkg.monthly_price),
-      passLimit: pkg.pass_limit,
-      programLimit: pkg.program_limit,
-      staffLimit: pkg.staff_limit,
-      features: transformFeaturesToArray(pkg.features || {}),
-      isPopular: pkg.package_name.toLowerCase().includes('pro') || pkg.package_name.toLowerCase().includes('professional')
-    }))
+    const formattedPackages = packages.map(pkg => {
+      const features = transformFeaturesToArray(pkg.features || {})
+      
+      // Add pass limit as first feature
+      const passLimitText = pkg.pass_limit >= 5000 ? `Up to ${pkg.pass_limit.toLocaleString()} active passes` : `Up to ${pkg.pass_limit} active passes`
+      features.unshift({ id: 'passes', name: passLimitText, included: true })
+      
+      return {
+        id: pkg.id,
+        name: pkg.package_name,
+        description: pkg.package_description,
+        price: parseFloat(pkg.monthly_price),
+        passLimit: pkg.pass_limit,
+        programLimit: pkg.program_limit,
+        staffLimit: pkg.staff_limit,
+        features: features,
+        isPopular: pkg.package_name.toLowerCase().includes('business') || pkg.package_name.toLowerCase().includes('pro')
+      }
+    })
 
     console.log(`✅ Found ${formattedPackages.length} packages`)
 
