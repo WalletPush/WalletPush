@@ -20,8 +20,8 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request)
   }
 
-  // Handle custom domains for landing pages
-  if (hostname !== 'walletpush.io' && !hostname.includes('vercel.app')) {
+  // Handle custom domains for landing pages (now with Cloudflare proxy support)
+  if (hostname !== 'walletpush.io' && !hostname.includes('vercel.app') && !hostname.includes('localhost')) {
     const landingPageResponse = await handleCustomDomainLandingPage(request, hostname, pathname)
     if (landingPageResponse) {
       return landingPageResponse
@@ -40,15 +40,18 @@ export async function middleware(request: NextRequest) {
   return await updateSession(request)
 }
 
-// Handle custom domains for landing pages
+// Handle custom domains for landing pages (Enhanced for Cloudflare proxy)
 async function handleCustomDomainLandingPage(request: NextRequest, hostname: string, pathname: string) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
     
+    console.log(`🌐 Custom domain request: ${hostname}${pathname}`)
+    
     // Check if this domain is registered in custom_domains using direct REST API
+    // Only check active domains that have been verified
     const domainResponse = await fetch(
-      `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id&domain=eq.${hostname}`,
+      `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id,status,ssl_status&domain=eq.${hostname}&status=eq.active`,
       {
         headers: {
           'apikey': serviceRoleKey,
@@ -59,19 +62,25 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
     )
 
     if (!domainResponse.ok) {
+      console.log(`❌ Domain lookup failed for ${hostname}: ${domainResponse.status}`)
       return null
     }
 
     const domainData = await domainResponse.json()
     
     if (!domainData || domainData.length === 0) {
-      return null // Not a registered custom domain
+      console.log(`📝 Domain ${hostname} not found in custom_domains or not active`)
+      return null // Not a registered custom domain or not active
     }
 
     const domain = domainData[0]
     const slug = pathname.slice(1) // Remove leading slash
+    
+    console.log(`✅ Found active custom domain: ${hostname} → business_id: ${domain.business_id}`)
 
     // Look for landing pages for this business/account
+    console.log(`🔍 Looking for landing page: business_id=${domain.business_id}, slug="${slug}"`)
+    
     const landingPageResponse = await fetch(
       `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${domain.business_id}&custom_url=eq.${slug}&is_published=eq.true`,
       {
@@ -88,19 +97,29 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
       
       if (landingPages && landingPages.length > 0) {
         const landingPage = landingPages[0]
-          return new NextResponse(landingPage.generated_html, {
-            status: 200,
-            headers: {
-              'Content-Type': 'text/html',
-              'X-Custom-Domain': hostname,
-              'X-Account-ID': domain.business_id
-            }
-          })
+        console.log(`✅ Serving landing page: ${landingPage.title} for ${hostname}${pathname}`)
+        
+        return new NextResponse(landingPage.generated_html, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html',
+            'X-Custom-Domain': hostname,
+            'X-Business-ID': domain.business_id,
+            'X-Landing-Page-ID': landingPage.id,
+            'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
+          }
+        })
+      } else {
+        console.log(`📝 No landing page found for slug "${slug}"`)
       }
+    } else {
+      console.log(`❌ Landing page lookup failed: ${landingPageResponse.status}`)
     }
 
     // If no specific landing page found and pathname is root, check for default homepage
     if (pathname === '/') {
+      console.log(`🏠 Looking for default homepage for business_id=${domain.business_id}`)
+      
       const defaultPageResponse = await fetch(
         `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${domain.business_id}&is_published=eq.true&order=created_at.desc&limit=1`,
         {
@@ -117,19 +136,64 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
         
         if (defaultPages && defaultPages.length > 0) {
           const defaultPage = defaultPages[0]
+          console.log(`✅ Serving default homepage: ${defaultPage.title} for ${hostname}`)
+          
           return new NextResponse(defaultPage.generated_html, {
             status: 200,
             headers: {
               'Content-Type': 'text/html',
               'X-Custom-Domain': hostname,
-              'X-Account-ID': domain.business_id
+              'X-Business-ID': domain.business_id,
+              'X-Landing-Page-ID': defaultPage.id,
+              'X-Default-Page': 'true',
+              'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
             }
           })
+        } else {
+          console.log(`📝 No default homepage found for business_id=${domain.business_id}`)
         }
+      } else {
+        console.log(`❌ Default homepage lookup failed: ${defaultPageResponse.status}`)
       }
     }
 
-    return null // Let it continue to 404
+    // If we reach here, the domain is registered but no content found
+    console.log(`📄 No content found for ${hostname}${pathname} - returning custom 404`)
+    
+    return new NextResponse(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Page Not Found - ${hostname}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                 margin: 0; padding: 40px; text-align: center; background: #f8f9fa; }
+          .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          h1 { color: #333; margin-bottom: 20px; }
+          p { color: #666; line-height: 1.6; }
+          .domain { color: #007bff; font-weight: 600; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Page Not Found</h1>
+          <p>The page you're looking for on <span class="domain">${hostname}</span> doesn't exist.</p>
+          <p>This domain is powered by <strong>WalletPush</strong>.</p>
+        </div>
+      </body>
+      </html>
+    `, {
+      status: 404,
+      headers: {
+        'Content-Type': 'text/html',
+        'X-Custom-Domain': hostname,
+        'X-Business-ID': domain.business_id,
+        'Cache-Control': 'public, max-age=60' // Cache 404s for 1 minute
+      }
+    })
+    
   } catch (error) {
     console.error('❌ Custom domain handling error:', error)
     return null

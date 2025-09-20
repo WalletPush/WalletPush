@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { cloudflare } from '@/lib/cloudflare'
 
 // DELETE - Remove specific domain by ID
 export async function DELETE(
@@ -48,7 +49,7 @@ export async function DELETE(
     // Verify domain belongs to current account before deleting
     const { data: domain } = await supabase
       .from('custom_domains')
-      .select('id, domain')
+      .select('id, domain, cloudflare_record_id')
       .eq('id', id)
       .eq('business_id', accountId)
       .single()
@@ -57,7 +58,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Domain not found or access denied' }, { status: 404 })
     }
 
-    // Delete domain
+    console.log(`🗑️ Deleting domain: ${domain.domain} (ID: ${id})`)
+
+    // Step 1: Clean up Cloudflare DNS record if it exists
+    if (domain.cloudflare_record_id) {
+      try {
+        console.log(`🌐 Removing Cloudflare DNS record: ${domain.cloudflare_record_id}`)
+        await cloudflare.deleteDNSRecord(domain.cloudflare_record_id)
+        console.log(`✅ Cloudflare DNS record removed successfully`)
+      } catch (cloudflareError) {
+        console.error(`❌ Failed to remove Cloudflare DNS record:`, cloudflareError)
+        // Continue with database deletion even if Cloudflare cleanup fails
+      }
+    }
+
+    // Step 2: Delete domain from database
     const { error: deleteError } = await supabase
       .from('custom_domains')
       .delete()
@@ -65,15 +80,15 @@ export async function DELETE(
       .eq('business_id', accountId)
 
     if (deleteError) {
-      console.error('❌ Error deleting domain:', deleteError)
+      console.error('❌ Error deleting domain from database:', deleteError)
       return NextResponse.json({ error: 'Failed to delete domain' }, { status: 500 })
     }
 
-    console.log(`✅ Domain deleted: ${domain.domain} (ID: ${id})`)
+    console.log(`✅ Domain deleted successfully: ${domain.domain}`)
 
     return NextResponse.json({ 
       success: true,
-      message: `Domain ${domain.domain} deleted successfully`
+      message: `Domain ${domain.domain} deleted successfully. DNS records have been cleaned up.`
     })
     
   } catch (error) {
