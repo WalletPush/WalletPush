@@ -1,13 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ApplePassKitGenerator } from '../../../lib/apple-passkit-generator'
-
-// Shared pass store for the application (moved to separate module to avoid Next.js route export issues)
-const passStore = new Map<string, { 
-  templateId: string, 
-  formData: any, 
-  passBuffer?: Buffer,
-  createdAt: Date 
-}>()
+import { setPassInStore, getPassStoreSize } from '../../../lib/pass-store'
 
 export async function POST(request: Request) {
   try {
@@ -45,13 +38,13 @@ export async function POST(request: Request) {
     )
 
     // Also store in memory for immediate downloads
-    passStore.set(response.serialNumber, {
+    setPassInStore(response.serialNumber, {
       templateId,
       formData: actualData, // Use actualData (template values) not original formData
       passBuffer,
       createdAt: new Date()
     })
-    console.log(`📦 Stored pass ${response.serialNumber} in memory store (size: ${passStore.size})`)
+    console.log(`📦 Stored pass ${response.serialNumber} in memory store (size: ${getPassStoreSize()})`)
 
     console.log('✅ Apple Pass Generated Successfully!')
     console.log('🔗 Pass URL:', response.url)

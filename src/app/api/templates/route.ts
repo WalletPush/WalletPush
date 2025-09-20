@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 // Import pass store for cache invalidation
-import { passStore } from '../apple-pass/route'
+import { getPassStoreSize, clearPassStore } from '../../../lib/pass-store'
 
 // GOLDEN TRUTH: No fallbacks, no memory store - 100% database driven
 
@@ -219,8 +219,8 @@ export async function POST(request: Request) {
         console.log('✅ Template updated in Supabase:', template.id)
         
         // CRITICAL: Clear pass store cache when template is updated
-        console.log(`🧹 Clearing pass store cache (${passStore.size} passes) due to template update`)
-        passStore.clear()
+        console.log(`🧹 Clearing pass store cache (${getPassStoreSize()} passes) due to template update`)
+        clearPassStore()
         console.log(`✅ Pass store cache cleared - fresh passes will use updated template`)
         
       } else {
@@ -252,8 +252,8 @@ export async function POST(request: Request) {
         console.log('✅ Template created in Supabase:', template.id)
         
         // CRITICAL: Clear pass store cache when new template is created
-        console.log(`🧹 Clearing pass store cache (${passStore.size} passes) due to new template`)
-        passStore.clear()
+        console.log(`🧹 Clearing pass store cache (${getPassStoreSize()} passes) due to new template`)
+        clearPassStore()
         console.log(`✅ Pass store cache cleared - fresh passes will use new template`)
       }
       

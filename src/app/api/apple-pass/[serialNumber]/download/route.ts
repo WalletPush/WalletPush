@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ApplePassKitGenerator } from '../../../../../lib/apple-passkit-generator'
 // Use shared pass store from main route
-import { passStore } from '../../route'
+import { getPassFromStore, getPassStoreSize, passStore, setPassInStore } from '../../../../lib/pass-store'
 
 /**
  * DYNAMIC helper function to get the most recent template ID
@@ -117,10 +117,10 @@ export async function GET(
     console.log(`📱 Apple Pass Download Request: ${serialNumber}`)
 
     // First, try to find the stored pass data
-    let passData = passStore.get(serialNumber)
+    let passData = getPassFromStore(serialNumber)
     
     console.log(`🔍 Looking for pass: ${serialNumber}`)
-    console.log(`🔍 Store size: ${passStore.size}`)
+    console.log(`🔍 Store size: ${getPassStoreSize()}`)
     console.log(`🔍 Store contents:`, Array.from(passStore.keys()))
     console.log(`🔍 Pass found in store: ${!!passData}`)
     
@@ -212,7 +212,7 @@ export async function GET(
       passBuffer = newPassBuffer
       
       // Cache the generated pass
-      passStore.set(serialNumber, {
+      setPassInStore(serialNumber, {
         ...passData,
         passBuffer
       })

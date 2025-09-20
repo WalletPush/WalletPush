@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { 
   ChartBarIcon,
   CurrencyDollarIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   BuildingOfficeIcon,
   CreditCardIcon,
   UserGroupIcon,
