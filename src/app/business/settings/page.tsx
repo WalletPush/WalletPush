@@ -197,10 +197,15 @@ export default function SettingsPage() {
   }
 
   const handleRemoveDomain = async (domainId: string) => {
+    console.log('🗑️ Remove domain clicked:', domainId)
+    
     if (!confirm('Are you sure you want to remove this domain? This action cannot be undone.')) {
+      console.log('❌ User cancelled deletion')
       return
     }
 
+    console.log('✅ User confirmed deletion, proceeding...')
+    
     try {
       // Get the session for authentication
       const { createClient } = await import('@/lib/supabase/client')
@@ -212,6 +217,8 @@ export default function SettingsPage() {
         return
       }
 
+      console.log('🌐 Making DELETE request to:', `/api/domains/${domainId}`)
+      
       const response = await fetch(`/api/domains/${domainId}`, {
         method: 'DELETE',
         headers: {
@@ -219,7 +226,10 @@ export default function SettingsPage() {
         }
       })
 
+      console.log('📡 DELETE response:', response.status, response.statusText)
+
       if (response.ok) {
+        console.log('✅ Delete successful, updating UI...')
         // Remove from local state immediately
         setCustomDomains(customDomains.filter(d => d.id !== domainId))
         alert('Domain removed successfully!')
@@ -228,6 +238,7 @@ export default function SettingsPage() {
         await loadDomains()
       } else {
         const result = await response.json()
+        console.error('❌ Delete failed:', result)
         alert(`Failed to remove domain: ${result.error}`)
       }
     } catch (error) {
