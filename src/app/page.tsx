@@ -2,27 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Smartphone, 
-  CreditCard, 
-  Bell, 
-  Users, 
-  BarChart3, 
-  Zap,
-  CheckCircle,
-  ArrowRight,
-  Star,
-  Shield,
-  Sparkles,
-  TrendingUp,
-  Target,
-  Gift,
-  Wallet,
-  Crown,
-  Megaphone
-} from 'lucide-react'
+import { CheckCircle, ArrowRight, Star, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -82,10 +62,10 @@ export default function HomePage() {
         <div className="container mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
-              <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200 px-4 py-2">
+              <div className="mb-6 inline-flex items-center rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border border-blue-200 px-4 py-2 text-sm font-semibold">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Customer Loyalty & Retention Made Easy
-              </Badge>
+              </div>
               <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent leading-tight">
                 Turn One-Time Shoppers Into<br />
                 <span className="text-purple-600">Lifelong Customers</span>
@@ -133,7 +113,7 @@ export default function HomePage() {
                 <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-4 shadow-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-white" />
+                      <ArrowRight className="w-6 h-6 text-white" />
                     </div>
                     <div>
                       <div className="font-semibold text-gray-900">95% Retention Boost</div>
@@ -179,289 +159,39 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Loyalty Programs Section */}
-      <section className="py-20 px-4 relative z-10">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 border-purple-200">
-              <Crown className="w-4 h-4 mr-1" />
-              Loyalty & Membership Programs
-            </Badge>
-            <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Programs that Boost Lifetime Value
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Create both points-based loyalty cards and VIP membership passes that make customers feel valued and encourage them to stick around.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
-            <div>
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mr-4">
-                  <CreditCard className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">Digital Loyalty Cards</h3>
-              </div>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Ditch the punch cards and old-school key fobs. Issue digital loyalty cards that live on your customer's phone – they'll never leave home without it. Every purchase can earn points or stamps toward rewards, automatically updated on their mobile wallet card.
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">15-40% higher lifetime value for enrolled customers</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">83% of consumers prefer brands with loyalty programs</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">Automatic points tracking and reward notifications</span>
-                </div>
-              </div>
-            </div>
-            <div className="relative">
-              <Image
-                src="/images/Memberships.webp"
-                alt="Digital Memberships"
-                width={500}
-                height={350}
-                className="rounded-2xl shadow-xl"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="order-2 lg:order-1 relative">
-              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl p-8">
-                <div className="flex items-center justify-center mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
-                    <Crown className="w-8 h-8 text-white" />
-                  </div>
-                </div>
-                <h4 className="text-xl font-bold text-center mb-4">VIP Membership Example</h4>
-                <div className="space-y-3 text-center">
-                  <div className="bg-white rounded-lg p-3">
-                    <span className="font-semibold text-purple-600">Gold Member Benefits</span>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <span className="text-gray-700">20% off all purchases</span>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <span className="text-gray-700">Priority booking & support</span>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <span className="text-gray-700">Exclusive member events</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="order-1 lg:order-2">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-4">
-                  <Crown className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">VIP Membership Passes</h3>
-              </div>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Turn your best customers into proud members of an exclusive club. Offer tiered memberships or subscription-based programs that grant special perks. When customers feel like insiders, they stick with you longer and increase their spending.
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">93% retention rate for premium members (like Amazon Prime)</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">77% of consumers belong to paid loyalty programs</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-                  <span className="text-gray-700">4.8x average ROI on loyalty programs</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Digital Coupons Section */}
-      <section className="py-20 bg-gradient-to-br from-blue-50 to-purple-50 relative z-10">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-gradient-to-r from-orange-100 to-red-100 text-orange-700 border-orange-200">
-              <Gift className="w-4 h-4 mr-1" />
-              Digital Coupons & Offers
-            </Badge>
-            <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-              Delivered Straight to the Lock Screen
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Send special offers directly to your customer's smartphone at the perfect moment – no printing, no mailing, no emails lost in spam.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Target className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-xl">10x Higher Redemption</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-gray-600">Digital coupons have redemption rates up to 10× higher than traditional paper coupons.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-xl">24% More Spending</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-gray-600">Coupon users spend up to 24% more than shoppers who don't use coupons.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Bell className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-xl">Real-time Targeting</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-gray-600">Send personalized offers based on customer behavior, location, and preferences.</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="bg-white rounded-2xl p-8 shadow-xl">
-            <h3 className="text-2xl font-bold text-center mb-8 text-gray-900">
-              Smart Automation Examples
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-6">
-                <h4 className="font-semibold text-blue-700 mb-2">Win-Back Campaign</h4>
-                <p className="text-gray-600 text-sm">Send "We miss you – here's 20% off" to customers who haven't visited in 30 days</p>
-              </div>
-              <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg p-6">
-                <h4 className="font-semibold text-green-700 mb-2">Birthday Rewards</h4>
-                <p className="text-gray-600 text-sm">Automatically send birthday freebies to loyal members on their special day</p>
-              </div>
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6">
-                <h4 className="font-semibold text-purple-700 mb-2">Location-Based</h4>
-                <p className="text-gray-600 text-sm">Trigger offers when customers are near your store location</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Features Section */}
       <section className="py-20 px-4 relative z-10">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
-              <Zap className="w-4 h-4 mr-1" />
-              Your Own Branded App-Like Experience
-            </Badge>
-            <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Without the App
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Get an app-like presence in your customer's phone without any app development. The mobile wallet pass IS the app.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Megaphone className="w-8 h-8" />,
-                title: "Unlimited Push Notifications",
-                description: "Stay in touch with your customers for free. Send unlimited push messages to announce new rewards, flash sales, or just to say 'Thank you!'",
-                gradient: "from-blue-500 to-cyan-500"
-              },
-              {
-                icon: <Sparkles className="w-8 h-8" />,
-                title: "Easy Customization & Branding",
-                description: "Add your logo, colors, and design to mobile wallet cards. Consistent branding reinforces recognition and trust.",
-                gradient: "from-purple-500 to-pink-500"
-              },
-              {
-                icon: <Zap className="w-8 h-8" />,
-                title: "Effortless Setup & Integration",
-                description: "Create sign-up forms and cards with a few clicks. Integrates with popular CRMs and marketing tools seamlessly.",
-                gradient: "from-green-500 to-blue-500"
-              },
-              {
-                icon: <BarChart3 className="w-8 h-8" />,
-                title: "Real-Time Updates & Analytics",
-                description: "Update passes instantly and track sign-ups, active users, and offer redemptions with detailed analytics.",
-                gradient: "from-orange-500 to-red-500"
-              },
-              {
-                icon: <Wallet className="w-8 h-8" />,
-                title: "Ultimate Convenience",
-                description: "Everything lives on the native wallet app. No new downloads, no physical cards to carry. It's extremely convenient.",
-                gradient: "from-indigo-500 to-purple-500"
-              },
-              {
-                icon: <Shield className="w-8 h-8" />,
-                title: "Enterprise Security",
-                description: "Enterprise-grade security with 99.9% uptime. Your data and customers are always protected and secure.",
-                gradient: "from-gray-600 to-gray-800"
-              }
-            ].map((feature, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm group">
-                <CardHeader>
-                  <div className={`w-12 h-12 bg-gradient-to-r ${feature.gradient} rounded-lg flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    {feature.icon}
-                  </div>
-                  <CardTitle className="text-xl text-gray-900">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-gray-600 leading-relaxed">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Success Story Section */}
-      <section className="py-20 bg-gradient-to-br from-green-50 to-blue-50 relative z-10">
-        <div className="container mx-auto px-4 text-center">
-          <Badge className="mb-6 bg-gradient-to-r from-green-100 to-blue-100 text-green-700 border-green-200">
-            <Star className="w-4 h-4 mr-1" />
-            Success Story
-          </Badge>
-          <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-            Drive Revenue and Retention – Starting Today
+        <div className="container mx-auto text-center">
+          <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Everything You Need to Build Loyalty
           </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed">
-            Our clients have seen firsthand what a difference this makes – one WalletPush-powered campaign generated over <span className="font-bold text-green-600">$12 million in extra sales</span> for a business in a single run. That's the kind of impact loyalty and smart engagement can have when done right.
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-12">
+            Powerful features that work together to create unforgettable customer experiences
           </p>
-          <div className="bg-white rounded-2xl p-8 shadow-xl max-w-3xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-              <div>
-                <div className="text-3xl font-bold text-green-600 mb-2">90%</div>
-                <div className="text-gray-600">of companies report positive ROI</div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white mb-4 mx-auto">
+                <CheckCircle className="w-6 h-6" />
               </div>
-              <div>
-                <div className="text-3xl font-bold text-blue-600 mb-2">4.8x</div>
-                <div className="text-gray-600">average return on investment</div>
+              <h3 className="text-xl font-bold mb-4">Digital Loyalty Cards</h3>
+              <p className="text-gray-600">Replace punch cards with beautiful digital loyalty cards that live in your customers' mobile wallets.</p>
+            </div>
+            
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center text-white mb-4 mx-auto">
+                <Star className="w-6 h-6" />
               </div>
-              <div>
-                <div className="text-3xl font-bold text-purple-600 mb-2">73%</div>
-                <div className="text-gray-600">modify spending to maximize benefits</div>
+              <h3 className="text-xl font-bold mb-4">VIP Memberships</h3>
+              <p className="text-gray-600">Create exclusive membership programs with tiered benefits that make customers feel special.</p>
+            </div>
+            
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center text-white mb-4 mx-auto">
+                <Sparkles className="w-6 h-6" />
               </div>
+              <h3 className="text-xl font-bold mb-4">Push Notifications</h3>
+              <p className="text-gray-600">Send unlimited push notifications directly to customers' lock screens at no extra cost.</p>
             </div>
           </div>
         </div>
