@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
 
     const { domain, domain_type, is_primary } = await request.json()
 
-    if (!domain || !domain_type) {
-      return NextResponse.json({ error: 'Domain and domain_type are required' }, { status: 400 })
+    if (!domain) {
+      return NextResponse.json({ error: 'Domain is required' }, { status: 400 })
     }
 
     // Validate domain format
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid domain format' }, { status: 400 })
     }
 
-    // Get current active account
+    // Try new account system first
     const { data: activeAccount } = await supabase
       .from('user_active_account')
       .select('active_account_id')
@@ -97,6 +97,27 @@ export async function POST(request: NextRequest) {
         .single()
 
       accountId = userAccounts?.account_id
+    }
+
+    // If no account found via new account system, check if this user's active account 
+    // is actually a business ID (businesses exist in both accounts and businesses tables)
+    if (!accountId) {
+      console.log('🔍 No account found via account system, checking if user has business in active account')
+      
+      // Check if the user has been set up with an active account that's a business
+      if (activeAccount?.active_account_id) {
+        // Verify this active_account_id exists in businesses table
+        const { data: businessData } = await supabase
+          .from('businesses')
+          .select('id, name')
+          .eq('id', activeAccount.active_account_id)
+          .single()
+
+        if (businessData) {
+          accountId = businessData.id
+          console.log('✅ Found business via active_account_id:', businessData.name, businessData.id)
+        }
+      }
     }
 
     if (!accountId) {
