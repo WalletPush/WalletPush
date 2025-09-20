@@ -88,7 +88,7 @@ export default function AgencyBusinessesPage() {
       }
       
     } catch (error) {
-      alert(`❌ LOAD FAILED: ${error.message}`)
+      alert(`❌ LOAD FAILED: ${error instanceof Error ? error.message : 'Unknown error'}`)
       setBusinesses([]) // No fallback - show empty state
     } finally {
       setIsLoading(false)
