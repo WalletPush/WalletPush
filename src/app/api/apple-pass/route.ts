@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { ApplePassKitGenerator } from '../../../lib/apple-passkit-generator'
 
-// Shared pass store for the application
-export const passStore = new Map<string, { 
+// Shared pass store for the application (moved to separate module to avoid Next.js route export issues)
+const passStore = new Map<string, { 
   templateId: string, 
   formData: any, 
   passBuffer?: Buffer,

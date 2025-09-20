@@ -1,5 +1,5 @@
 import { PassTypeIDStore } from './pass-type-id-store'
-import { extractPlaceholders, validatePlaceholderData } from './placeholder-validator'
+import { extractPlaceholdersFromTemplate, validatePlaceholderMapping } from './placeholder-validator'
 import fs from 'fs'
 import path from 'path'
 import { createHash } from 'crypto'
@@ -54,8 +54,8 @@ export class PassKitGenerator {
     }
 
     // 3. Validate placeholders
-    const requiredPlaceholders = extractPlaceholders(template.template_json)
-    const validationResult = validatePlaceholderData(requiredPlaceholders, formData)
+    const requiredPlaceholders = extractPlaceholdersFromTemplate(template.template_json)
+    const validationResult = validatePlaceholderMapping(template.template_json, formData)
     
     if (!validationResult.isValid) {
       throw new Error(`Missing required data: ${validationResult.missing.join(', ')}`)
