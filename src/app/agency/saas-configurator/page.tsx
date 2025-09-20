@@ -179,7 +179,7 @@ export default function SaasConfiguratorPage() {
       
     } catch (error) {
       console.error('❌ Failed to save packages:', error)
-      setError(`SAVE FAILED: ${error.message}`)
+      setError(`SAVE FAILED: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsSaving(false)
     }
