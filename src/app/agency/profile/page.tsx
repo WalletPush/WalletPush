@@ -359,7 +359,7 @@ export default function AgencyProfilePage() {
                   }`}>
                     {stats?.subscriptionStatus === 'owner' 
                       ? 'Owner' 
-                      : profile?.subscription_status?.charAt(0).toUpperCase() + profile?.subscription_status?.slice(1) || 'Trial'}
+                      : (profile?.subscription_status ? profile.subscription_status.charAt(0).toUpperCase() + profile.subscription_status.slice(1) : 'Trial')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
