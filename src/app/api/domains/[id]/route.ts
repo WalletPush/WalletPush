@@ -74,6 +74,8 @@ export async function DELETE(
     }
 
     console.log(`🗑️ Deleting domain: ${domain.domain} (ID: ${id})`)
+    console.log(`🔍 Using accountId: ${accountId} for business_id match`)
+    console.log(`🔍 Domain business_id: ${domain.business_id}`)
 
     // Step 1: Remove domain from Vercel if it exists
     if (domain.vercel_domain_id) {
@@ -88,15 +90,24 @@ export async function DELETE(
     }
 
     // Step 2: Delete domain from database
-    const { error: deleteError } = await supabase
+    console.log(`🗑️ Executing DELETE WHERE id='${id}' AND business_id='${accountId}'`)
+    
+    const { error: deleteError, count } = await supabase
       .from('custom_domains')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id)
       .eq('business_id', accountId)
+
+    console.log(`📊 Delete result: error=${deleteError}, count=${count}`)
 
     if (deleteError) {
       console.error('❌ Error deleting domain from database:', deleteError)
       return NextResponse.json({ error: 'Failed to delete domain' }, { status: 500 })
+    }
+
+    if (count === 0) {
+      console.error('❌ No rows deleted - accountId mismatch or domain not found')
+      return NextResponse.json({ error: 'Domain not found or access denied' }, { status: 404 })
     }
 
     console.log(`✅ Domain deleted successfully: ${domain.domain}`)
