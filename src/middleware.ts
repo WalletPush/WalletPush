@@ -16,10 +16,11 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request)
   }
 
-  // Handle domain-based tenant detection
-  const tenantInfo = await detectTenantFromDomain(hostname)
+  // TEMPORARILY DISABLE domain detection to fix Vercel middleware crash
+  // TODO: Re-enable after fixing environment variable issues
+  const tenantInfo = null // await detectTenantFromDomain(hostname)
   
-  if (tenantInfo) {
+  if (false && tenantInfo) {
     // Store tenant info in headers for downstream components
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('x-tenant-id', tenantInfo.accountId)
