@@ -197,13 +197,16 @@ export default function SettingsPage() {
   }
 
   const handleRemoveDomain = async (domainId: string) => {
+    alert(`🗑️ Remove domain function called with ID: ${domainId}`)
     console.log('🗑️ Remove domain clicked:', domainId)
     
     if (!confirm('Are you sure you want to remove this domain? This action cannot be undone.')) {
       console.log('❌ User cancelled deletion')
+      alert('❌ User cancelled deletion')
       return
     }
 
+    alert('✅ User confirmed deletion, proceeding...')
     console.log('✅ User confirmed deletion, proceeding...')
     
     try {
