@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ApplePassKitGenerator } from '../../../lib/apple-passkit-generator'
-import { setPassInStore, getPassStoreSize } from '../../../lib/pass-store'
+import { setPassInStore, getPassStoreSize } from '@/lib/pass-store'
 
 export async function POST(request: Request) {
   try {

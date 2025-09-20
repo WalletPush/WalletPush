@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ApplePassKitGenerator } from '../../../../../lib/apple-passkit-generator'
 // Use shared pass store from main route
-import { getPassFromStore, getPassStoreSize, passStore, setPassInStore } from '../../../../lib/pass-store'
+import { getPassFromStore, getPassStoreSize, passStore, setPassInStore } from '@/lib/pass-store'
 
 /**
  * DYNAMIC helper function to get the most recent template ID

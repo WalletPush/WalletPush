@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 // Import pass store for cache invalidation
-import { getPassStoreSize, clearPassStore } from '../../../lib/pass-store'
+import { getPassStoreSize, clearPassStore } from '@/lib/pass-store'
 
 // GOLDEN TRUTH: No fallbacks, no memory store - 100% database driven
 
