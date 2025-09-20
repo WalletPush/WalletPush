@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { cloudflare } from '@/lib/cloudflare'
+import { vercel } from '@/lib/vercel'
 
 // DELETE - Remove specific domain by ID
 export async function DELETE(
@@ -49,7 +49,7 @@ export async function DELETE(
     // Verify domain belongs to current account before deleting
     const { data: domain } = await supabase
       .from('custom_domains')
-      .select('id, domain, cloudflare_record_id')
+      .select('id, domain, vercel_domain_id')
       .eq('id', id)
       .eq('business_id', accountId)
       .single()
@@ -60,15 +60,15 @@ export async function DELETE(
 
     console.log(`🗑️ Deleting domain: ${domain.domain} (ID: ${id})`)
 
-    // Step 1: Clean up Cloudflare DNS record if it exists
-    if (domain.cloudflare_record_id) {
+    // Step 1: Remove domain from Vercel if it exists
+    if (domain.vercel_domain_id) {
       try {
-        console.log(`🌐 Removing Cloudflare DNS record: ${domain.cloudflare_record_id}`)
-        await cloudflare.deleteDNSRecord(domain.cloudflare_record_id)
-        console.log(`✅ Cloudflare DNS record removed successfully`)
-      } catch (cloudflareError) {
-        console.error(`❌ Failed to remove Cloudflare DNS record:`, cloudflareError)
-        // Continue with database deletion even if Cloudflare cleanup fails
+        console.log(`🌐 Removing domain from Vercel: ${domain.vercel_domain_id}`)
+        await vercel.removeDomain(domain.vercel_domain_id)
+        console.log(`✅ Domain removed from Vercel successfully`)
+      } catch (vercelError) {
+        console.error(`❌ Failed to remove domain from Vercel:`, vercelError)
+        // Continue with database deletion even if Vercel cleanup fails
       }
     }
 
@@ -88,7 +88,7 @@ export async function DELETE(
 
     return NextResponse.json({ 
       success: true,
-      message: `Domain ${domain.domain} deleted successfully. DNS records have been cleaned up.`
+      message: `Domain ${domain.domain} deleted successfully. Removed from Vercel and database.`
     })
     
   } catch (error) {

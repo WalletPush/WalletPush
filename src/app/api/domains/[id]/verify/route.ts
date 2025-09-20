@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { cloudflare } from '@/lib/cloudflare'
+import { vercel } from '@/lib/vercel'
 
 export async function POST(
   request: NextRequest,
@@ -32,37 +32,40 @@ export async function POST(
       return NextResponse.json({ error: 'Domain not found' }, { status: 404 })
     }
 
-    console.log(`🔍 Setting up custom domain: ${domain.domain}`)
+    console.log(`🚀 Adding domain to Vercel and verifying: ${domain.domain}`)
 
     let verified = false
     let sslVerified = false
-    let cloudflareRecordId = null
+    let vercelDomainId = null
+    let verificationInstructions = null
 
     try {
-      // Step 1: Add domain to Cloudflare with CNAME → walletpush.io
-      console.log(`🌐 Adding ${domain.domain} to Cloudflare...`)
+      // Step 1: Add domain to Vercel project
+      console.log(`🌐 Adding ${domain.domain} to Vercel project...`)
       
-      const cloudflareResult = await cloudflare.addCustomDomain(domain.domain, 'walletpush.io')
+      const vercelResult = await vercel.addAndVerifyDomain(domain.domain)
       
-      if (cloudflareResult.dnsRecord) {
-        cloudflareRecordId = cloudflareResult.dnsRecord.id
-        console.log(`✅ Cloudflare DNS record created: ${cloudflareRecordId}`)
+      if (vercelResult.domain) {
+        vercelDomainId = vercelResult.domain.name
+        verified = vercelResult.verified
+        verificationInstructions = vercelResult.verificationInstructions
         
-        // Step 2: Verify DNS configuration
-        verified = await cloudflare.verifyDNSConfiguration(domain.domain, 'walletpush.io')
+        console.log(`✅ Domain added to Vercel:`, {
+          domain: vercelResult.domain.name,
+          verified: verified,
+          needsVerification: !!verificationInstructions
+        })
         
         if (verified) {
-          sslVerified = true // Cloudflare handles SSL automatically
-          console.log(`✅ Custom domain ${domain.domain} configured successfully!`)
-          console.log(`🔒 SSL certificate will be issued automatically by Cloudflare`)
+          sslVerified = true // Vercel handles SSL automatically
+          console.log(`✅ Domain ${domain.domain} is verified and SSL enabled!`)
         } else {
-          console.log(`⏳ DNS record created but not yet propagated globally`)
-          verified = true // Consider it verified if we successfully created the record
-          sslVerified = true
+          console.log(`⏳ Domain added but requires DNS verification`)
+          console.log(`📋 Verification instructions:`, verificationInstructions)
         }
       }
-    } catch (cloudflareError) {
-      console.error(`❌ Cloudflare configuration failed for ${domain.domain}:`, cloudflareError)
+    } catch (vercelError) {
+      console.error(`❌ Vercel domain setup failed for ${domain.domain}:`, vercelError)
       
       // Fallback: Check if DNS is manually configured
       try {
@@ -78,8 +81,9 @@ export async function POST(
           for (const record of dnsData.Answer) {
             if (record.type === 5 && record.data && record.data.includes('walletpush.io')) {
               verified = true
-              sslVerified = true
+              sslVerified = false // No SSL without Vercel
               console.log(`✅ Found manually configured CNAME: ${record.data}`)
+              console.log(`⚠️ SSL not available - domain not in Vercel`)
               break
             }
           }
@@ -90,7 +94,7 @@ export async function POST(
       }
     }
 
-    // Store Cloudflare record ID for future management
+    // Store Vercel domain info for future management
     let updateData: any = {
       status: verified ? 'active' : 'pending',
       ssl_status: sslVerified ? 'active' : 'pending',
@@ -98,8 +102,12 @@ export async function POST(
       updated_at: new Date().toISOString()
     }
     
-    if (cloudflareRecordId) {
-      updateData.cloudflare_record_id = cloudflareRecordId
+    if (vercelDomainId) {
+      updateData.vercel_domain_id = vercelDomainId
+    }
+    
+    if (verificationInstructions) {
+      updateData.verification_instructions = JSON.stringify(verificationInstructions)
     }
 
     // Update domain status in database
@@ -120,10 +128,13 @@ export async function POST(
       ssl_verified: sslVerified,
       status: updateData.status,
       ssl_status: updateData.ssl_status,
-      cloudflare_record_id: cloudflareRecordId,
+      vercel_domain_id: vercelDomainId,
+      verification_instructions: verificationInstructions,
       message: verified ? 
-        'Domain configured successfully with Cloudflare proxy! SSL certificate will be issued automatically.' : 
-        'Domain configuration failed. Please check the logs.'
+        'Domain added to Vercel successfully! SSL certificate will be issued automatically.' : 
+        verificationInstructions ? 
+          'Domain added to Vercel but requires DNS verification. Please configure the DNS records shown.' :
+          'Domain configuration failed. Please check the logs.'
     })
     
   } catch (error) {
