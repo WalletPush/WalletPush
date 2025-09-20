@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
-// Create service role client for webhook processing
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
+// Force dynamic rendering - don't try to statically generate this API route
+export const dynamic = 'force-dynamic'
+import { createClient } from '@supabase/supabase-js'
 
 // Apple Wallet Webhook Handler - Processes PassKit events and triggers automations
 export async function POST(request: NextRequest) {
+  // Create service role client for webhook processing (inside function to avoid build-time issues)
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  )
   try {
     const body = await request.json()
     const { 
