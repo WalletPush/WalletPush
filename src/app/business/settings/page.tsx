@@ -218,7 +218,7 @@ DNS CONFIGURATION FOR: ${domain}
 To configure your domain, add these DNS records:
 
 1. CNAME Record:
-   - Host: @ (or your subdomain)
+   - Host: @ (for root domain) or subdomain name only
    - Value: walletpush.io
    - TTL: 3600
 
@@ -422,8 +422,8 @@ Need help? Contact support@walletpush.io
                             </p>
                             <div className="mt-2 font-mono text-xs bg-yellow-100 p-2 rounded">
                               <div>Type: CNAME</div>
-                              <div>Name: {domain.domain}</div>
-                              <div>Value: app.walletpush.io</div>
+                              <div>Name: @ (for {domain.domain})</div>
+                              <div>Value: walletpush.io</div>
                             </div>
                           </div>
                         )}
