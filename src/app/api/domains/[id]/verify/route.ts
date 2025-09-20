@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-
-const execAsync = promisify(exec)
 
 export async function POST(
   request: NextRequest,
@@ -37,34 +33,68 @@ export async function POST(
 
     console.log(`🔍 Verifying DNS for domain: ${domain.domain}`)
 
-    // Check DNS resolution using nslookup
+    // Check DNS resolution using DNS over HTTPS API
     let verified = false
     let sslVerified = false
 
     try {
-      // Check CNAME record
-      const { stdout, stderr } = await execAsync(`nslookup ${domain.domain}`)
-      console.log(`📡 DNS lookup result for ${domain.domain}:`)
-      console.log('STDOUT:', stdout)
-      console.log('STDERR:', stderr)
+      // Use Cloudflare's DNS over HTTPS API to check DNS records
+      const dnsResponse = await fetch(`https://cloudflare-dns.com/dns-query?name=${domain.domain}&type=CNAME`, {
+        headers: {
+          'Accept': 'application/dns-json'
+        }
+      })
+
+      const dnsData = await dnsResponse.json()
+      console.log(`📡 DNS lookup result for ${domain.domain}:`, JSON.stringify(dnsData, null, 2))
       
-      // Check if it resolves to walletpush.io or our IP
-      const hasWalletPush = stdout.includes('walletpush.io')
-      const hasCorrectIP = stdout.includes('216.198.79.1')
-      const hasCNAME = stdout.includes('canonical name')
+      // Check if CNAME record points to walletpush.io
+      let hasWalletPush = false
+      let hasCorrectIP = false
+      
+      if (dnsData.Answer && dnsData.Answer.length > 0) {
+        // Check CNAME records
+        for (const record of dnsData.Answer) {
+          if (record.type === 5 && record.data && record.data.includes('walletpush.io')) {
+            hasWalletPush = true
+            console.log(`✅ Found CNAME pointing to walletpush.io: ${record.data}`)
+            break
+          }
+        }
+      }
+
+      // Also check A record to see if it resolves to our IP
+      if (!hasWalletPush) {
+        const aResponse = await fetch(`https://cloudflare-dns.com/dns-query?name=${domain.domain}&type=A`, {
+          headers: {
+            'Accept': 'application/dns-json'
+          }
+        })
+        
+        const aData = await aResponse.json()
+        console.log(`📡 A record lookup for ${domain.domain}:`, JSON.stringify(aData, null, 2))
+        
+        if (aData.Answer && aData.Answer.length > 0) {
+          for (const record of aData.Answer) {
+            if (record.type === 1 && record.data === '216.198.79.1') {
+              hasCorrectIP = true
+              console.log(`✅ Found A record pointing to correct IP: ${record.data}`)
+              break
+            }
+          }
+        }
+      }
       
       console.log(`🔍 Verification checks:`)
-      console.log(`  - Contains 'walletpush.io': ${hasWalletPush}`)
-      console.log(`  - Contains '216.198.79.1': ${hasCorrectIP}`)
-      console.log(`  - Has CNAME record: ${hasCNAME}`)
+      console.log(`  - CNAME points to 'walletpush.io': ${hasWalletPush}`)
+      console.log(`  - A record points to '216.198.79.1': ${hasCorrectIP}`)
       
       if (hasWalletPush || hasCorrectIP) {
         verified = true
         sslVerified = true // For simplicity, assume SSL is OK if DNS is working
         console.log(`✅ DNS verification successful for ${domain.domain}`)
       } else {
-        console.log(`❌ DNS verification failed for ${domain.domain} - not pointing to walletpush.io`)
-        console.log(`❌ Full stdout: "${stdout}"`)
+        console.log(`❌ DNS verification failed for ${domain.domain} - not pointing to walletpush.io or correct IP`)
       }
     } catch (dnsError) {
       console.error(`❌ DNS lookup failed for ${domain.domain}:`, dnsError)
