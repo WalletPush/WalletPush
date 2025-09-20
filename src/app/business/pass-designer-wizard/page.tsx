@@ -171,9 +171,15 @@ export default function PassDesignerWizardPage() {
     loadPassTypeIds()
   }, [])
 
+  const [uploadingImages, setUploadingImages] = useState<{[key: string]: boolean}>({})
+
   const handleImageUpload = async (file: File, type: 'logo' | 'icon' | 'strip') => {
+    // Set uploading state
+    setUploadingImages(prev => ({ ...prev, [type]: true }))
+    
     const formData = new FormData()
     formData.append('file', file)
+    formData.append('type', type)
 
     try {
       const response = await fetch('/api/upload-image', {
@@ -181,9 +187,11 @@ export default function PassDesignerWizardPage() {
         body: formData
       })
       
-      if (!response.ok) throw new Error('Upload failed')
-      
       const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed')
+      }
       
       if (type === 'logo') {
         setWizardData(prev => ({ ...prev, logo: result.url }))
@@ -192,9 +200,15 @@ export default function PassDesignerWizardPage() {
       } else if (type === 'strip') {
         setWizardData(prev => ({ ...prev, stripImage: result.url }))
       }
+
+      console.log(`✅ ${type} uploaded successfully:`, result.fileName)
     } catch (error) {
       console.error('Error uploading image:', error)
-      alert('Failed to upload image. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
+      alert(`Upload failed: ${errorMessage}. Please try again.`)
+    } finally {
+      // Clear uploading state
+      setUploadingImages(prev => ({ ...prev, [type]: false }))
     }
   }
 
@@ -431,9 +445,17 @@ export default function PassDesignerWizardPage() {
                       />
                       <button
                         onClick={() => logoInputRef.current?.click()}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        disabled={uploadingImages.logo}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >
-                        Choose Logo
+                        {uploadingImages.logo ? (
+                          <>
+                            <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          'Choose Logo'
+                        )}
                       </button>
                     </div>
                   )}
@@ -474,9 +496,17 @@ export default function PassDesignerWizardPage() {
                       />
                       <button
                         onClick={() => iconInputRef.current?.click()}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        disabled={uploadingImages.icon}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >
-                        Choose Icon
+                        {uploadingImages.icon ? (
+                          <>
+                            <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          'Choose Icon'
+                        )}
                       </button>
                     </div>
                   )}
@@ -517,9 +547,17 @@ export default function PassDesignerWizardPage() {
                       />
                       <button
                         onClick={() => stripInputRef.current?.click()}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        disabled={uploadingImages.strip}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >
-                        Choose Strip
+                        {uploadingImages.strip ? (
+                          <>
+                            <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          'Choose Strip'
+                        )}
                       </button>
                     </div>
                   )}
