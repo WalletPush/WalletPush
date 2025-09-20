@@ -3,8 +3,184 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export async function middleware(request: NextRequest) {
-  // MIDDLEWARE COMPLETELY DISABLED - JUST PASS THROUGH
-  return NextResponse.next()
+  const hostname = request.headers.get('host') || 'localhost:3000'
+  const pathname = request.nextUrl.pathname
+  
+  // Skip middleware for API routes, static files, and internal Next.js routes
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js)$/)
+  ) {
+    return await updateSession(request)
+  }
+
+  // Skip for localhost development
+  if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+    return await updateSession(request)
+  }
+
+  // Handle custom domains for landing pages
+  if (hostname !== 'walletpush.io' && !hostname.includes('vercel.app')) {
+    const landingPageResponse = await handleCustomDomainLandingPage(request, hostname, pathname)
+    if (landingPageResponse) {
+      return landingPageResponse
+    }
+  }
+
+  // Handle walletpush.io subdomain routing for businesses
+  if (hostname.includes('walletpush.io') && hostname !== 'walletpush.io') {
+    const subdomainResponse = await handleSubdomainRouting(request, hostname, pathname)
+    if (subdomainResponse) {
+      return subdomainResponse
+    }
+  }
+
+  // Default behavior
+  return await updateSession(request)
+}
+
+// Handle custom domains for landing pages
+async function handleCustomDomainLandingPage(request: NextRequest, hostname: string, pathname: string) {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Check if this domain is registered in account_domains
+    const { data: domainData } = await supabase
+      .from('account_domains')
+      .select(`
+        domain,
+        domain_type,
+        account_id,
+        accounts!inner (
+          id,
+          type,
+          name
+        )
+      `)
+      .eq('domain', hostname)
+      .single()
+
+    if (!domainData) {
+      return null // Not a registered custom domain
+    }
+
+    // Look for landing pages for this business/account
+    const { data: landingPage } = await supabase
+      .from('landing_pages')
+      .select('*')
+      .eq('business_id', domainData.account_id)
+      .or(`custom_url.eq.${pathname.slice(1)},custom_url.ilike.%/${pathname.slice(1)}`)
+      .eq('is_published', true)
+      .single()
+
+    if (landingPage) {
+      // Serve the landing page HTML directly
+      return new NextResponse(landingPage.generated_html, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html',
+          'X-Custom-Domain': hostname,
+          'X-Account-ID': domainData.account_id
+        }
+      })
+    }
+
+    // If no specific landing page found, check for default homepage
+    if (pathname === '/') {
+      const { data: defaultPage } = await supabase
+        .from('landing_pages')
+        .select('*')
+        .eq('business_id', domainData.account_id)
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (defaultPage) {
+        return new NextResponse(defaultPage.generated_html, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html',
+            'X-Custom-Domain': hostname,
+            'X-Account-ID': domainData.account_id
+          }
+        })
+      }
+    }
+
+    return null // Let it continue to 404
+  } catch (error) {
+    console.error('❌ Custom domain handling error:', error)
+    return null
+  }
+}
+
+// Handle subdomain routing for businesses (e.g., business1.walletpush.io)
+async function handleSubdomainRouting(request: NextRequest, hostname: string, pathname: string) {
+  try {
+    const subdomain = hostname.split('.')[0]
+    
+    if (['www', 'api', 'admin', 'app'].includes(subdomain)) {
+      return null // Skip common subdomains
+    }
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Look for business by subdomain or account name
+    const { data: accountData } = await supabase
+      .from('accounts')
+      .select('id, name, type')
+      .or(`name.ilike.${subdomain},custom_subdomain.eq.${subdomain}`)
+      .eq('type', 'business')
+      .single()
+
+    if (accountData) {
+      // Look for landing pages for this business
+      const { data: landingPage } = await supabase
+        .from('landing_pages')
+        .select('*')
+        .eq('business_id', accountData.id)
+        .or(`custom_url.eq.${pathname.slice(1)},custom_url.ilike.%/${pathname.slice(1)}`)
+        .eq('is_published', true)
+        .single()
+
+      if (landingPage) {
+        return new NextResponse(landingPage.generated_html, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html',
+            'X-Subdomain': subdomain,
+            'X-Account-ID': accountData.id
+          }
+        })
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error('❌ Subdomain routing error:', error)
+    return null
+  }
 }
 
   // DISABLED CODE BELOW - CAUSING CRASHES

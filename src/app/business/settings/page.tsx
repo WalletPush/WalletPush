@@ -46,23 +46,9 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
   
   // Custom Domains State
-  const [customDomains, setCustomDomains] = useState<CustomDomain[]>([
-    {
-      id: '1',
-      domain: 'membership.mybusiness.com',
-      status: 'active',
-      sslStatus: 'active',
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2', 
-      domain: 'loyalty.acmecorp.com',
-      status: 'pending',
-      sslStatus: 'pending',
-      createdAt: '2024-01-20'
-    }
-  ])
+  const [customDomains, setCustomDomains] = useState<CustomDomain[]>([])
   const [newDomain, setNewDomain] = useState('')
+  const [loadingDomains, setLoadingDomains] = useState(true)
 
   // SMTP Settings State
   const [smtpSettings, setSmtpSettings] = useState<SMTPSettings>({
@@ -103,28 +89,73 @@ export default function SettingsPage() {
         console.error('Error loading OpenRouter settings:', error)
       }
     }
+
+    const loadDomains = async () => {
+      try {
+        const response = await fetch('/api/domains')
+        const result = await response.json()
+        
+        if (response.ok) {
+          setCustomDomains(result.domains?.map((d: any) => ({
+            id: d.id,
+            domain: d.domain,
+            status: d.is_verified ? 'active' : 'pending',
+            sslStatus: d.ssl_status || 'pending',
+            createdAt: new Date(d.created_at).toLocaleDateString()
+          })) || [])
+        }
+      } catch (error) {
+        console.error('Error loading domains:', error)
+      } finally {
+        setLoadingDomains(false)
+      }
+    }
     
     loadSettings()
+    loadDomains()
   }, [])
 
   const handleAddDomain = async () => {
     if (!newDomain) return
     
     setIsLoading(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
     
-    const domain: CustomDomain = {
-      id: Date.now().toString(),
-      domain: newDomain,
-      status: 'pending',
-      sslStatus: 'pending',
-      createdAt: new Date().toISOString().split('T')[0]
+    try {
+      const response = await fetch('/api/domains', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          domain: newDomain,
+          domain_type: 'customer',
+          is_primary: false
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        const newDomainObj: CustomDomain = {
+          id: result.domain.id,
+          domain: result.domain.domain,
+          status: 'pending',
+          sslStatus: 'pending',
+          createdAt: new Date().toLocaleDateString()
+        }
+        
+        setCustomDomains([...customDomains, newDomainObj])
+        setNewDomain('')
+        alert('Domain added successfully! Please configure your DNS settings.')
+      } else {
+        alert(`Failed to add domain: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error adding domain:', error)
+      alert('Failed to add domain. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
-    
-    setCustomDomains([...customDomains, domain])
-    setNewDomain('')
-    setIsLoading(false)
   }
 
   const handleSaveSMTP = async () => {
