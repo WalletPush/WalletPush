@@ -235,6 +235,41 @@ Need help? Contact support@walletpush.io
     alert(dnsInstructions)
   }
 
+  const handleVerifyDomain = async (domainId: string, domain: string) => {
+    try {
+      // Get the session for authentication
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        alert('You must be logged in to verify domains')
+        return
+      }
+
+      const response = await fetch(`/api/domains/${domainId}/verify`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        // Refresh the domains list
+        await loadDomains()
+        alert(`Domain verification: ${result.verified ? 'SUCCESS! Domain is now active.' : 'DNS records not found yet. Please check your DNS configuration.'}`)
+      } else {
+        alert(`Verification failed: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error verifying domain:', error)
+      alert('Failed to verify domain. Please try again.')
+    }
+  }
+
   const handleSaveSMTP = async () => {
     setIsLoading(true)
     // Simulate API call
@@ -435,6 +470,14 @@ Need help? Contact support@walletpush.io
                         >
                           Configure
                         </button>
+                        {domain.status === 'pending' && (
+                          <button 
+                            onClick={() => handleVerifyDomain(domain.id, domain.domain)}
+                            className="px-3 py-1 text-sm text-green-600 hover:bg-green-50 rounded"
+                          >
+                            Verify
+                          </button>
+                        )}
                         <button 
                           onClick={() => handleRemoveDomain(domain.id)}
                           className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
