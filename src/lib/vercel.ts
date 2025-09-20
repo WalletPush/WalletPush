@@ -42,12 +42,16 @@ export interface VercelDomainResponse {
 }
 
 class VercelAPI {
-  private token: string
-  private projectId: string
-  private teamId?: string
+  private token: string | null = null
+  private projectId: string | null = null
+  private teamId: string | null = null
   private baseUrl = 'https://api.vercel.com'
 
-  constructor() {
+  private initialize() {
+    if (this.token && this.projectId) {
+      return // Already initialized
+    }
+
     this.token = process.env.VERCEL_TOKEN || ''
     this.projectId = process.env.VERCEL_PROJECT_ID || ''
     this.teamId = process.env.VERCEL_TEAM_ID || ''
@@ -61,6 +65,8 @@ class VercelAPI {
   }
 
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
+    this.initialize() // Ensure API credentials are loaded
+    
     const url = `${this.baseUrl}${endpoint}`
     
     // Add team ID to query params if available
@@ -220,6 +226,3 @@ class VercelAPI {
 
 // Export singleton instance
 export const vercel = new VercelAPI()
-
-// Export types
-export type { VercelDomain, VercelDomainResponse }
