@@ -3,14 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export async function middleware(request: NextRequest) {
-  // COMPLETELY DISABLE MIDDLEWARE TO FIX VERCEL CRASHES
-  // Just pass through with basic session update
-  try {
-    return await updateSession(request)
-  } catch (error) {
-    console.error('Middleware error:', error)
-    return NextResponse.next()
-  }
+  // MIDDLEWARE COMPLETELY DISABLED - JUST PASS THROUGH
+  return NextResponse.next()
+}
 
   // DISABLED CODE BELOW - CAUSING CRASHES
   /*
