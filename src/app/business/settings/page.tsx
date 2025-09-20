@@ -194,13 +194,30 @@ export default function SettingsPage() {
     }
 
     try {
+      // Get the session for authentication
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        alert('Authentication required. Please refresh the page and try again.')
+        return
+      }
+
       const response = await fetch(`/api/domains/${domainId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       })
 
       if (response.ok) {
+        // Remove from local state immediately
         setCustomDomains(customDomains.filter(d => d.id !== domainId))
         alert('Domain removed successfully!')
+        
+        // Reload domains to ensure consistency
+        await loadDomains()
       } else {
         const result = await response.json()
         alert(`Failed to remove domain: ${result.error}`)
