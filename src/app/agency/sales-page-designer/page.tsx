@@ -413,40 +413,53 @@ export default function SalesPageDesignerPage() {
     }))
   }
 
+  const [uploadingImages, setUploadingImages] = useState<{[key: string]: boolean}>({})
+
   const handleFileUpload = async (file: File, type: 'logo' | 'background' | 'social' | 'additional') => {
+    // Set uploading state
+    setUploadingImages(prev => ({ ...prev, [type]: true }))
+
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('type', type)
 
-      // TODO: Replace with actual upload API
-      // const response = await fetch('/api/upload', {
-      //   method: 'POST',
-      //   body: formData
-      // })
-      // const data = await response.json()
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData
+      })
       
-      // For now, create a mock URL
-      const mockUrl = URL.createObjectURL(file)
+      const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed')
+      }
       
       if (type === 'logo') {
-        updateWizardData({ logo: mockUrl })
+        updateWizardData({ logo: result.url })
       } else if (type === 'background') {
-        updateWizardData({ backgroundImage: mockUrl })
+        updateWizardData({ backgroundImage: result.url })
       } else if (type === 'social') {
-        updateWizardData({ socialImage: mockUrl })
+        updateWizardData({ socialImage: result.url })
       } else if (type === 'additional') {
         const newImage = {
           id: Date.now().toString(),
-          url: mockUrl,
+          url: result.url,
           name: file.name
         }
         updateWizardData({
           additionalImages: [...wizardData.additionalImages, newImage]
         })
       }
+
+      console.log(`✅ ${type} uploaded successfully:`, result.fileName)
     } catch (error) {
       console.error('Upload failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
+      alert(`Upload failed: ${errorMessage}. Please try again.`)
+    } finally {
+      // Clear uploading state
+      setUploadingImages(prev => ({ ...prev, [type]: false }))
     }
   }
 
@@ -961,9 +974,17 @@ export default function SalesPageDesignerPage() {
                         <p className="text-slate-600 mb-2">Upload your logo</p>
                         <button
                           onClick={() => logoInputRef.current?.click()}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                          disabled={uploadingImages.logo}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                          Choose Logo
+                          {uploadingImages.logo ? (
+                            <>
+                              <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            'Choose Logo'
+                          )}
                         </button>
                       </div>
                     </div>
@@ -1004,9 +1025,17 @@ export default function SalesPageDesignerPage() {
                         <p className="text-slate-600 mb-2">Upload hero image</p>
                         <button
                           onClick={() => backgroundInputRef.current?.click()}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                          disabled={uploadingImages.background}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                          Choose Hero Image
+                          {uploadingImages.background ? (
+                            <>
+                              <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            'Choose Hero Image'
+                          )}
                         </button>
                       </div>
                     </div>

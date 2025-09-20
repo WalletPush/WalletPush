@@ -313,9 +313,15 @@ export default function DistributionPage() {
     }
   }, [wizardData.programTemplate])
 
+  const [uploadingImages, setUploadingImages] = useState<{[key: string]: boolean}>({})
+
   const handleImageUpload = async (file: File, type: 'logo' | 'background' | 'social' | 'additional') => {
+    // Set uploading state
+    setUploadingImages(prev => ({ ...prev, [type]: true }))
+
     const formData = new FormData()
     formData.append('file', file)
+    formData.append('type', type)
 
     try {
       const response = await fetch('/api/upload-image', {
@@ -323,9 +329,11 @@ export default function DistributionPage() {
         body: formData
       })
       
-      if (!response.ok) throw new Error('Upload failed')
-      
       const result = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed')
+      }
       
       if (type === 'logo') {
         setWizardData(prev => ({
@@ -352,9 +360,15 @@ export default function DistributionPage() {
           }]
         }))
       }
+
+      console.log(`✅ ${type} uploaded successfully:`, result.fileName)
     } catch (error) {
       console.error('Error uploading image:', error)
-      alert('Failed to upload image. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
+      alert(`Upload failed: ${errorMessage}. Please try again.`)
+    } finally {
+      // Clear uploading state
+      setUploadingImages(prev => ({ ...prev, [type]: false }))
     }
   }
 
