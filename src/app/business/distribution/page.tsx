@@ -1851,7 +1851,7 @@ Make it modern, professional, and conversion-focused.`
                               ) : (
                                 <div className="flex items-center gap-2 mt-1">
                                   <a
-                                    href={`/api/public/landing-page/${page.custom_url}`}
+                                    href={`/api/public/landing-page/${page.custom_url.includes('/') ? page.custom_url.split('/').pop() : page.custom_url}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
@@ -1889,7 +1889,7 @@ Make it modern, professional, and conversion-focused.`
                         </div>
                         <div className="flex gap-2 ml-4">
                           <a
-                            href={`/api/public/landing-page/${page.custom_url}`}
+                            href={`/api/public/landing-page/${page.custom_url.includes('/') ? page.custom_url.split('/').pop() : page.custom_url}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 px-3 py-1 text-blue-600 hover:text-blue-700 border border-blue-600 rounded-md hover:bg-blue-50"
