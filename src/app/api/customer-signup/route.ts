@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
             id,
             template_json,
             passkit_json,
+            pass_type_identifier,
             programs (
               id,
               name
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
           id,
           template_json,
           passkit_json,
+          pass_type_identifier,
           programs (
             id,
             name
