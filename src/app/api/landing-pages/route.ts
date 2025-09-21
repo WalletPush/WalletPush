@@ -49,13 +49,13 @@ export async function POST(request: NextRequest) {
       
       const { data: templateData, error: templateError } = await supabase
         .from('templates')
-        .select('account_id, program_id, programs!inner(account_id)')
+        .select('account_id')
         .eq('id', selectedTemplateId)
         .single()
       
       if (templateData && !templateError) {
-        // Get business_id from template's account_id or program's account_id
-        business_id = templateData.account_id || templateData.programs?.account_id
+        // Get business_id from template's account_id
+        business_id = templateData.account_id
         console.log('✅ Found business_id from template:', business_id)
       } else {
         console.warn('⚠️ Could not get business_id from template:', templateError)

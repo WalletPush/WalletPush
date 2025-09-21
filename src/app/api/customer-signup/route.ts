@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
             template_json,
             passkit_json,
             pass_type_identifier,
+            account_id,
             programs (
               id,
               name
@@ -72,7 +73,10 @@ export async function POST(request: NextRequest) {
       }
       
       landingPage = foundLandingPage
-      template = landingPage.templates
+      // Handle template from landing page join (could be object or array)
+      template = Array.isArray(landingPage.templates) 
+        ? landingPage.templates[0] 
+        : landingPage.templates
     } else if (template_id) {
       // Use the specific template ID provided
       console.log('🎯 Using provided template ID:', template_id)
@@ -84,6 +88,7 @@ export async function POST(request: NextRequest) {
           template_json,
           passkit_json,
           pass_type_identifier,
+          account_id,
           programs (
             id,
             name
@@ -112,6 +117,7 @@ export async function POST(request: NextRequest) {
           id,
           template_json,
           passkit_json,
+          account_id,
           programs (
             id,
             name
