@@ -484,6 +484,11 @@ export async function POST(request: NextRequest) {
         business_id,
         customer_id: customer.id
       })
+      
+      // 🔍 ADDITIONAL DEBUG: Log the full actualTemplate object
+      console.log('🔍 Full actualTemplate object:', JSON.stringify(actualTemplate, null, 2))
+      console.log('🔍 actualTemplate.program_id type:', typeof actualTemplate.program_id)
+      console.log('🔍 actualTemplate.program_id value:', actualTemplate.program_id)
 
       // 6. Save complete pass data to passes table
       console.log('🔍 STEP 6: Starting pass data save to passes table')
@@ -505,10 +510,48 @@ export async function POST(request: NextRequest) {
         passDataJson = {}
       }
 
+      // 🔍 CRITICAL FIX: Ensure program_id is not null
+      let program_id = actualTemplate.program_id
+      
+      // If program_id is null/undefined, try to get it from the programs relation
+      if (!program_id && actualTemplate.programs) {
+        const programs = actualTemplate.programs
+        if (Array.isArray(programs) && programs[0]) {
+          program_id = programs[0].id
+        } else if (programs && typeof programs === 'object') {
+          program_id = programs.id
+        }
+        console.log('🔍 Retrieved program_id from programs relation:', program_id)
+      }
+      
+      // If still no program_id, this is a critical error
+      if (!program_id) {
+        console.error('❌ CRITICAL: No program_id found for template:', actualTemplate.id)
+        console.error('❌ Template details:', {
+          id: actualTemplate.id,
+          program_id: actualTemplate.program_id,
+          programs: actualTemplate.programs,
+          account_id: actualTemplate.account_id
+        })
+        
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Template is missing program association. Please contact support.',
+            debug: {
+              template_id: actualTemplate.id,
+              program_id: actualTemplate.program_id,
+              programs: actualTemplate.programs
+            }
+          },
+          { status: 500 }
+        )
+      }
+
       const insertData = {
         customer_id: customer.id,
         business_id,
-        program_id: actualTemplate.program_id,
+        program_id: program_id,
         template_id: actualTemplate.id,
         platform: 'apple',
         serial: passResult.response.serialNumber,
