@@ -513,8 +513,18 @@ export async function POST(request: NextRequest) {
           object_id: passResult.response.passTypeIdentifier
         })
         console.error('❌ Full passError details:', JSON.stringify(passError, null, 2))
-        // Don't fail the whole request - customer is already saved
-        console.warn('⚠️ Pass data not saved to passes table, but customer signup successful')
+        
+        // CRITICAL: Delete the customer if pass creation fails to avoid orphaned records
+        await supabase.from('customers').delete().eq('id', customer.id)
+        
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Failed to create your pass. Please try again.',
+            debug: process.env.NODE_ENV === 'development' ? passError : undefined
+          },
+          { status: 500 }
+        )
       } else {
         console.log('✅ Pass data saved successfully:', passRecord.id)
       }
