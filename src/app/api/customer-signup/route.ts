@@ -360,14 +360,15 @@ export async function POST(request: NextRequest) {
       // Use processed data if available, otherwise fallback to existing formData
       const finalFormData = processingResult?.processedData || formData
       
-      console.log('🎯 Final form data for pass generation:', finalFormData)
-      
-      // 🔍 CRITICAL DEBUG: Log template data being passed to generator
-      console.log('🔍 TEMPLATE DEBUG - actualTemplate.id:', actualTemplate.id)
-      console.log('🔍 TEMPLATE DEBUG - templatePassTypeIdentifier:', templatePassTypeIdentifier)
-      console.log('🔍 TEMPLATE DEBUG - actualTemplate keys:', Object.keys(actualTemplate))
-      console.log('🔍 TEMPLATE DEBUG - passkit_json exists:', !!actualTemplate.passkit_json)
-      console.log('🔍 TEMPLATE DEBUG - template_json exists:', !!actualTemplate.template_json)
+      // 🔍 CRITICAL DEBUG: Inline template debugging
+      const templateDebugInfo = {
+        actualTemplate_id: actualTemplate.id,
+        templatePassTypeIdentifier: templatePassTypeIdentifier,
+        actualTemplate_keys: Object.keys(actualTemplate),
+        passkit_json_exists: !!actualTemplate.passkit_json,
+        template_json_exists: !!actualTemplate.template_json,
+        finalFormData: finalFormData
+      }
 
       const templateOverrideData = {
         id: actualTemplate.id,
@@ -377,8 +378,6 @@ export async function POST(request: NextRequest) {
         program_id: actualTemplate.program_id,
         account_id: actualTemplate.account_id
       }
-      
-      console.log('🔍 TEMPLATE OVERRIDE DATA:', JSON.stringify(templateOverrideData, null, 2))
 
       const passResult = await ApplePassKitGenerator.generateApplePass({
         templateId: actualTemplate.id,
@@ -388,15 +387,15 @@ export async function POST(request: NextRequest) {
         templateOverride: templateOverrideData as any
       })
 
-      console.log('✅ Pass generated successfully:', {
+      // 🔍 INLINE DEBUG: Pass generation results
+      const passGenerationDebug = {
+        pass_generated_successfully: true,
         serialNumber: passResult.response.serialNumber,
-        passTypeIdentifier: passResult.response.passTypeIdentifier
-      })
-
-      // 🔍 DEBUG: Log the actual pass data being saved
-      console.log('🔍 Pass actualData to be saved:', JSON.stringify(passResult.actualData, null, 2))
-      console.log('🔍 Pass actualData type:', typeof passResult.actualData)
-      console.log('🔍 Pass actualData keys:', Object.keys(passResult.actualData || {}))
+        passTypeIdentifier: passResult.response.passTypeIdentifier,
+        actualData_type: typeof passResult.actualData,
+        actualData_keys: Object.keys(passResult.actualData || {}),
+        actualData_sample: passResult.actualData
+      }
 
       // 5. Save customer to database with pass details and initial business intelligence values
       const { data: customer, error: customerError } = await supabase
@@ -498,10 +497,12 @@ export async function POST(request: NextRequest) {
         customer_id: customer.id
       })
       
-      // 🔍 ADDITIONAL DEBUG: Log the full actualTemplate object
-      console.log('🔍 Full actualTemplate object:', JSON.stringify(actualTemplate, null, 2))
-      console.log('🔍 actualTemplate.program_id type:', typeof actualTemplate.program_id)
-      console.log('🔍 actualTemplate.program_id value:', actualTemplate.program_id)
+      // 🔍 INLINE DEBUG: Full template analysis
+      const fullTemplateDebug = {
+        full_actualTemplate: actualTemplate,
+        program_id_type: typeof actualTemplate.program_id,
+        program_id_value: actualTemplate.program_id
+      }
 
       // 6. Save complete pass data to passes table
       console.log('🔍 STEP 6: Starting pass data save to passes table')
@@ -554,7 +555,9 @@ export async function POST(request: NextRequest) {
             debug: {
               template_id: actualTemplate.id,
               program_id: actualTemplate.program_id,
-              programs: actualTemplate.programs
+              programs: actualTemplate.programs,
+              fullTemplateDebug,
+              templateDebugInfo
             }
           },
           { status: 500 }
@@ -633,16 +636,28 @@ export async function POST(request: NextRequest) {
         console.log('✅ Pass data saved successfully:', passRecord.id)
       }
 
-      // 7. Return success response with pass details
+      // 7. Return success response with pass details and inline debugging
       return NextResponse.json({
         success: true,
         message: 'Welcome! Your pass has been created successfully.',
         customer_id: customer.id,
         pass_serial_number: passResult.response.serialNumber,
         pass_type_identifier: passResult.response.passTypeIdentifier,
-        pass_url: passResult.response.downloadUrl, // Add this for the success page
+        pass_url: passResult.response.downloadUrl,
         download_url: passResult.response.downloadUrl,
-        pass_data: passResult.actualData
+        pass_data: passResult.actualData,
+        // 🔍 INLINE DEBUG INFO
+        debug_info: {
+          templateDebugInfo,
+          templateOverrideData: {
+            id: templateOverrideData.id,
+            pass_type_identifier: templateOverrideData.pass_type_identifier,
+            has_passkit_json: !!templateOverrideData.passkit_json,
+            has_template_json: !!templateOverrideData.template_json
+          },
+          passGenerationDebug,
+          fullTemplateDebug
+        }
       })
 
     } catch (passError) {
