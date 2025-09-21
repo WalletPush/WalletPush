@@ -550,7 +550,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { 
             success: false, 
-            error: 'Failed to create your pass. Please try again.',
+            error: `Pass creation failed. Debug: ${JSON.stringify({
+              passError: passError,
+              insertData: insertData,
+              template: {
+                id: actualTemplate.id,
+                program_id: actualTemplate.program_id,
+                account_id: actualTemplate.account_id
+              }
+            }, null, 2)}`,
             debug: {
               passError: passError,
               insertData: insertData,
