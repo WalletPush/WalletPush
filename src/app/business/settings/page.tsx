@@ -296,7 +296,13 @@ Need help? Contact support@walletpush.io
       if (response.ok) {
         // Refresh the domains list
         await loadDomains()
-        alert(`Domain verification: ${result.verified ? 'SUCCESS! Domain is now active.' : 'DNS records not found yet. Please check your DNS configuration.'}`)
+        let msg = result.verified ? 'SUCCESS! Domain is now active.' : 'DNS records not found yet. Please check your DNS configuration.'
+        if (result.deployment_triggered) {
+          msg += ' A production deployment has been triggered automatically.'
+        } else if (result.deployment_message) {
+          msg += ` (${result.deployment_message})`
+        }
+        alert(`Domain verification: ${msg}`)
       } else {
         alert(`Verification failed: ${result.error}`)
       }

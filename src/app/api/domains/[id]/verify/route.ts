@@ -137,6 +137,20 @@ export async function POST(
       updateData.verification_instructions = JSON.stringify(verificationInstructions)
     }
 
+    // If Vercel reports no production deployments, attempt to trigger one
+    let deploymentTriggered: boolean | undefined
+    let deploymentMessage: string | undefined
+    try {
+      const hasProd = await vercel.hasProductionDeployment()
+      if (!hasProd) {
+        const result = await vercel.triggerDeployment()
+        deploymentTriggered = result.triggered
+        deploymentMessage = result.message
+      }
+    } catch (e) {
+      console.warn('⚠️ Deployment check/trigger failed:', e)
+    }
+
     // Update domain status in database
     const { error: updateError } = await supabase
       .from('custom_domains')
@@ -157,6 +171,8 @@ export async function POST(
       ssl_status: updateData.ssl_status,
       vercel_domain_id: vercelDomainId,
       verification_instructions: verificationInstructions,
+      deployment_triggered: deploymentTriggered,
+      deployment_message: deploymentMessage,
       message: verified ? 
         'Domain added to Vercel successfully! SSL certificate will be issued automatically.' : 
         verificationInstructions ? 

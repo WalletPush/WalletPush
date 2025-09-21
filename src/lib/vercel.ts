@@ -46,6 +46,7 @@ class VercelAPI {
   private projectId: string | null = null
   private teamId: string | null = null
   private baseUrl = 'https://api.vercel.com'
+  private deployHookUrl: string | null = null
 
   private initialize() {
     if (this.token && this.projectId) {
@@ -55,6 +56,7 @@ class VercelAPI {
     this.token = process.env.VERCEL_TOKEN || ''
     this.projectId = process.env.VERCEL_PROJECT_ID || ''
     this.teamId = process.env.VERCEL_TEAM_ID || ''
+    this.deployHookUrl = process.env.VERCEL_DEPLOY_HOOK_URL || ''
     
     if (!this.token) {
       throw new Error('VERCEL_TOKEN is required')
@@ -151,6 +153,39 @@ class VercelAPI {
     
     const response = await this.makeRequest(`/v9/projects/${this.projectId}/domains`)
     return response.domains || []
+  }
+
+  /**
+   * Check if there is at least one production deployment for the project
+   */
+  async hasProductionDeployment(): Promise<boolean> {
+    console.log(`🔎 Checking for production deployments for project: ${this.projectId}`)
+    const response = await this.makeRequest(`/v13/deployments?projectId=${this.projectId}&target=production&limit=1`)
+    const deployments = Array.isArray(response.deployments) ? response.deployments : []
+    console.log(`📦 Found ${deployments.length} production deployment(s)`)
+    return deployments.length > 0
+  }
+
+  /**
+   * Trigger a production deployment using a Vercel Deploy Hook
+   */
+  async triggerDeployment(): Promise<{ triggered: boolean; message: string }> {
+    this.initialize()
+    if (!this.deployHookUrl) {
+      const message = 'VERCEL_DEPLOY_HOOK_URL not configured; cannot auto-deploy.'
+      console.warn(`⚠️ ${message}`)
+      return { triggered: false, message }
+    }
+
+    console.log(`🚀 Triggering production deployment via deploy hook`)
+    const res = await fetch(this.deployHookUrl, { method: 'POST' })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      const message = `Failed to trigger deployment: ${res.status} ${res.statusText} ${text}`
+      console.error(`❌ ${message}`)
+      return { triggered: false, message }
+    }
+    return { triggered: true, message: 'Deployment hook triggered' }
   }
 
   /**
