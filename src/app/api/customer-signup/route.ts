@@ -378,6 +378,11 @@ export async function POST(request: NextRequest) {
         passTypeIdentifier: passResult.response.passTypeIdentifier
       })
 
+      // 🔍 DEBUG: Log the actual pass data being saved
+      console.log('🔍 Pass actualData to be saved:', JSON.stringify(passResult.actualData, null, 2))
+      console.log('🔍 Pass actualData type:', typeof passResult.actualData)
+      console.log('🔍 Pass actualData keys:', Object.keys(passResult.actualData || {}))
+
       // 5. Save customer to database with pass details and initial business intelligence values
       const { data: customer, error: customerError } = await supabase
         .from('customers')
