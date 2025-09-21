@@ -116,8 +116,8 @@ The middleware system will automatically inject all JavaScript functionality.`
       let backgroundFullUrl = null
       
       if (logo_url) {
-        if (logo_url.startsWith('data:image/') || logo_url.includes('base64')) {
-          // For base64 images, include a truncated version for reference
+        if (logo_url.startsWith('data:image/')) {
+          // Only actual base64 data URLs, not files containing "base64" in filename
           logoFullUrl = `[BASE64 LOGO IMAGE - Use as logo in design]`
         } else {
           logoFullUrl = logo_url.startsWith('http') ? logo_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}`
@@ -126,8 +126,8 @@ The middleware system will automatically inject all JavaScript functionality.`
       // Logo debug info will be in response
       
       if (background_image_url) {
-        if (background_image_url.startsWith('data:image/') || background_image_url.includes('base64')) {
-          // For base64 images, include a truncated version for reference
+        if (background_image_url.startsWith('data:image/')) {
+          // Only actual base64 data URLs, not files containing "base64" in filename
           backgroundFullUrl = `[BASE64 BACKGROUND IMAGE - Use as hero background in design]`
         } else {
           backgroundFullUrl = background_image_url.startsWith('http') ? background_image_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${background_image_url}`
