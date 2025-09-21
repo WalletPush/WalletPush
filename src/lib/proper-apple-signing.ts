@@ -57,11 +57,37 @@ export class ProperAppleSigning {
     const keyPath = join(outputDir, 'pass-key.pem')
     
     try {
-      // Extract leaf certificate (use -legacy for modern OpenSSL)
-      execSync(`openssl pkcs12 -legacy -in "${p12Path}" -clcerts -nokeys -out "${certPath}" -passin pass:${password}`)
+      // Extract leaf certificate (try without -legacy first for compatibility)
+      try {
+        execSync(`openssl pkcs12 -in "${p12Path}" -clcerts -nokeys -out "${certPath}" -passin pass:${password}`)
+      } catch (error) {
+        // Fallback: try with -legacy flag for newer OpenSSL versions
+        console.log('⚠️ Retrying certificate extraction with -legacy flag...')
+        try {
+          execSync(`openssl pkcs12 -legacy -in "${p12Path}" -clcerts -nokeys -out "${certPath}" -passin pass:${password}`)
+        } catch (legacyError) {
+          console.error('❌ Both OpenSSL methods failed for certificate extraction')
+          console.error('Standard error:', error instanceof Error ? error.message : error)
+          console.error('Legacy error:', legacyError instanceof Error ? legacyError.message : legacyError)
+          throw new Error(`Certificate extraction failed: ${legacyError instanceof Error ? legacyError.message : legacyError}`)
+        }
+      }
       
       // Extract private key (unencrypted)
-      execSync(`openssl pkcs12 -legacy -in "${p12Path}" -nocerts -nodes -out "${keyPath}" -passin pass:${password}`)
+      try {
+        execSync(`openssl pkcs12 -in "${p12Path}" -nocerts -nodes -out "${keyPath}" -passin pass:${password}`)
+      } catch (error) {
+        // Fallback: try with -legacy flag for newer OpenSSL versions
+        console.log('⚠️ Retrying private key extraction with -legacy flag...')
+        try {
+          execSync(`openssl pkcs12 -legacy -in "${p12Path}" -nocerts -nodes -out "${keyPath}" -passin pass:${password}`)
+        } catch (legacyError) {
+          console.error('❌ Both OpenSSL methods failed for private key extraction')
+          console.error('Standard error:', error instanceof Error ? error.message : error)
+          console.error('Legacy error:', legacyError instanceof Error ? legacyError.message : legacyError)
+          throw new Error(`Private key extraction failed: ${legacyError instanceof Error ? legacyError.message : legacyError}`)
+        }
+      }
       
       console.log(`✅ Certificate extracted to: ${certPath}`)
       console.log(`✅ Private key extracted to: ${keyPath}`)
