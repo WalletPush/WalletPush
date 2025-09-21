@@ -88,6 +88,12 @@ DO NOT INCLUDE:
 ❌ No explanations, comments, or markdown
 ❌ No acknowledgments or conversational text
 
+STRICT IMAGE RULES:
+• Use the EXACT provided image URLs for logo and background if present.
+• NEVER embed base64 data in the HTML.
+• NEVER invent or transform the URLs.
+• If no URL is provided, OMIT that element entirely (do not add placeholders).
+
 RETURN FORMAT:
 Complete HTML page only, starting with <!DOCTYPE html> and ending with </html>.
 The middleware system will automatically inject all JavaScript functionality.`
@@ -180,8 +186,8 @@ The middleware system will automatically inject all JavaScript functionality.`
             const userPrompt = `Create HTML signup page for: ${sanitizedBusinessName}
 
 BRANDING:
-${logoFullUrl ? `Logo: ${logoFullUrl}` : 'No logo'}
-${backgroundFullUrl ? `Background: ${backgroundFullUrl}` : 'No background'}
+${logoFullUrl ? `Logo URL (use as-is): ${logoFullUrl}` : 'No logo URL provided (omit logo)'}
+${backgroundFullUrl ? `Background URL (use as-is): ${backgroundFullUrl}` : 'No background URL provided (omit background image)'}
 Primary Color: ${project_state?.primaryColor || '#1877f2'}
 Secondary Color: ${project_state?.secondaryColor || '#6b7280'}
 
@@ -193,9 +199,6 @@ ${sanitizeText(project_state.customInstructions).slice(0, 1000)}
 ` : ''}
 
 CONTENT: ${sanitizedPrompt}
-
-${logoFullUrl ? `Logo URL: ${logoFullUrl}` : ''}
-${backgroundFullUrl ? `Background Image URL: ${backgroundFullUrl}` : ''}
 
 Return complete HTML page only. No JavaScript - middleware handles functionality.
 
@@ -293,6 +296,33 @@ CONTENT REQUIREMENTS: ${sanitizedPrompt}`
           extractedHtml = '' // No HTML to extract
           // No HTML detected in AI response
         }
+      }
+
+      // Enforce correct image URLs and strip any data:image placeholders
+      const enforceImageUrls = (html: string): string => {
+        let out = html
+        if (logoFullUrl) {
+          // Replace any inline base64 logo <img> sources with provided logo URL
+          out = out.replace(/src=\"data:image[^\"]*\"/g, `src=\"${logoFullUrl}\"`)
+        } else {
+          // Remove any base64 <img> tags entirely if no logo URL provided
+          out = out.replace(/<img[^>]*src=\"data:image[^\"]*\"[^>]*>\s*/g, '')
+        }
+
+        if (backgroundFullUrl) {
+          // Replace CSS background-image data URLs with provided background URL
+          out = out.replace(/background-image:\s*url\(\'data:image[^\']*\'\)/g, `background-image: url('${backgroundFullUrl}')`)
+          out = out.replace(/background-image:\s*url\(\"data:image[^\"]*\"\)/g, `background-image: url('${backgroundFullUrl}')`)
+        } else {
+          // Strip any base64 background-image rules if no background URL provided
+          out = out.replace(/background-image:\s*url\(\'data:image[^\']*\'\);?/g, '')
+          out = out.replace(/background-image:\s*url\(\"data:image[^\"]*\"\);?/g, '')
+        }
+        return out
+      }
+
+      if (extractedHtml) {
+        extractedHtml = enforceImageUrls(extractedHtml)
       }
 
       // Debug info will be included in response message
