@@ -114,9 +114,7 @@ export default function DistributionPage() {
   const [activeTab, setActiveTab] = useState<'create' | 'saved'>('create')
   const [currentStep, setCurrentStep] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [programTemplates, setProgramTemplates] = useState<ProgramTemplate[]>([
-    { id: 'ae76dc2a-e295-4219-b5ce-f6ecd8961de1', name: 'Blue Karma Membership', type: 'storeCard', description: 'Blue Karma membership program template' }
-  ])
+  const [programTemplates, setProgramTemplates] = useState<ProgramTemplate[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [selectedTemplatePlaceholders, setSelectedTemplatePlaceholders] = useState<any[]>([])
   const [placeholderMapping, setPlaceholderMapping] = useState<{[key: string]: string}>({})
@@ -186,14 +184,14 @@ export default function DistributionPage() {
         if (result.data && result.data.length > 0) {
           const templates = result.data.map((template: any) => ({
             id: template.id,
-            name: template.programs?.name || template.template_json?.name || `Template ${template.id.slice(0, 8)}`,
+            name: template.template_json?.templateName || template.programs?.name || template.template_json?.name || `Template ${template.id.slice(0, 8)}`,
             type: template.template_json?.metadata?.pass_style || template.pass_type || 'storeCard',
             description: template.template_json?.description || template.programs?.name || 'Custom pass template'
           }))
           console.log('Setting templates from API:', templates)
           setProgramTemplates(templates)
         } else {
-          console.log('No templates found in result.data, keeping initial templates')
+          console.log('No templates found in result.data')
         }
       } catch (error) {
         console.error('Error loading program templates:', error)

@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     
     // For demo purposes, use a hardcoded template if no landing page ID
     if (!cleanData.landing_page_id && !cleanData.template_id) {
-      cleanData.template_id = 'ae76dc2a-e295-4219-b5ce-f6ecd8961de1' // Blue Karma Membership template
+      // Do not hardcode template; let /api/customer-signup resolve via landing page or provided template
     }
     
     console.log('🧹 Mapped and cleaned data:', cleanData)
