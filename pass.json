@@ -10,59 +10,59 @@
   "storeCard": {
     "backFields": [
       {
-        "id": "back_1758254345269_0",
-        "key": "David",
+        "id": "back_first_name",
+        "key": "First_Name",
         "type": "backFields",
         "label": "First Name",
-        "value": "David"
+        "value": "${First_Name}"
       },
       {
-        "id": "back_1758254345269_1",
-        "key": "Sambor",
+        "id": "back_last_name", 
+        "key": "Last_Name",
         "type": "backFields",
         "label": "Last Name",
-        "value": "Sambor"
+        "value": "${Last_Name}"
       },
       {
-        "id": "back_1758254345269_2",
-        "key": "david.sambor@icloud.com",
+        "id": "back_email",
+        "key": "Email",
         "type": "backFields",
         "label": "Email",
-        "value": "david.sambor@icloud.com"
+        "value": "${Email}"
       },
       {
-        "id": "back_1758254345269_3",
-        "key": "082147213308",
+        "id": "back_phone",
+        "key": "Phone",
         "type": "backFields",
         "label": "Phone",
-        "value": "082147213308"
+        "value": "${Phone}"
       },
       {
-        "id": "field_1758255896798",
-        "key": "key_1758255896798",
+        "id": "back_member_id",
+        "key": "Member_ID",
         "type": "backFields",
-        "label": "New back",
-        "value": "This is the back of the pass Multi Line text\n\nYay. This should work "
+        "label": "Member ID",
+        "value": "${Member_ID}"
       }
     ],
     "headerFields": [
       {
-        "id": "header_1758254345269",
-        "key": "0",
+        "id": "header_points",
+        "key": "Points",
         "type": "headerFields",
         "label": "Points",
-        "value": "0"
+        "value": "${Points}"
       }
     ],
     "primaryFields": [],
     "auxiliaryFields": [],
     "secondaryFields": [
       {
-        "id": "secondary_1758254345269",
-        "key": "20% off all services",
+        "id": "secondary_current_offer",
+        "key": "Current_Offer",
         "type": "secondaryFields",
-        "label": "Welcome Offer",
-        "value": "20% off all services"
+        "label": "Current Offer",
+        "value": "${Current_Offer}"
       }
     ]
   },

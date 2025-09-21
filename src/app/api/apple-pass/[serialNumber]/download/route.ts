@@ -1,126 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ApplePassKitGenerator } from '../../../../../lib/apple-passkit-generator'
-// Use shared pass store from main route
-import { getPassFromStore, getPassStoreSize, passStore, setPassInStore } from '@/lib/pass-store'
-
-/**
- * DYNAMIC helper function to get the most recent template ID
- */
-async function getMostRecentTemplateId(): Promise<string> {
-  try {
-    // Use direct Supabase query
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-    
-    const { data: templates, error } = await supabase
-      .from('templates')
-      .select('id')
-      .order('created_at', { ascending: false })
-      .limit(1)
-    
-    if (error) {
-      throw new Error(`Failed to fetch templates: ${error.message}`)
-    }
-    
-    if (templates && templates.length > 0) {
-      return templates[0].id // Most recent template
-    }
-    
-    throw new Error('No templates found')
-  } catch (error) {
-    console.error('❌ Failed to get template ID:', error)
-    // Fallback to Blue Karma template ID
-    return '7c252dcb-81e6-4850-857b-9b071f33ceb1'
-  }
-}
-
-/**
- * DYNAMIC helper function to extract placeholder defaults from any template
- */
-async function extractPlaceholderDefaultsFromTemplate(templateId: string, supabase: any): Promise<{ [key: string]: string }> {
-  try {
-    console.log(`🎯 Extracting placeholders for template: ${templateId}`)
-    
-    const { data: template, error } = await supabase
-      .from('templates')
-      .select('id, template_json, passkit_json')
-      .eq('id', templateId)
-      .single()
-    
-    if (error || !template) {
-      throw new Error(`Template ${templateId} not found in database: ${error?.message || 'No template returned'}`)
-    }
-    
-    console.log(`✅ Found template: ${template.template_json?.name || 'Unnamed'}`)
-    console.log(`🎯 Has PassKit JSON: ${template.passkit_json ? 'YES' : 'NO'}`)
-    
-    // If template has PassKit JSON with placeholders, use those!
-    if (template.passkit_json?.placeholders) {
-      console.log(`📋 Using stored placeholder defaults:`, template.passkit_json.placeholders)
-      return template.passkit_json.placeholders
-    }
-    
-    // Extract placeholders from the template's field values
-    console.log(`⚠️ No stored placeholders found, extracting from template fields`)
-    const placeholders: { [key: string]: string } = {}
-    
-    // Extract from template_json fields
-    if (template.template_json?.fields) {
-      for (const field of template.template_json.fields) {
-        if (field.value && field.value.includes('${')) {
-          // Extract placeholder name from ${PLACEHOLDER_NAME}
-          const matches = field.value.match(/\$\{([^}]+)\}/g)
-          if (matches) {
-            for (const match of matches) {
-              const placeholderName = match.replace(/\$\{|\}/g, '')
-              // Use the field's current value or a default
-              placeholders[placeholderName] = field.defaultValue || field.value || `Sample ${placeholderName}`
-            }
-          }
-        }
-      }
-    }
-    
-    console.log(`🎯 Extracted placeholders from template:`, placeholders)
-    
-    // If we found placeholders, use them
-    if (Object.keys(placeholders).length > 0) {
-      return placeholders
-    }
-    
-    // Ultimate fallback for Blue Karma template
-    return {
-      'Points': '0',
-      'Current_Offer': '20% Discount Off Your Next Visit',
-      'First_Name': 'John',
-      'Last_Name': 'Doe',
-      'MEMBER_ID': '1234',
-      'Email': 'john.doe@bluekarma.com'
-    }
-    
-  } catch (error) {
-    console.error('❌ Failed to extract placeholders:', error)
-    
-    // Ultimate fallback
-    return {
-      'Points': '0',
-      'Current_Offer': '20% Discount Off Your Next Visit',
-      'First_Name': 'John',
-      'Last_Name': 'Doe',
-      'MEMBER_ID': '1234',
-      'Email': 'john.doe@example.com'
-    }
-  }
-}
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET(
   request: Request,
@@ -131,124 +11,165 @@ export async function GET(
 
     console.log(`📱 Apple Pass Download Request: ${serialNumber}`)
 
-    // First, try to find the stored pass data
-    let passData = getPassFromStore(serialNumber)
-    
-    console.log(`🔍 Looking for pass: ${serialNumber}`)
-    console.log(`🔍 Store size: ${getPassStoreSize()}`)
-    console.log(`🔍 Store contents:`, Array.from(passStore.keys()))
-    console.log(`🔍 Pass found in store: ${!!passData}`)
-    
-    if (!passData) {
-      // If not found in store, look up customer data from database
-      console.log(`⚠️ Pass ${serialNumber} not found in store, looking up customer data`)
-      
-      try {
-        // Import Supabase client
-        const { createClient } = await import('@supabase/supabase-js')
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          {
-            auth: {
-              autoRefreshToken: false,
-              persistSession: false
-            }
-          }
-        )
-        
-        // Look up customer by serial number
-        const { data: customer, error: customerError } = await supabase
-          .from('customers')
-          .select('template_id, form_data, first_name, last_name, email, phone')
-          .eq('pass_serial_number', serialNumber)
-          .single()
-        
-        if (customer && !customerError) {
-          console.log(`✅ Found customer data for pass ${serialNumber}`)
-          
-          // Use customer's actual form data if available, otherwise build from customer fields
-          let customerFormData = customer.form_data || {}
-          
-          // Ensure we have the customer's actual data
-          if (customer.first_name) customerFormData.First_Name = customer.first_name
-          if (customer.last_name) customerFormData.Last_Name = customer.last_name  
-          if (customer.email) customerFormData.Email = customer.email
-          if (customer.phone) customerFormData.Phone = customer.phone
-          
-          console.log(`📋 Using customer form data:`, customerFormData)
-          
-          passData = {
-            templateId: customer.template_id,
-            formData: customerFormData,
-            createdAt: new Date()
-          }
-        } else {
-          console.log(`⚠️ No customer found for serial ${serialNumber}, using template defaults`)
-          
-          // Fallback to template defaults only if no customer found
-          const templateId = '7c252dcb-81e6-4850-857b-9b071f33ceb1'
-          const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId, supabase)
-
-          passData = {
-            templateId,
-            formData: sampleFormData,
-            createdAt: new Date()
-          }
-        }
-      } catch (dbError) {
-        console.error(`❌ Database lookup failed for ${serialNumber}:`, dbError)
-        
-        // Final fallback to template defaults - create new supabase client for error case
-        const { createClient } = await import('@supabase/supabase-js')
-        const fallbackSupabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          {
-            auth: {
-              autoRefreshToken: false,
-              persistSession: false
-            }
-          }
-        )
-        const templateId = '7c252dcb-81e6-4850-857b-9b071f33ceb1'
-        const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId, fallbackSupabase)
-
-        passData = {
-          templateId,
-          formData: sampleFormData,
-          createdAt: new Date()
+    // Initialize Supabase client
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
         }
       }
-    }
+    )
 
-    // Generate or regenerate the pass
-    let passBuffer = passData.passBuffer
+    // 1. Look up the pass data directly from the passes table
+    console.log(`🔍 Looking up pass data for serial: ${serialNumber}`)
     
-    if (!passBuffer) {
-      console.log(`🔄 Generating new pass for ${serialNumber}`)
-      
-      const { response, passBuffer: newPassBuffer } = await ApplePassKitGenerator.generateApplePass({
-        templateId: passData.templateId,
-        formData: passData.formData,
-        userId: 'user',
-        deviceType: 'desktop'
-      })
+    const { data: passRecord, error: passError } = await supabase
+      .from('passes')
+      .select(`
+        id,
+        serial,
+        pass_data,
+        template_id,
+        customer_id,
+        business_id,
+        platform,
+        install_count,
+        created_at,
+        customers (
+          first_name,
+          last_name,
+          email,
+          phone
+        ),
+        templates (
+          id,
+          pass_type_identifier,
+          template_json,
+          passkit_json
+        )
+      `)
+      .eq('serial', serialNumber)
+      .single()
 
-      passBuffer = newPassBuffer
-      
-      // Cache the generated pass
-      setPassInStore(serialNumber, {
-        ...passData,
-        passBuffer
-      })
-      
-      console.log(`✅ Generated .pkpass: ${passBuffer.length} bytes`)
-    } else {
-      console.log(`📦 Serving cached pass: ${passBuffer.length} bytes`)
+    if (passError || !passRecord) {
+      console.error(`❌ Pass not found for serial ${serialNumber}:`, passError)
+      return NextResponse.json(
+        {
+          error: `❌ Pass ${serialNumber} not found`,
+          serialNumber,
+          type: 'PassNotFoundError'
+        },
+        { status: 404 }
+      )
     }
 
-    // Set Apple-compliant headers for .pkpass download
+    console.log(`✅ Found pass record:`, {
+      id: passRecord.id,
+      serial: passRecord.serial,
+      customer: passRecord.customers?.email,
+      template: passRecord.templates?.id
+    })
+
+    // 2. Use the stored pass_data if available, otherwise generate from stored customer data
+    let passData = passRecord.pass_data
+
+    if (!passData) {
+      console.log(`⚠️ No stored pass_data, regenerating from customer data`)
+      
+      // Fallback: Regenerate from customer and template data
+      const customer = passRecord.customers
+      const template = passRecord.templates
+      
+      if (!customer || !template) {
+        console.error(`❌ Missing customer or template data for pass ${serialNumber}`)
+        return NextResponse.json(
+          {
+            error: `❌ Invalid pass data for ${serialNumber}`,
+            serialNumber,
+            type: 'PassDataError'
+          },
+          { status: 500 }
+        )
+      }
+
+      // Build form data from customer
+      const formData = {
+        First_Name: customer.first_name || '',
+        Last_Name: customer.last_name || '',
+        Email: customer.email || '',
+        Phone: customer.phone || '',
+        Member_ID: `MB${Date.now()}`,
+        Points: '0',
+        Current_Offer: 'Welcome!',
+        // Add any template defaults
+        ...(template.passkit_json?.placeholders || {})
+      }
+
+      console.log(`🔄 Regenerating pass with form data:`, formData)
+
+      // Generate the pass
+      const passResult = await ApplePassKitGenerator.generateApplePass({
+        templateId: template.id,
+        formData,
+        userId: customer.email,
+        deviceType: 'web',
+        templateOverride: {
+          id: template.id,
+          passkit_json: template.passkit_json,
+          pass_type_identifier: template.pass_type_identifier,
+          template_json: template.template_json,
+        } as any
+      })
+
+      passData = passResult.actualData
+
+      // Update the passes table with the generated data for future requests
+      await supabase
+        .from('passes')
+        .update({ pass_data: passData })
+        .eq('id', passRecord.id)
+
+      console.log(`✅ Regenerated and cached pass data`)
+    }
+
+    // 3. Generate the .pkpass file from the pass data
+    console.log(`🔄 Generating .pkpass file for ${serialNumber}`)
+
+    // Use the existing generateApplePass method to convert stored pass data to .pkpass
+    const passResult = await ApplePassKitGenerator.generateApplePass({
+      templateId: passRecord.template_id,
+      formData: passData,
+      userId: passRecord.customers?.email || 'customer',
+      deviceType: 'web',
+      templateOverride: {
+        id: passRecord.templates?.id || passRecord.template_id,
+        passkit_json: passRecord.templates?.passkit_json,
+        pass_type_identifier: passRecord.templates?.pass_type_identifier,
+        template_json: passRecord.templates?.template_json,
+      } as any
+    })
+
+    const passBuffer = passResult.passBuffer
+
+    if (!passBuffer) {
+      throw new Error('Failed to generate pass buffer')
+    }
+
+    console.log(`✅ Generated .pkpass: ${passBuffer.length} bytes`)
+
+    // 4. Update install count
+    await supabase
+      .from('passes')
+      .update({ 
+        install_count: (passRecord.install_count || 0) + 1,
+        last_update: new Date().toISOString()
+      })
+      .eq('id', passRecord.id)
+
+    // 5. Set Apple-compliant headers for .pkpass download
     const headers = new Headers()
     headers.set('Content-Type', 'application/vnd.apple.pkpass')
     headers.set('Content-Disposition', `attachment; filename="walletpush-pass-${serialNumber}.pkpass"`)
@@ -269,10 +190,10 @@ export async function GET(
 
   } catch (error) {
     console.error('❌ Apple Pass Download Error:', error)
-    
+
     // Return user-friendly error
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Pass not found or could not be generated',
         serialNumber: params.serialNumber,
         type: 'PassGenerationError'
@@ -281,5 +202,3 @@ export async function GET(
     )
   }
 }
-
-// Pass data is now stored directly in the main route using shared passStore

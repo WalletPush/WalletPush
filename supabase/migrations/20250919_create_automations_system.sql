@@ -152,3 +152,4 @@ COMMENT ON TABLE automations IS 'Stores automation workflows with triggers, cond
 COMMENT ON TABLE automation_executions IS 'Tracks individual automation executions for analytics and debugging';
 
 
+

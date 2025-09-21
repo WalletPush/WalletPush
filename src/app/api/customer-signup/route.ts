@@ -469,7 +469,39 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Customer saved successfully:', customer.id)
 
-      // 6. Return success response with pass details
+      // 6. Save complete pass data to passes table
+      const { data: passRecord, error: passError } = await supabase
+        .from('passes')
+        .insert({
+          customer_id: customer.id,
+          business_id,
+          program_id: actualTemplate.program_id,
+          template_id: actualTemplate.id,
+          platform: 'apple',
+          serial: passResult.response.serialNumber,
+          object_id: passResult.response.passTypeIdentifier,
+          pass_data: passResult.actualData, // Store the complete Apple Pass JSON
+          auth_token: passResult.response.authToken || null,
+          install_count: 0,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (passError) {
+        console.error('❌ Failed to save pass data:', passError)
+        console.error('❌ Pass insert data:', {
+          customer_id: customer.id,
+          business_id,
+          serial: passResult.response.serialNumber
+        })
+        // Don't fail the whole request - customer is already saved
+        console.warn('⚠️ Pass data not saved to passes table, but customer signup successful')
+      } else {
+        console.log('✅ Pass data saved successfully:', passRecord.id)
+      }
+
+      // 7. Return success response with pass details
       return NextResponse.json({
         success: true,
         message: 'Welcome! Your pass has been created successfully.',
