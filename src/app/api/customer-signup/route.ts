@@ -361,18 +361,31 @@ export async function POST(request: NextRequest) {
       const finalFormData = processingResult?.processedData || formData
       
       console.log('🎯 Final form data for pass generation:', finalFormData)
+      
+      // 🔍 CRITICAL DEBUG: Log template data being passed to generator
+      console.log('🔍 TEMPLATE DEBUG - actualTemplate.id:', actualTemplate.id)
+      console.log('🔍 TEMPLATE DEBUG - templatePassTypeIdentifier:', templatePassTypeIdentifier)
+      console.log('🔍 TEMPLATE DEBUG - actualTemplate keys:', Object.keys(actualTemplate))
+      console.log('🔍 TEMPLATE DEBUG - passkit_json exists:', !!actualTemplate.passkit_json)
+      console.log('🔍 TEMPLATE DEBUG - template_json exists:', !!actualTemplate.template_json)
+
+      const templateOverrideData = {
+        id: actualTemplate.id,
+        passkit_json: actualTemplate.passkit_json,
+        pass_type_identifier: templatePassTypeIdentifier,
+        template_json: actualTemplate.template_json,
+        program_id: actualTemplate.program_id,
+        account_id: actualTemplate.account_id
+      }
+      
+      console.log('🔍 TEMPLATE OVERRIDE DATA:', JSON.stringify(templateOverrideData, null, 2))
 
       const passResult = await ApplePassKitGenerator.generateApplePass({
         templateId: actualTemplate.id,
         formData: finalFormData,
         userId: email, // Use email as user identifier
         deviceType: 'web',
-        templateOverride: {
-          id: actualTemplate.id,
-          passkit_json: actualTemplate.passkit_json,
-          pass_type_identifier: templatePassTypeIdentifier,
-          template_json: actualTemplate.template_json,
-        } as any
+        templateOverride: templateOverrideData as any
       })
 
       console.log('✅ Pass generated successfully:', {

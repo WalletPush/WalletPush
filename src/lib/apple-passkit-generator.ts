@@ -58,8 +58,15 @@ export class ApplePassKitGenerator {
     const { templateId, formData = {}, userId, deviceType, templateOverride } = passData
 
     // 1) Load template (must exist) or use override from caller
+    console.log('🔍 GENERATOR DEBUG - templateId:', templateId)
+    console.log('🔍 GENERATOR DEBUG - templateOverride provided:', !!templateOverride)
+    console.log('🔍 GENERATOR DEBUG - templateOverride.id:', templateOverride?.id)
+    
     const template = templateOverride || await this.loadTemplate(templateId)
     if (!template) throw new Error(`❌ Template ${templateId} not found`)
+    
+    console.log('🔍 GENERATOR DEBUG - Using template ID:', template.id)
+    console.log('🔍 GENERATOR DEBUG - Template pass_type_identifier:', template.pass_type_identifier)
 
     // 2) GOLDEN: Take PassTypeID from template ONLY
     const selectedPassTypeIdentifier = template.pass_type_identifier
