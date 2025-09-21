@@ -120,10 +120,37 @@ The middleware system will automatically inject all JavaScript functionality.`
         ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('x-forwarded-host')}`
         : (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000')
 
+      // Helper: persist data URL to Supabase Storage and return public URL
+      const persistDataUrlToPublicUrl = async (dataUrl: string, prefix: string): Promise<string | null> => {
+        try {
+          const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/)
+          if (!match) return null
+          const mime = match[1]
+          const base64 = match[2]
+          const buffer = Buffer.from(base64, 'base64')
+          const ext = mime.split('/')[1] || 'png'
+          const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`
+          const storagePath = `business-${business_id}/landing-pages/${fileName}`
+          const { error: uploadError } = await supabase.storage
+            .from('landing-pages')
+            .upload(storagePath, buffer, { contentType: mime, upsert: true })
+          if (uploadError) return null
+          const { data } = await supabase.storage.from('landing-pages').getPublicUrl(storagePath)
+          return data?.publicUrl || null
+        } catch {
+          return null
+        }
+      }
+
       if (logo_url) {
         if (logo_url.startsWith('data:image/')) {
-          // Only actual base64 data URLs, not files containing "base64" in filename
-          logoFullUrl = `[BASE64 LOGO IMAGE - Use as logo in design]`
+          // Persist base64 to Storage to produce a stable public URL
+          const persisted = await persistDataUrlToPublicUrl(logo_url, 'logo')
+          if (persisted) {
+            logoFullUrl = persisted
+          } else {
+            logoFullUrl = ''
+          }
         } else {
           logoFullUrl = logo_url.startsWith('http') ? logo_url : `${origin}${logo_url}`
         }
@@ -132,8 +159,13 @@ The middleware system will automatically inject all JavaScript functionality.`
       
       if (background_image_url) {
         if (background_image_url.startsWith('data:image/')) {
-          // Only actual base64 data URLs, not files containing "base64" in filename
-          backgroundFullUrl = `[BASE64 BACKGROUND IMAGE - Use as hero background in design]`
+          // Persist base64 to Storage to produce a stable public URL
+          const persisted = await persistDataUrlToPublicUrl(background_image_url, 'background')
+          if (persisted) {
+            backgroundFullUrl = persisted
+          } else {
+            backgroundFullUrl = ''
+          }
         } else {
           backgroundFullUrl = background_image_url.startsWith('http') ? background_image_url : `${origin}${background_image_url}`
         }
