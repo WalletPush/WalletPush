@@ -46,31 +46,62 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed' }, { status: 400 })
     }
 
-    // Save file to business-specific directory
+    // Prepare file
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    
+    const contentType = file.type || 'application/octet-stream'
+
     // Generate unique filename
     const timestamp = Date.now()
     const randomString = Math.random().toString(36).substring(2, 8)
     const extension = file.name.split('.').pop() || 'jpg'
     const filename = `${type}_${timestamp}_${randomString}.${extension}`
-    
-    // Create business-specific upload directory
+
+    // Preferred: Upload to Supabase Storage so URLs are stable on Vercel
+    const bucket = 'landing-pages'
+    const storagePath = `business-${businessId}/landing-pages/${filename}`
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(storagePath, buffer, { contentType, upsert: true })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      const { data: publicData } = await supabase.storage
+        .from(bucket)
+        .getPublicUrl(storagePath)
+
+      if (publicData?.publicUrl) {
+        return NextResponse.json({
+          url: publicData.publicUrl,
+          message: 'File uploaded successfully',
+          fileName: file.name,
+          size: file.size,
+          type: file.type
+        })
+      }
+      // If no public URL is returned, fall through to filesystem fallback
+    } catch (_e) {
+      // Fallback: save under public/uploads so it works locally as well
+    }
+
+    // Fallback: save to public/uploads (useful locally or if Storage policies block)
     const businessDir = join(process.cwd(), 'public', 'uploads', `business-${businessId}`, 'landing-pages')
-    
-    // Ensure directory exists
     await fs.mkdir(businessDir, { recursive: true })
-    
     const filepath = join(businessDir, filename)
     await fs.writeFile(filepath, buffer)
-    
-    // Return the public URL
-    const publicUrl = `/uploads/business-${businessId}/landing-pages/${filename}`
-    
-    return NextResponse.json({ 
+
+    const origin = request.headers.get('x-forwarded-proto') && request.headers.get('x-forwarded-host')
+      ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('x-forwarded-host')}`
+      : (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000')
+    const publicUrl = `${origin}/uploads/business-${businessId}/landing-pages/${filename}`
+
+    return NextResponse.json({
       url: publicUrl,
-      message: 'File uploaded successfully',
+      message: 'File uploaded successfully (fallback)',
       fileName: file.name,
       size: file.size,
       type: file.type
