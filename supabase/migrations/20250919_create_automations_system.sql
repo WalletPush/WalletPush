@@ -151,3 +151,4 @@ COMMENT ON TABLE webhook_events IS 'Stores webhook event configurations for exte
 COMMENT ON TABLE automations IS 'Stores automation workflows with triggers, conditions, and actions';
 COMMENT ON TABLE automation_executions IS 'Tracks individual automation executions for analytics and debugging';
 
+

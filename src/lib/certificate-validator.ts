@@ -1,6 +1,8 @@
 import { execSync } from 'child_process'
 import fs from 'fs/promises'
 import path from 'path'
+import { CertificateExtractor } from './certificate-extractor'
+import forge from 'node-forge'
 
 interface CertificateInfo {
   passTypeIdentifier: string
