@@ -8,12 +8,29 @@ import { getPassFromStore, getPassStoreSize, passStore, setPassInStore } from '@
  */
 async function getMostRecentTemplateId(): Promise<string> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/templates`, { cache: 'no-store' })
-    if (!response.ok) {
-      throw new Error(`Failed to fetch templates: ${response.status}`)
+    // Use direct Supabase query
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+    
+    const { data: templates, error } = await supabase
+      .from('templates')
+      .select('id')
+      .order('created_at', { ascending: false })
+      .limit(1)
+    
+    if (error) {
+      throw new Error(`Failed to fetch templates: ${error.message}`)
     }
     
-    const { data: templates } = await response.json()
     if (templates && templates.length > 0) {
       return templates[0].id // Most recent template
     }
@@ -33,16 +50,27 @@ async function extractPlaceholderDefaultsFromTemplate(templateId: string): Promi
   try {
     console.log(`🎯 Extracting placeholders for template: ${templateId}`)
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/templates`, { cache: 'no-store' })
-    if (!response.ok) {
-      throw new Error(`Failed to fetch templates: ${response.status}`)
-    }
+    // Use direct Supabase query instead of API call to avoid issues
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
     
-    const { data: templates } = await response.json()
-    const template = templates.find((t: any) => t.id === templateId)
+    const { data: template, error } = await supabase
+      .from('templates')
+      .select('id, template_json, passkit_json')
+      .eq('id', templateId)
+      .single()
     
-    if (!template) {
-      throw new Error(`Template ${templateId} not found`)
+    if (error || !template) {
+      throw new Error(`Template ${templateId} not found in database: ${error?.message || 'No template returned'}`)
     }
     
     console.log(`✅ Found template: ${template.template_json?.name || 'Unnamed'}`)
