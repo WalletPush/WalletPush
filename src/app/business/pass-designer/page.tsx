@@ -1287,7 +1287,42 @@ export default function PassDesigner() {
           } : {}
         },
         template_json: {
-          images: currentPass.images
+          images: {
+            // Icon images (required by Apple)
+            icon: currentPass.images?.icon ? {
+              '1x': currentPass.images.icon.x1,
+              '2x': currentPass.images.icon.x2,
+              '3x': currentPass.images.icon.x3
+            } : null,
+            
+            // Logo images
+            logo: currentPass.images?.logo ? {
+              '1x': currentPass.images.logo.x1,
+              '2x': currentPass.images.logo.x2,
+              '3x': currentPass.images.logo.x3
+            } : null,
+            
+            // Strip images
+            strip: currentPass.images?.strip ? {
+              '1x': currentPass.images.strip.x1,
+              '2x': currentPass.images.strip.x2,
+              '3x': currentPass.images.strip.x3
+            } : null,
+            
+            // Background images (for event tickets)
+            background: currentPass.images?.background ? {
+              '1x': currentPass.images.background.x1,
+              '2x': currentPass.images.background.x2,
+              '3x': currentPass.images.background.x3
+            } : null,
+            
+            // Thumbnail images
+            thumbnail: currentPass.images?.thumbnail ? {
+              '1x': currentPass.images.thumbnail.x1,
+              '2x': currentPass.images.thumbnail.x2,
+              '3x': currentPass.images.thumbnail.x3
+            } : null
+          }
         }
       }
 
