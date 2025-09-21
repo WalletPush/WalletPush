@@ -1297,6 +1297,15 @@ export default function PassDesigner() {
         }
       }
 
+      // Persist preview metadata on template
+      try {
+        await fetch(`/api/templates/${templateId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ previews: { generated_at: new Date().toISOString() } })
+        })
+      } catch {}
+
       // Success toast
       toast.success('🎉 Pass preview generated! Check your downloads folder.', {
         id: toastId,
@@ -1835,7 +1844,19 @@ export default function PassDesigner() {
                 Save
               </Button>
               <Button 
-                onClick={handleSaveToSupabase}
+                onClick={async () => {
+                  await handleSaveToSupabase()
+                  if (currentPass.id) {
+                    try {
+                      await fetch(`/api/templates/${currentPass.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ publish: true })
+                      })
+                      toast.success('Template published!')
+                    } catch {}
+                  }
+                }}
                 disabled={!currentPass.templateName || !currentPass.style || !currentPass.passTypeIdentifier}
               >
                 Save & Publish
