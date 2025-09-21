@@ -83,29 +83,31 @@ export async function POST(request: NextRequest) {
           type: file.type
         })
       }
-      // If no public URL is returned, fall through to filesystem fallback
-    } catch (_e) {
-      // Fallback: save under public/uploads so it works locally as well
+
+      // If storage succeeded but no public URL, treat as error
+      return NextResponse.json({ error: 'Storage public URL not available' }, { status: 500 })
+    } catch (e: any) {
+      // On Vercel, the filesystem is read-only at /var/task; do NOT try to write to /public in production
+      if (process.env.NODE_ENV !== 'production') {
+        // Dev-only fallback to public/uploads for local testing
+        const businessDir = join(process.cwd(), 'public', 'uploads', `business-${businessId}`, 'landing-pages')
+        await fs.mkdir(businessDir, { recursive: true })
+        const filepath = join(businessDir, filename)
+        await fs.writeFile(filepath, buffer)
+        const origin = request.headers.get('x-forwarded-proto') && request.headers.get('x-forwarded-host')
+          ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('x-forwarded-host')}`
+          : (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000')
+        const publicUrl = `${origin}/uploads/business-${businessId}/landing-pages/${filename}`
+        return NextResponse.json({
+          url: publicUrl,
+          message: 'File uploaded successfully (dev fallback)',
+          fileName: file.name,
+          size: file.size,
+          type: file.type
+        })
+      }
+      return NextResponse.json({ error: `Storage upload failed: ${e?.message || e}` }, { status: 500 })
     }
-
-    // Fallback: save to public/uploads (useful locally or if Storage policies block)
-    const businessDir = join(process.cwd(), 'public', 'uploads', `business-${businessId}`, 'landing-pages')
-    await fs.mkdir(businessDir, { recursive: true })
-    const filepath = join(businessDir, filename)
-    await fs.writeFile(filepath, buffer)
-
-    const origin = request.headers.get('x-forwarded-proto') && request.headers.get('x-forwarded-host')
-      ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('x-forwarded-host')}`
-      : (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000')
-    const publicUrl = `${origin}/uploads/business-${businessId}/landing-pages/${filename}`
-
-    return NextResponse.json({
-      url: publicUrl,
-      message: 'File uploaded successfully (fallback)',
-      fileName: file.name,
-      size: file.size,
-      type: file.type
-    })
 
   } catch (error) {
     console.error('Error uploading file:', error)
