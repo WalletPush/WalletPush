@@ -93,32 +93,8 @@ export async function POST(
       }
     } catch (vercelError) {
       console.error(`❌ Vercel domain setup failed for ${domain.domain}:`, vercelError)
-      
-      // Fallback: Check if DNS is manually configured
-      try {
-        console.log(`🔍 Falling back to manual DNS verification...`)
-        
-        const dnsResponse = await fetch(`https://cloudflare-dns.com/dns-query?name=${domain.domain}&type=CNAME`, {
-          headers: { 'Accept': 'application/dns-json' }
-        })
-        
-        const dnsData = await dnsResponse.json()
-        
-        if (dnsData.Answer && dnsData.Answer.length > 0) {
-          for (const record of dnsData.Answer) {
-            if (record.type === 5 && record.data && record.data.includes('walletpush.io')) {
-              verified = true
-              sslVerified = false // No SSL without Vercel
-              console.log(`✅ Found manually configured CNAME: ${record.data}`)
-              console.log(`⚠️ SSL not available - domain not in Vercel`)
-              break
-            }
-          }
-        }
-      } catch (fallbackError) {
-        console.error(`❌ Fallback DNS verification failed:`, fallbackError)
-        verified = false
-      }
+      // Do not set verified based on manual DNS fallback to avoid incorrect "active" states
+      verified = false
     }
 
     // Store Vercel domain info for future management

@@ -495,21 +495,12 @@ Need help? Contact support@walletpush.io
                           <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
                             <p className="font-medium text-yellow-800">DNS Configuration Required</p>
                             <p className="text-yellow-700 mt-1">
-                              Please add these DNS records to your domain:
+                              Please add the DNS records provided below to verify your domain with Vercel:
                             </p>
-                            
-                            {/* CNAME Record */}
-                            <div className="mt-2 font-mono text-xs bg-yellow-100 p-2 rounded">
-                              <div className="font-semibold mb-1">1. CNAME Record:</div>
-                              <div>Type: CNAME</div>
-                              <div>Name: @ (for {domain.domain})</div>
-                              <div>Value: walletpush.io</div>
-                            </div>
-                            
-                            {/* Vercel TXT Record (if exists) */}
-                            {domain.verificationInstructions && domain.verificationInstructions.length > 0 && (
+                            {/* Vercel TXT/CNAME Verification Records */}
+                            {domain.verificationInstructions && domain.verificationInstructions.length > 0 ? (
                               <div className="mt-2 font-mono text-xs bg-blue-100 p-2 rounded border border-blue-200">
-                                <div className="font-semibold mb-1 text-blue-800">2. Vercel Verification Record:</div>
+                                <div className="font-semibold mb-1 text-blue-800">Verification Records:</div>
                                 {domain.verificationInstructions.map((instruction, index) => (
                                   <div key={index} className="mb-2">
                                     <div>Type: {instruction.type}</div>
@@ -521,8 +512,12 @@ Need help? Contact support@walletpush.io
                                   </div>
                                 ))}
                                 <div className="text-blue-700 mt-2 text-xs">
-                                  ⚠️ Both records are required for full domain verification and SSL certificate
+                                  ⚠️ It may take time for DNS to propagate. Click Verify after updating DNS.
                                 </div>
+                              </div>
+                            ) : (
+                              <div className="mt-2 font-mono text-xs bg-slate-100 p-2 rounded border border-slate-200">
+                                No verification records yet. Click Verify to fetch the latest DNS instructions.
                               </div>
                             )}
                           </div>
