@@ -481,7 +481,7 @@ export async function POST(request: NextRequest) {
           serial: passResult.response.serialNumber,
           object_id: passResult.response.passTypeIdentifier,
           pass_data: passResult.actualData, // Store the complete Apple Pass JSON
-          auth_token: passResult.response.authToken || null,
+          auth_token: null, // Auth token not currently generated
           install_count: 0,
           created_at: new Date().toISOString()
         })
