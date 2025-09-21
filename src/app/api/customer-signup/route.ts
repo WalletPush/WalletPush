@@ -484,6 +484,17 @@ export async function POST(request: NextRequest) {
       })
 
       // 6. Save complete pass data to passes table
+      // Ensure pass_data is valid JSON
+      let passDataJson = {}
+      try {
+        passDataJson = passResult.actualData && typeof passResult.actualData === 'object' 
+          ? passResult.actualData 
+          : JSON.parse(passResult.actualData || '{}')
+      } catch (e) {
+        console.error('❌ Invalid pass data JSON:', e)
+        passDataJson = {}
+      }
+
       const { data: passRecord, error: passError } = await supabase
         .from('passes')
         .insert({
@@ -494,7 +505,7 @@ export async function POST(request: NextRequest) {
           platform: 'apple',
           serial: passResult.response.serialNumber,
           object_id: passResult.response.passTypeIdentifier,
-          pass_data: passResult.actualData, // Store the complete Apple Pass JSON
+          pass_data: passDataJson, // Store the complete Apple Pass JSON
           auth_token: null, // Auth token not currently generated
           install_count: 0,
           created_at: new Date().toISOString()
