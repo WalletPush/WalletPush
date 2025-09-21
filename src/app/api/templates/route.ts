@@ -42,12 +42,34 @@ export async function GET(request: Request) {
       
       if (!user) {
         console.log('🔍 No authenticated user - fetching ALL templates for development')
-        const { data: templates, error } = await query.order('created_at', { ascending: false })
+        
+        // Use a simpler query without required joins for unauthenticated requests
+        const { data: templates, error } = await supabase
+          .from('templates')
+          .select(`
+            id,
+            program_id,
+            version,
+            template_json,
+            passkit_json,
+            previews,
+            published_at,
+            created_at,
+            pass_type_identifier,
+            account_id,
+            programs (
+              id,
+              name
+            )
+          `)
+          .order('created_at', { ascending: false })
         
         if (error) {
           console.error('❌ Supabase error:', error)
           throw error
         }
+        
+        console.log(`✅ Found ${templates?.length || 0} templates for unauthenticated request`)
         
         return NextResponse.json({
           data: templates || [],
