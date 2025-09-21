@@ -1278,11 +1278,11 @@ export default function PassDesigner() {
              currentPass.style === 'coupon' ? 'coupon' :
              currentPass.style === 'eventTicket' ? 'eventTicket' :
              currentPass.style === 'boardingPass' ? 'boardingPass' : 'generic']: {
-              primaryFields: currentPass.fields.filter(f => f.position === 'primary'),
-              secondaryFields: currentPass.fields.filter(f => f.position === 'secondary'),
-              auxiliaryFields: currentPass.fields.filter(f => f.position === 'auxiliary'),
-              backFields: currentPass.fields.filter(f => f.position === 'back'),
-              headerFields: currentPass.fields.filter(f => f.position === 'header')
+              primaryFields: currentPass.fields.filter(f => f.type === 'primaryFields'),
+              secondaryFields: currentPass.fields.filter(f => f.type === 'secondaryFields'),
+              auxiliaryFields: currentPass.fields.filter(f => f.type === 'auxiliaryFields'),
+              backFields: currentPass.fields.filter(f => f.type === 'backFields'),
+              headerFields: currentPass.fields.filter(f => f.type === 'headerFields')
             }
           } : {}
         },
