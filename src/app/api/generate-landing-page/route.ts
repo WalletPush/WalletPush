@@ -100,8 +100,21 @@ Do not ask questions. Build immediately using all provided information.`
           .trim()
       }
 
-      const sanitizedPrompt = sanitizeText(prompt || '').slice(0, 2000) // Limit prompt to 2000 chars
-      const sanitizedBusinessName = business_name ? sanitizeText(business_name) : 'Your Business'
+      // CRITICAL: Limit all text inputs to prevent massive token costs
+      const sanitizedPrompt = sanitizeText(prompt || '').slice(0, 5000) // Limit to 5K chars max
+      const sanitizedBusinessName = business_name ? sanitizeText(business_name).slice(0, 100) : 'Your Business'
+      
+      // Log input sizes to identify the culprit
+      console.log('🔍 Input text analysis:')
+      console.log(`   Original prompt length: ${(prompt || '').length}`)
+      console.log(`   Sanitized prompt length: ${sanitizedPrompt.length}`)
+      console.log(`   Business name length: ${(business_name || '').length}`)
+      
+      if ((prompt || '').length > 50000) {
+        console.error(`🚨 MASSIVE PROMPT DETECTED: ${(prompt || '').length} characters! This will cause huge token costs!`)
+        console.error(`   First 500 chars: ${(prompt || '').substring(0, 500)}`)
+        console.error(`   Last 500 chars: ${(prompt || '').substring((prompt || '').length - 500)}`)
+      }
 
       // Convert relative URLs to absolute URLs for the HTML generation
       // CRITICAL: Check for base64 data that would cause massive token costs

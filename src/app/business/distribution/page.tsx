@@ -1215,10 +1215,14 @@ Make it modern, professional, and conversion-focused.`
                 <textarea
                   placeholder="Write any additional copy you desire"
                   rows={4}
+                  maxLength={2000}
                   value={wizardData.additionalCopy}
                   onChange={(e) => setWizardData(prev => ({ ...prev, additionalCopy: e.target.value }))}
                   className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <div className="text-sm text-slate-500 mt-1">
+                  {wizardData.additionalCopy.length}/2000 characters
+                </div>
               </div>
             </div>
           </div>
@@ -1453,6 +1457,7 @@ Make it modern, professional, and conversion-focused.`
               </h3>
               <textarea
                 value={wizardData.customInstructions}
+                maxLength={3000}
                 onChange={(e) => setWizardData(prev => ({ ...prev, customInstructions: e.target.value }))}
                 placeholder="Give Claude specific instructions about style, layout, tone, or features you want. For example:
 - Make it look modern and minimalist
@@ -1465,9 +1470,9 @@ Make it modern, professional, and conversion-focused.`
                 className="w-full p-4 border border-slate-300 rounded-lg"
                 rows={8}
               />
-              <p className="text-sm text-slate-500 mt-2">
-                These instructions will be prioritized in the AI generation process
-              </p>
+              <div className="text-sm text-slate-500 mt-2">
+                {wizardData.customInstructions.length}/3000 characters
+              </div>
             </div>
           </div>
         )
