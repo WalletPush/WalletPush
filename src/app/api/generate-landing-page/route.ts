@@ -5,26 +5,7 @@ import OpenAI from 'openai'
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const requestBody = await request.json()
-    
-    // Log request body size to identify massive data
-    const requestBodyString = JSON.stringify(requestBody)
-    console.log('🔍 Request body analysis:')
-    console.log(`   Total request size: ${requestBodyString.length} characters`)
-    
-    if (requestBodyString.length > 100000) {
-      console.error(`🚨 MASSIVE REQUEST BODY: ${requestBodyString.length} characters!`)
-      console.error('   Keys in request:', Object.keys(requestBody))
-      for (const [key, value] of Object.entries(requestBody)) {
-        const valueStr = typeof value === 'string' ? value : JSON.stringify(value)
-        console.error(`   ${key}: ${valueStr.length} characters`)
-        if (valueStr.length > 10000) {
-          console.error(`   🚨 ${key} is MASSIVE: ${valueStr.substring(0, 200)}...`)
-        }
-      }
-    }
-    
-    const { prompt, business_name, logo_url, background_image_url, project_state, template_id } = requestBody
+    const { prompt, business_name, logo_url, background_image_url, project_state, template_id } = await request.json()
     
     console.log('Generate landing page request:', { prompt, business_name, template_id })
     
@@ -123,17 +104,6 @@ Do not ask questions. Build immediately using all provided information.`
       const sanitizedPrompt = sanitizeText(prompt || '').slice(0, 5000) // Limit to 5K chars max
       const sanitizedBusinessName = business_name ? sanitizeText(business_name).slice(0, 100) : 'Your Business'
       
-      // Log input sizes to identify the culprit
-      console.log('🔍 Input text analysis:')
-      console.log(`   Original prompt length: ${(prompt || '').length}`)
-      console.log(`   Sanitized prompt length: ${sanitizedPrompt.length}`)
-      console.log(`   Business name length: ${(business_name || '').length}`)
-      
-      if ((prompt || '').length > 50000) {
-        console.error(`🚨 MASSIVE PROMPT DETECTED: ${(prompt || '').length} characters! This will cause huge token costs!`)
-        console.error(`   First 500 chars: ${(prompt || '').substring(0, 500)}`)
-        console.error(`   Last 500 chars: ${(prompt || '').substring((prompt || '').length - 500)}`)
-      }
 
       // Convert relative URLs to absolute URLs for the HTML generation
       // CRITICAL: Check for base64 data that would cause massive token costs
@@ -164,14 +134,6 @@ ${backgroundFullUrl ? `Background Image URL: ${backgroundFullUrl}` : ''}
 
 Requirements: ${sanitizedPrompt}`
 
-      console.log('=== DEBUG TOKEN COUNT ===')
-      console.log('Original prompt length:', (prompt || '').length)
-      console.log('Logo URL length:', (logo_url || '').length)
-      console.log('Background URL length:', (background_image_url || '').length)
-      console.log('Business name length:', (business_name || '').length)
-      console.log('Using model:', openrouterConfig.model)
-      console.log('=========================')
-
       const apiParams = {
         model: openrouterConfig.model,
         messages: [
@@ -181,10 +143,6 @@ Requirements: ${sanitizedPrompt}`
         max_tokens: 2000,
         temperature: 0.7
       }
-
-      console.log('Calling OpenRouter with model:', openrouterConfig.model)
-      console.log('System prompt length:', (systemPrompt || '').length)
-      console.log('User prompt length:', sanitizedPrompt.length)
       
       const completion = await openai.chat.completions.create(apiParams)
       
