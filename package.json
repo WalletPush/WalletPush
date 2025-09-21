@@ -46,6 +46,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",
     "@types/react-color": "^3.0.13",
+    "@types/yazl": "^3.3.0",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5"

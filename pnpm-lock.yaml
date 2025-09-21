@@ -111,6 +111,9 @@ importers:
       '@types/react-color':
         specifier: ^3.0.13
         version: 3.0.13(@types/react@18.3.24)
+      '@types/yazl':
+        specifier: ^3.3.0
+        version: 3.3.0
       autoprefixer:
         specifier: ^10.4.16
         version: 10.4.21(postcss@8.5.6)
@@ -547,6 +550,9 @@ packages:
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+
+  '@types/yazl@3.3.0':
+    resolution: {integrity: sha512-mFL6lGkk2N5u5nIxpNV/K5LW3qVSbxhJrMxYGOOxZndWxMgCamr/iCsq/1t9kd8pEwhuNP91LC5qZm/qS9pOEw==}
 
   '@typescript-eslint/eslint-plugin@8.43.0':
     resolution: {integrity: sha512-8tg+gt7ENL7KewsKMKDHXR1vm8tt9eMxjJBYINf6swonlWgkYn5NwyIgXpbbDxTNU5DgpDFfj95prcTq2clIQQ==}
@@ -2836,6 +2842,10 @@ snapshots:
       '@types/react': 18.3.24
 
   '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 20.19.13
+
+  '@types/yazl@3.3.0':
     dependencies:
       '@types/node': 20.19.13
 
