@@ -361,10 +361,7 @@ export default function DistributionPage() {
           }]
         }))
       }
-
-      console.log(`✅ ${type} uploaded successfully:`, result.fileName)
     } catch (error) {
-      console.error('Error uploading image:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
       alert(`Upload failed: ${errorMessage}. Please try again.`)
     } finally {
@@ -477,15 +474,7 @@ Make it modern, professional, and conversion-focused.`
         generatedHtml: result.data?.html || 'Generated with mock data'
       }))
 
-      // Show debug info in alert (temporary for debugging)
-      if (result.data?.debug) {
-        const debug = result.data.debug
-        alert(`🔍 DEBUG INFO:
-Logo: ${debug.originalLogoUrl} → ${debug.processedLogoUrl}
-Background: ${debug.originalBackgroundUrl} → ${debug.processedBackgroundUrl}
-HTML Length: ${debug.htmlLength}
-HTML Preview: ${debug.htmlPreview}`)
-      }
+      // Images should now work correctly with HTTP URLs
 
     } catch (error) {
       console.error('Error generating landing page:', error)

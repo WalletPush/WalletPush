@@ -115,12 +115,17 @@ The middleware system will automatically inject all JavaScript functionality.`
       let logoFullUrl = null
       let backgroundFullUrl = null
       
+      // Resolve base URL from request for production correctness
+      const origin = request.headers.get('x-forwarded-proto') && request.headers.get('x-forwarded-host')
+        ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('x-forwarded-host')}`
+        : (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000')
+
       if (logo_url) {
         if (logo_url.startsWith('data:image/')) {
           // Only actual base64 data URLs, not files containing "base64" in filename
           logoFullUrl = `[BASE64 LOGO IMAGE - Use as logo in design]`
         } else {
-          logoFullUrl = logo_url.startsWith('http') ? logo_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}`
+          logoFullUrl = logo_url.startsWith('http') ? logo_url : `${origin}${logo_url}`
         }
       }
       // Logo debug info will be in response
@@ -130,7 +135,7 @@ The middleware system will automatically inject all JavaScript functionality.`
           // Only actual base64 data URLs, not files containing "base64" in filename
           backgroundFullUrl = `[BASE64 BACKGROUND IMAGE - Use as hero background in design]`
         } else {
-          backgroundFullUrl = background_image_url.startsWith('http') ? background_image_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${background_image_url}`
+          backgroundFullUrl = background_image_url.startsWith('http') ? background_image_url : `${origin}${background_image_url}`
         }
       }
       // Background debug info will be in response
@@ -266,14 +271,7 @@ CONTENT REQUIREMENTS: ${sanitizedPrompt}`
           message: conversationalMessage, // Clean conversational response only
           model: openrouterConfig.model,
           hasHtml: !!extractedHtml,
-          debug: {
-            originalLogoUrl: logo_url,
-            processedLogoUrl: logoFullUrl,
-            originalBackgroundUrl: background_image_url, 
-            processedBackgroundUrl: backgroundFullUrl,
-            htmlLength: extractedHtml?.length || 0,
-            htmlPreview: extractedHtml?.substring(0, 200) || 'No HTML generated'
-          }
+          // Debug removed - using working HTTP URLs now
         }, 
         error: null 
       })
