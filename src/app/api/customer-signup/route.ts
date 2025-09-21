@@ -140,6 +140,15 @@ export async function POST(request: NextRequest) {
     const actualTemplate = Array.isArray(template) ? template[0] : template
     console.log('✅ Found template:', actualTemplate.id)
 
+    // Ensure PassTypeID exists on the template
+    const templatePassTypeIdentifier = (actualTemplate as any)?.pass_type_identifier
+    if (!templatePassTypeIdentifier) {
+      return NextResponse.json(
+        { success: false, error: 'Template is missing pass_type_identifier. Please configure a Pass Type ID for this template.' },
+        { status: 400 }
+      )
+    }
+
     // 2. Determine the business_id for multi-tenant architecture
     let business_id = null
     
@@ -307,7 +316,7 @@ export async function POST(request: NextRequest) {
         templateOverride: {
           id: actualTemplate.id,
           passkit_json: actualTemplate.passkit_json,
-          pass_type_identifier: actualTemplate.pass_type_identifier,
+          pass_type_identifier: templatePassTypeIdentifier,
           template_json: actualTemplate.template_json,
         } as any
       })
