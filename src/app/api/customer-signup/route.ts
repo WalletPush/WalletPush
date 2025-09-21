@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
         .from('templates')
         .select(`
           id,
+          program_id,
           template_json,
           passkit_json,
           pass_type_identifier,
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
         .from('templates')
         .select(`
           id,
+          program_id,
           template_json,
           passkit_json,
           account_id,
