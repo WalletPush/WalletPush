@@ -155,8 +155,10 @@ ${sanitizeText(project_state.customInstructions).slice(0, 1000)}
 
 CONTENT: ${sanitizedPrompt}
 
-Return complete HTML page only. No JavaScript - middleware handles functionality.`Logo URL: ${logoFullUrl}` : ''}
+${logoFullUrl ? `Logo URL: ${logoFullUrl}` : ''}
 ${backgroundFullUrl ? `Background Image URL: ${backgroundFullUrl}` : ''}
+
+Return complete HTML page only. No JavaScript - middleware handles functionality.
 
 FORM FIELDS REQUIRED:
 ${allFields.length > 0 ? allFields.map(field => `- ${field} (${formFields.includes(field) ? 'required' : 'optional'})`).join('\n') : '- first_name (required)\n- last_name (required)\n- email (required)\n- phone (optional)'}
