@@ -81,8 +81,13 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
     // Look for landing pages for this business/account
     console.log(`🔍 Looking for landing page: business_id=${domain.business_id}, slug="${slug}"`)
     
+    // Fetch recent published pages and match by multiple URL variants
     const landingPageResponse = await fetch(
-      `${supabaseUrl}/rest/v1/landing_pages?select=*&business_id=eq.${domain.business_id}&custom_url=eq.${slug}&is_published=eq.true`,
+      `${supabaseUrl}/rest/v1/landing_pages?select=*` +
+      `&business_id=eq.${domain.business_id}` +
+      `&is_published=eq.true` +
+      `&order=updated_at.desc` +
+      `&limit=50`,
       {
         headers: {
           'apikey': serviceRoleKey,
@@ -94,23 +99,40 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
 
     if (landingPageResponse.ok) {
       const landingPages = await landingPageResponse.json()
-      
-      if (landingPages && landingPages.length > 0) {
-        const landingPage = landingPages[0]
-        console.log(`✅ Serving landing page: ${landingPage.title} for ${hostname}${pathname}`)
-        
-        return new NextResponse(landingPage.generated_html, {
+
+      const normalizedSlug = slug.replace(/^\//, '')
+      const variants = new Set<string>([
+        normalizedSlug,
+        `/${normalizedSlug}`,
+        `${hostname}/${normalizedSlug}`,
+        `${hostname}${pathname}`,
+        `https://${hostname}/${normalizedSlug}`,
+        `https://${hostname}${pathname}`,
+      ])
+
+      const match = (landingPages || []).find((p: any) => {
+        const cuRaw = (p.custom_url || '').toString()
+        const cuNormalized = cuRaw
+          .replace(/^https?:\/\//, '')
+          .replace(/^www\./, '')
+          .replace(/^\//, '')
+        return variants.has(cuRaw) || variants.has(cuNormalized) || variants.has(`/${cuNormalized}`)
+      })
+
+      if (match) {
+        console.log(`✅ Serving landing page: ${match.title || match.name} for ${hostname}${pathname} (matched custom_url="${match.custom_url}")`)
+        return new NextResponse(match.generated_html, {
           status: 200,
           headers: {
             'Content-Type': 'text/html',
             'X-Custom-Domain': hostname,
             'X-Business-ID': domain.business_id,
-            'X-Landing-Page-ID': landingPage.id,
+            'X-Landing-Page-ID': match.id,
             'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
           }
         })
       } else {
-        console.log(`📝 No landing page found for slug "${slug}"`)
+        console.log(`📝 No landing page matched for slug "${slug}" with variants:`, Array.from(variants))
       }
     } else {
       console.log(`❌ Landing page lookup failed: ${landingPageResponse.status}`)
