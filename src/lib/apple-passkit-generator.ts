@@ -126,10 +126,29 @@ export class ApplePassKitGenerator {
   private static async loadTemplate(templateId: string): Promise<PassTemplate | null> {
     try {
       const base = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-      const res = await fetch(`${base}/api/templates`)
-      const data = await res.json()
-      const template = data.data?.find((t: any) => t.id === templateId)
-      return template || null
+      console.log(`🔍 Loading template ${templateId} from ${base}/api/templates/${templateId}`)
+      
+      // First try to get the specific template by ID
+      const res = await fetch(`${base}/api/templates/${templateId}`)
+      if (res.ok) {
+        const data = await res.json()
+        console.log(`✅ Found template ${templateId}:`, data.data)
+        return data.data || null
+      }
+      
+      // Fallback: search in all templates
+      console.log(`⚠️ Template ${templateId} not found directly, searching in all templates...`)
+      const allRes = await fetch(`${base}/api/templates`)
+      const allData = await allRes.json()
+      const template = allData.data?.find((t: any) => t.id === templateId)
+      
+      if (template) {
+        console.log(`✅ Found template ${templateId} in search:`, template)
+        return template
+      }
+      
+      console.error(`❌ Template ${templateId} not found in any search`)
+      return null
     } catch (e) {
       console.error('❌ Error loading template:', e)
       return null

@@ -5,28 +5,39 @@ import { setPassInStore, getPassStoreSize } from '@/lib/pass-store'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { templateId, formData, userId, deviceType } = body
+    const { templateId, templateOverride, formData, userId, deviceType } = body
 
     // Validate required fields
-    if (!templateId || !formData) {
+    if (!templateId && !templateOverride) {
       return NextResponse.json(
-        { error: 'templateId and formData are required' },
+        { error: 'templateId or templateOverride is required' },
+        { status: 400 }
+      )
+    }
+    
+    if (!formData) {
+      return NextResponse.json(
+        { error: 'formData is required' },
         { status: 400 }
       )
     }
 
     console.log('🍎 Apple Pass Generation Request:')
     console.log('Template ID:', templateId)
+    console.log('Template Override:', templateOverride ? 'Yes' : 'No')
     console.log('Form Data:', formData)
     console.log('Device Type:', deviceType)
 
     // Generate the Apple-compliant .pkpass file
     const { response, passBuffer, actualData } = await ApplePassKitGenerator.generateApplePass({
-      templateId,
+      templateId: templateId || templateOverride?.id,
+      templateOverride,
       formData,
       userId,
       deviceType: deviceType || 'desktop'
     })
+
+    const effectiveTemplateId = templateId || templateOverride?.id
 
     // Store the pass for Apple PassKit web service and downloads
     await ApplePassKitGenerator.storePassInDatabase(
@@ -34,12 +45,12 @@ export async function POST(request: Request) {
       response.passTypeIdentifier,
       passBuffer,
       actualData, // Use actualData from GOLDEN RULES implementation
-      templateId
+      effectiveTemplateId
     )
 
     // Also store in memory for immediate downloads
     setPassInStore(response.serialNumber, {
-      templateId,
+      templateId: effectiveTemplateId,
       formData: actualData, // Use actualData (template values) not original formData
       passBuffer,
       createdAt: new Date()

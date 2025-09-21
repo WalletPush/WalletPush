@@ -1260,12 +1260,43 @@ export default function PassDesigner() {
 
       console.log('🔍 Preview form data:', sampleFormData)
 
+      // Prepare template override to avoid server-side template fetch
+      const templateOverride = {
+        id: templateId,
+        pass_type_identifier: currentPass.passTypeIdentifier,
+        passkit_json: {
+          formatVersion: 1,
+          passTypeIdentifier: currentPass.passTypeIdentifier,
+          organizationName: currentPass.organizationName,
+          description: currentPass.description || 'Digital wallet pass',
+          backgroundColor: currentPass.backgroundColor || '#1a1a1a',
+          foregroundColor: currentPass.foregroundColor || '#ffffff',
+          labelColor: currentPass.labelColor || '#cccccc',
+          ...currentPass.barcodes?.length ? { barcodes: currentPass.barcodes } : {},
+          ...currentPass.fields?.length ? { 
+            [currentPass.style === 'storeCard' ? 'storeCard' : 
+             currentPass.style === 'coupon' ? 'coupon' :
+             currentPass.style === 'eventTicket' ? 'eventTicket' :
+             currentPass.style === 'boardingPass' ? 'boardingPass' : 'generic']: {
+              primaryFields: currentPass.fields.filter(f => f.position === 'primary'),
+              secondaryFields: currentPass.fields.filter(f => f.position === 'secondary'),
+              auxiliaryFields: currentPass.fields.filter(f => f.position === 'auxiliary'),
+              backFields: currentPass.fields.filter(f => f.position === 'back'),
+              headerFields: currentPass.fields.filter(f => f.position === 'header')
+            }
+          } : {}
+        },
+        template_json: {
+          images: currentPass.images
+        }
+      }
+
       // Generate the .pkpass file using the Apple PassKit generator
       const response = await fetch('/api/apple-pass', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          templateId: templateId,
+          templateOverride: templateOverride,
           formData: sampleFormData,
           userId: 'preview-user',
           deviceType: 'desktop',
