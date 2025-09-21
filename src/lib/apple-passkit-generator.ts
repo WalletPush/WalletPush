@@ -23,6 +23,7 @@ interface ApplePassData {
   formData?: { [key: string]: string } // optional; used for preview generation and overrides
   userId?: string
   deviceType?: string
+  templateOverride?: PassTemplate // when provided, bypass loadTemplate()
 }
 
 interface ApplePassResponse {
@@ -54,10 +55,10 @@ export class ApplePassKitGenerator {
     passBuffer: Buffer
     actualData: any
   }> {
-    const { templateId, formData = {}, userId, deviceType } = passData
+    const { templateId, formData = {}, userId, deviceType, templateOverride } = passData
 
-    // 1) Load template (must exist)
-    const template = await this.loadTemplate(templateId)
+    // 1) Load template (must exist) or use override from caller
+    const template = templateOverride || await this.loadTemplate(templateId)
     if (!template) throw new Error(`❌ Template ${templateId} not found`)
 
     // 2) GOLDEN: Take PassTypeID from template ONLY

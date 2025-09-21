@@ -301,7 +301,13 @@ export async function POST(request: NextRequest) {
         templateId: actualTemplate.id,
         formData: formData,
         userId: email, // Use email as user identifier
-        deviceType: 'web'
+        deviceType: 'web',
+        templateOverride: {
+          id: actualTemplate.id,
+          passkit_json: actualTemplate.passkit_json,
+          pass_type_identifier: actualTemplate.pass_type_identifier,
+          template_json: actualTemplate.template_json,
+        } as any
       })
 
       console.log('✅ Pass generated successfully:', {
@@ -415,7 +421,7 @@ export async function POST(request: NextRequest) {
     } catch (passError) {
       console.error('❌ Failed to generate pass:', passError)
       return NextResponse.json(
-        { success: false, error: 'Failed to generate your pass. Please try again.' },
+        { success: false, error: passError instanceof Error ? passError.message : 'Failed to generate your pass.' },
         { status: 500 }
       )
     }
