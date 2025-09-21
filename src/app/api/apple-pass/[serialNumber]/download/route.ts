@@ -69,8 +69,8 @@ export async function GET(
     console.log(`✅ Found pass record:`, {
       id: passRecord.id,
       serial: passRecord.serial,
-      customer: passRecord.customers?.email,
-      template: passRecord.templates?.id
+      customer: Array.isArray(passRecord.customers) ? passRecord.customers[0]?.email : passRecord.customers?.email,
+      template: Array.isArray(passRecord.templates) ? passRecord.templates[0]?.id : passRecord.templates?.id
     })
 
     // 2. Use the stored pass_data if available, otherwise generate from stored customer data
@@ -80,8 +80,8 @@ export async function GET(
       console.log(`⚠️ No stored pass_data, regenerating from customer data`)
       
       // Fallback: Regenerate from customer and template data
-      const customer = passRecord.customers
-      const template = passRecord.templates
+      const customer = Array.isArray(passRecord.customers) ? passRecord.customers[0] : passRecord.customers
+      const template = Array.isArray(passRecord.templates) ? passRecord.templates[0] : passRecord.templates
       
       if (!customer || !template) {
         console.error(`❌ Missing customer or template data for pass ${serialNumber}`)
@@ -139,16 +139,19 @@ export async function GET(
     console.log(`🔄 Generating .pkpass file for ${serialNumber}`)
 
     // Use the existing generateApplePass method to convert stored pass data to .pkpass
+    const customer = Array.isArray(passRecord.customers) ? passRecord.customers[0] : passRecord.customers
+    const template = Array.isArray(passRecord.templates) ? passRecord.templates[0] : passRecord.templates
+    
     const passResult = await ApplePassKitGenerator.generateApplePass({
       templateId: passRecord.template_id,
       formData: passData,
-      userId: passRecord.customers?.email || 'customer',
+      userId: customer?.email || 'customer',
       deviceType: 'web',
       templateOverride: {
-        id: passRecord.templates?.id || passRecord.template_id,
-        passkit_json: passRecord.templates?.passkit_json,
-        pass_type_identifier: passRecord.templates?.pass_type_identifier,
-        template_json: passRecord.templates?.template_json,
+        id: template?.id || passRecord.template_id,
+        passkit_json: template?.passkit_json,
+        pass_type_identifier: template?.pass_type_identifier,
+        template_json: template?.template_json,
       } as any
     })
 
