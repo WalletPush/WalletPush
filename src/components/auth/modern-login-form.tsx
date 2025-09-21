@@ -55,8 +55,17 @@ export function ModernLoginForm({ className, redirectTo = '/business/dashboard' 
       if (error) throw error
 
       console.log('✅ User logged in successfully!')
-      router.push(redirectTo)
-      router.refresh()
+      
+      // If we're on a custom domain, stay on the same domain
+      const currentHost = window.location.hostname
+      if (currentHost !== 'localhost' && currentHost !== '127.0.0.1' && !currentHost.includes('walletpush.io')) {
+        // We're on a custom domain, redirect within the same domain
+        window.location.href = redirectTo
+      } else {
+        // Default routing
+        router.push(redirectTo)
+        router.refresh()
+      }
     } catch (error: unknown) {
       console.error('❌ Login error:', error)
       setError(error instanceof Error ? error.message : 'Login failed')

@@ -42,8 +42,16 @@ export function CustomerLoginForm() {
 
       if (data.user) {
         // For customers, redirect to their dashboard
-        router.push('/customer/dashboard')
-        router.refresh()
+        // If we're on a custom domain, stay on the same domain
+        const currentHost = window.location.hostname
+        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1' && !currentHost.includes('walletpush.io')) {
+          // We're on a custom domain, redirect within the same domain
+          window.location.href = '/customer/dashboard'
+        } else {
+          // Default routing
+          router.push('/customer/dashboard')
+          router.refresh()
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred')

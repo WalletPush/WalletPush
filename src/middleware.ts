@@ -20,8 +20,15 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request)
   }
 
-  // Handle custom domains for landing pages (now with Cloudflare proxy support)
+  // Handle custom domains for landing pages AND business routing (now with Cloudflare proxy support)
   if (hostname !== 'walletpush.io' && !hostname.includes('vercel.app') && !hostname.includes('localhost')) {
+    // First check if this is a business page route on a custom domain
+    const businessRouteResponse = await handleCustomDomainBusinessRouting(request, hostname, pathname)
+    if (businessRouteResponse) {
+      return businessRouteResponse
+    }
+    
+    // Then check for landing pages
     const landingPageResponse = await handleCustomDomainLandingPage(request, hostname, pathname)
     if (landingPageResponse) {
       return landingPageResponse
@@ -83,6 +90,84 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
     return html + script
   } catch {
     return html
+  }
+}
+
+// Handle custom domain business routing (dashboard, login, etc.)
+async function handleCustomDomainBusinessRouting(request: NextRequest, hostname: string, pathname: string) {
+  try {
+    // Check if this is a business-related route
+    const businessRoutes = [
+      '/business/dashboard',
+      '/business/settings', 
+      '/business/pass-designer',
+      '/business/distribution',
+      '/business/members',
+      '/business/pass-type-ids',
+      '/business/auth/login',
+      '/business/auth/sign-up',
+      '/customer/auth/login',
+      '/customer/auth/sign-up', 
+      '/customer/dashboard'
+    ]
+    
+    if (!businessRoutes.includes(pathname)) {
+      return null // Not a business route
+    }
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    
+    console.log(`🏢 Custom domain business route: ${hostname}${pathname}`)
+    
+    // Check if this domain is registered for a business
+    const domainResponse = await fetch(
+      `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id,status&domain=eq.${hostname}&status=eq.active`,
+      {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (!domainResponse.ok) {
+      console.log(`❌ Domain lookup failed for business route ${hostname}: ${domainResponse.status}`)
+      return null
+    }
+
+    const domainData = await domainResponse.json()
+    
+    if (!domainData || domainData.length === 0) {
+      console.log(`📝 Domain ${hostname} not found for business routing`)
+      return null
+    }
+
+    const domain = domainData[0]
+    console.log(`✅ Found business custom domain: ${hostname} → business_id: ${domain.business_id}`)
+    
+    // Store business context in headers for the routed page
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-business-id', domain.business_id)
+    requestHeaders.set('x-custom-domain', hostname)
+    
+    // Rewrite to the business route with business context
+    const url = request.nextUrl.clone()
+    url.pathname = pathname // Keep the same path
+    
+    const response = NextResponse.rewrite(url, {
+      request: {
+        headers: requestHeaders,
+      },
+    })
+    
+    console.log(`✅ Routed business page: ${hostname}${pathname} → ${pathname} (business: ${domain.business_id})`)
+    return response
+    
+  } catch (error) {
+    console.error('❌ Custom domain business routing error:', error)
+    return null
   }
 }
 
