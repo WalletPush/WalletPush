@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { prompt, business_name, logo_url, background_image_url, project_state, template_id } = await request.json()
     
-    console.log('Generate landing page request:', { prompt, business_name, template_id, logo_url, background_image_url })
+    // Debug info will be returned in response instead of console logs
     
     // For testing, we'll use the Blue Karma business ID
     const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
@@ -123,7 +123,7 @@ The middleware system will automatically inject all JavaScript functionality.`
           logoFullUrl = logo_url.startsWith('http') ? logo_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}`
         }
       }
-      console.log('🖼️ LOGO DEBUG:', { logo_url, logoFullUrl })
+      // Logo debug info will be in response
       
       if (background_image_url) {
         if (background_image_url.startsWith('data:image/') || background_image_url.includes('base64')) {
@@ -133,7 +133,7 @@ The middleware system will automatically inject all JavaScript functionality.`
           backgroundFullUrl = background_image_url.startsWith('http') ? background_image_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${background_image_url}`
         }
       }
-      console.log('🖼️ BACKGROUND DEBUG:', { background_image_url, backgroundFullUrl })
+      // Background debug info will be in response
 
       // Build comprehensive prompt with all necessary details
       const formFields = project_state?.requiredFields || []
@@ -254,21 +254,26 @@ CONTENT REQUIREMENTS: ${sanitizedPrompt}`
           // This appears to be a conversational-only response (no HTML yet)
           conversationalMessage = fullResponse.trim()
           extractedHtml = '' // No HTML to extract
-          console.log('CONVERSATIONAL ONLY: No HTML in this response')
+          // No HTML detected in AI response
         }
       }
 
-      console.log('Conversational message length:', conversationalMessage.length)
-      console.log('Extracted HTML length:', extractedHtml.length)
-      console.log('First 200 chars of message:', conversationalMessage.substring(0, 200))
-      console.log('First 300 chars of HTML:', extractedHtml.substring(0, 300))
+      // Debug info will be included in response message
 
       return NextResponse.json({ 
         data: { 
           html: extractedHtml || null, // Can be null for conversational-only responses
           message: conversationalMessage, // Clean conversational response only
           model: openrouterConfig.model,
-          hasHtml: !!extractedHtml
+          hasHtml: !!extractedHtml,
+          debug: {
+            originalLogoUrl: logo_url,
+            processedLogoUrl: logoFullUrl,
+            originalBackgroundUrl: background_image_url, 
+            processedBackgroundUrl: backgroundFullUrl,
+            htmlLength: extractedHtml?.length || 0,
+            htmlPreview: extractedHtml?.substring(0, 200) || 'No HTML generated'
+          }
         }, 
         error: null 
       })

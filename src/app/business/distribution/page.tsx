@@ -477,6 +477,16 @@ Make it modern, professional, and conversion-focused.`
         generatedHtml: result.data?.html || 'Generated with mock data'
       }))
 
+      // Show debug info in alert (temporary for debugging)
+      if (result.data?.debug) {
+        const debug = result.data.debug
+        alert(`🔍 DEBUG INFO:
+Logo: ${debug.originalLogoUrl} → ${debug.processedLogoUrl}
+Background: ${debug.originalBackgroundUrl} → ${debug.processedBackgroundUrl}
+HTML Length: ${debug.htmlLength}
+HTML Preview: ${debug.htmlPreview}`)
+      }
+
     } catch (error) {
       console.error('Error generating landing page:', error)
       alert('Failed to generate landing page. Please try again.')
