@@ -5,7 +5,26 @@ import OpenAI from 'openai'
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { prompt, business_name, logo_url, background_image_url, project_state, template_id } = await request.json()
+    const requestBody = await request.json()
+    
+    // Log request body size to identify massive data
+    const requestBodyString = JSON.stringify(requestBody)
+    console.log('🔍 Request body analysis:')
+    console.log(`   Total request size: ${requestBodyString.length} characters`)
+    
+    if (requestBodyString.length > 100000) {
+      console.error(`🚨 MASSIVE REQUEST BODY: ${requestBodyString.length} characters!`)
+      console.error('   Keys in request:', Object.keys(requestBody))
+      for (const [key, value] of Object.entries(requestBody)) {
+        const valueStr = typeof value === 'string' ? value : JSON.stringify(value)
+        console.error(`   ${key}: ${valueStr.length} characters`)
+        if (valueStr.length > 10000) {
+          console.error(`   🚨 ${key} is MASSIVE: ${valueStr.substring(0, 200)}...`)
+        }
+      }
+    }
+    
+    const { prompt, business_name, logo_url, background_image_url, project_state, template_id } = requestBody
     
     console.log('Generate landing page request:', { prompt, business_name, template_id })
     
@@ -163,7 +182,9 @@ Requirements: ${sanitizedPrompt}`
         temperature: 0.7
       }
 
-      console.log('Calling OpenRouter with params:', JSON.stringify(apiParams, null, 2))
+      console.log('Calling OpenRouter with model:', openrouterConfig.model)
+      console.log('System prompt length:', (systemPrompt || '').length)
+      console.log('User prompt length:', sanitizedPrompt.length)
       
       const completion = await openai.chat.completions.create(apiParams)
       
