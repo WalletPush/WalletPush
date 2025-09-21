@@ -57,37 +57,36 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      const systemPrompt = `You are an expert web developer creating landing pages for WalletPush.
+            const systemPrompt = `You are creating a mobile wallet pass signup page for businesses.
 
-TASK: Create a complete, responsive HTML landing page based on the provided requirements.
+DEFAULT LAYOUT (use unless custom instructions specify otherwise):
+- Logo at top center
+- Headline (large, bold, attention-grabbing)
+- Sub-headline (benefit-focused)
+- Signup form IMMEDIATELY below (above the fold on mobile)
+- Simple, clean, conversion-focused design
+- Minimal distractions
 
-OUTPUT FORMAT:
-1. Brief acknowledgment (1-2 sentences)
-2. Add separator: ---HTML---
-3. Complete HTML code
+CUSTOM INSTRUCTIONS OVERRIDE:
+If custom design instructions are provided, follow those instead of the default layout.
+The custom instructions take priority over the default structure.
 
-REQUIREMENTS:
+TECHNICAL REQUIREMENTS:
 - Use Tailwind CSS via CDN
 - Form posts to /api/customer-signup with method="POST"
-- Include hidden fields: <input type="hidden" name="landing_page_id" value="LANDING_PAGE_ID_PLACEHOLDER">
-- MUST use provided logo and background images if URLs are provided
-- Include all specified form fields as <input> elements with correct names and types
-- Use the specified primary and secondary colors for branding consistency
-- Professional, conversion-optimized design
-- Prominently display the incentive offer
-- Clear benefits section with bullet points
-- Mobile responsive design
-- Include client-side form validation
-- Follow any custom design instructions provided
+- Include: <input type="hidden" name="landing_page_id" value="LANDING_PAGE_ID_PLACEHOLDER">
+- Mobile-first responsive design
+- Use provided branding colors in the design
+- Include ALL specified form fields with correct names and types
+- MUST use provided logo and background images in the design
 
-STRUCTURE:
-- Header with logo
-- Hero section with headline and incentive
-- Benefits section with bullet points
-- Signup form with specified fields
-- Footer
+BRANDING:
+- Use provided logo image if URL is provided
+- Use provided background image if URL is provided  
+- Apply the specified brand colors throughout
+- Professional but conversion-focused styling
 
-Do not ask questions. Build immediately using all provided information.`
+OUTPUT: Complete HTML page with inline CSS. No explanations.`
 
       // Sanitize text to remove problematic Unicode characters
       const sanitizeText = (text: string) => {
@@ -107,18 +106,16 @@ Do not ask questions. Build immediately using all provided information.`
       const sanitizedBusinessName = business_name ? sanitizeText(business_name).slice(0, 100) : 'Your Business'
       
 
-      // Convert relative URLs to absolute URLs for the HTML generation
-      // CRITICAL: Check for base64 data that would cause massive token costs
+            // Handle image URLs properly
       let logoFullUrl = null
       let backgroundFullUrl = null
       
       if (logo_url) {
-        if (logo_url.startsWith('data:image/') || logo_url.includes('base64')) {
-          // For base64 images, include a truncated version for reference
-          logoFullUrl = `[BASE64 LOGO IMAGE - Use as logo in design]`
-        } else {
-          logoFullUrl = logo_url.startsWith('http') ? logo_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}`
-        }
+        logoFullUrl = logo_url.startsWith('http') ? logo_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}`
+      }
+      
+      if (background_image_url) {
+        backgroundFullUrl = background_image_url.startsWith('http') ? background_image_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${background_image_url}`
       }
       
       if (background_image_url) {
@@ -135,8 +132,19 @@ Do not ask questions. Build immediately using all provided information.`
       const optionalFields = project_state?.optionalFields || []
       const allFields = [...formFields, ...optionalFields]
       
-      const userPrompt = `Business: ${sanitizedBusinessName}
-${logoFullUrl ? `Logo URL: ${logoFullUrl}` : ''}
+            const userPrompt = `Business: ${sanitizedBusinessName}
+${logoFullUrl ? `Logo Image URL: ${logoFullUrl}` : 'No logo provided'}
+${backgroundFullUrl ? `Background Image URL: ${backgroundFullUrl}` : 'No background provided'}
+
+FORM FIELDS TO INCLUDE (create input elements for ALL of these):
+${allFields.length > 0 ? allFields.map(field => `- ${field} (${formFields.includes(field) ? 'required' : 'optional'}) - input name="${field}"`).join('\n') : '- first_name (required) - input name="first_name"\n- last_name (required) - input name="last_name"\n- email (required) - input name="email"\n- phone (optional) - input name="phone"'}
+
+DESIGN REQUIREMENTS:
+${project_state?.primaryColor ? `Primary Color: ${project_state.primaryColor}` : 'Use blue as primary color'}
+${project_state?.secondaryColor ? `Secondary Color: ${project_state.secondaryColor}` : 'Use gray as secondary color'}
+${project_state?.customInstructions ? `Custom Instructions: ${sanitizeText(project_state.customInstructions).slice(0, 1000)}` : ''}
+
+CONTENT REQUIREMENTS: ${sanitizedPrompt}`Logo URL: ${logoFullUrl}` : ''}
 ${backgroundFullUrl ? `Background Image URL: ${backgroundFullUrl}` : ''}
 
 FORM FIELDS REQUIRED:
