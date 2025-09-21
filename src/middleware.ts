@@ -40,6 +40,29 @@ export async function middleware(request: NextRequest) {
   return await updateSession(request)
 }
 
+/**
+ * Injects a dynamic script into landing page HTML to:
+ * - Capture form submissions
+ * - POST to /api/customer-signup with landing_page_id/template_id
+ * - On success, redirect to pass download (mobile) and then to member login
+ * The login URL is configured via NEXT_PUBLIC_MEMBER_LOGIN_URL (fallback /customer/auth/login)
+ */
+function injectWalletPassScript(html: string, context: { landing_page_id?: string; template_id?: string; hostname: string }): string {
+  try {
+    const memberLoginBase = process.env.NEXT_PUBLIC_MEMBER_LOGIN_URL || '/customer/auth/login'
+    const script = `\n<script>(function(){\n  try {\n    const LP_ID = ${JSON.stringify(context.landing_page_id || '')};\n    const TEMPLATE_ID = ${JSON.stringify(context.template_id || '')};\n    const LOGIN_BASE = ${JSON.stringify(memberLoginBase)};\n    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);\n\n    function findEmailValue() {\n      const el = document.querySelector('input[name="email"], input[type="email"]');\n      return el ? (el).value || '' : '';\n    }\n\n    async function submitToWalletPush(form) {\n      const formData = new FormData(form);\n      const payload = {};\n      formData.forEach((v,k)=>{ payload[k] = v; });\n      if (LP_ID) payload["landing_page_id"] = LP_ID;\n      if (!payload["template_id"] && TEMPLATE_ID) payload["template_id"] = TEMPLATE_ID;\n\n      const res = await fetch('/api/customer-signup', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify(payload)\n      });\n      if (!res.ok) { throw new Error('Signup failed'); }\n      const data = await res.json();\n      if (!data || !data.download_url) { throw new Error('No download URL'); }\n\n      const email = findEmailValue();\n      const encodedEmail = encodeURIComponent(email || '');\n      const passUrl = data.download_url.replace('?t=', '.pkpass?t=');\n\n      if (isMobile) {\n        window.location.href = passUrl;\n        setTimeout(()=>{ window.location.href = LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : ''); }, 8000);\n      } else {\n        window.open(data.download_url, '_blank');\n        setTimeout(()=>{ window.location.href = LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : ''); }, 3000);\n      }\n    }\n\n    function attachHandlers(){\n      const forms = Array.from(document.querySelectorAll('form'));\n      forms.forEach(form=>{\n        if ((form).dataset.__wpBound === '1') return;\n        (form).dataset.__wpBound = '1';\n        form.addEventListener('submit', function(e){\n          try {\n            e.preventDefault();\n            submitToWalletPush(form);\n          } catch(err) { console.error('WalletPush submit error', err); }\n        }, { capture: true });\n      });\n    }\n\n    if (document.readyState === 'loading') {\n      document.addEventListener('DOMContentLoaded', attachHandlers);\n    } else {\n      attachHandlers();\n    }\n\n    // Also observe dynamic content changes
+    const observer = new MutationObserver(()=>attachHandlers());
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  } catch(e) { console.error('WalletPush inject error', e); }\n})();</script>\n`;
+    if (html.includes('</body>')) {
+      return html.replace('</body>', script + '</body>')
+    }
+    return html + script
+  } catch {
+    return html
+  }
+}
+
 // Handle custom domains for landing pages (Enhanced for Cloudflare proxy)
 async function handleCustomDomainLandingPage(request: NextRequest, hostname: string, pathname: string) {
   try {
@@ -121,7 +144,12 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
 
       if (match) {
         console.log(`✅ Serving landing page: ${match.title || match.name} for ${hostname}${pathname} (matched custom_url="${match.custom_url}")`)
-        return new NextResponse(match.generated_html, {
+        const injectedHtml = injectWalletPassScript(match.generated_html, {
+          landing_page_id: match.id,
+          template_id: match.template_id,
+          hostname,
+        })
+        return new NextResponse(injectedHtml, {
           status: 200,
           headers: {
             'Content-Type': 'text/html',
@@ -159,8 +187,12 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
         if (defaultPages && defaultPages.length > 0) {
           const defaultPage = defaultPages[0]
           console.log(`✅ Serving default homepage: ${defaultPage.title} for ${hostname}`)
-          
-          return new NextResponse(defaultPage.generated_html, {
+          const injectedHtml = injectWalletPassScript(defaultPage.generated_html, {
+            landing_page_id: defaultPage.id,
+            template_id: defaultPage.template_id,
+            hostname,
+          })
+          return new NextResponse(injectedHtml, {
             status: 200,
             headers: {
               'Content-Type': 'text/html',
