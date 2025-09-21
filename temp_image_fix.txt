@@ -1,0 +1,13 @@
+      // Build image URLs properly - no more base64 issues
+      let logoUrl = null
+      let backgroundUrl = null
+      
+      if (logo_url) {
+        // Since we're now using the new upload route, logo_url should be a clean URL
+        logoUrl = logo_url.startsWith('http') ? logo_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}`
+      }
+      
+      if (background_image_url) {
+        // Since we're now using the new upload route, background_image_url should be a clean URL
+        backgroundUrl = background_image_url.startsWith('http') ? background_image_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${background_image_url}`
+      }

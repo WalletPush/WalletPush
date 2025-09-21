@@ -325,7 +325,7 @@ export default function DistributionPage() {
     formData.append('type', type)
 
     try {
-      const response = await fetch('/api/landing-pages/upload-image', {
+      const response = await fetch('/api/upload-image', {
         method: 'POST',
         body: formData
       })
