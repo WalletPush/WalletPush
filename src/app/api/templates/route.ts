@@ -128,6 +128,9 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
     
+    // Get template data early so we can use it for program creation
+    const templateData = body
+    
     // Try to get existing programs, but don't fail if none exist
     const { data: existingPrograms, error: programError } = await supabase
       .from('programs')
@@ -164,9 +167,6 @@ export async function POST(request: Request) {
         console.log(`✅ Created default program: ${programId}`)
       }
     }
-
-    // Now save the template to Supabase
-    const templateData = body
     
     console.log('📋 Template data received:', {
       name: templateData.name,
