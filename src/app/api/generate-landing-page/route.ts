@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
+import { put } from '@vercel/blob'
 
 export async function POST(request: NextRequest) {
   try {
@@ -136,13 +137,11 @@ The middleware system will automatically inject all JavaScript functionality.`
           const buffer = Buffer.from(base64, 'base64')
           const ext = mime.split('/')[1] || 'png'
           const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`
-          const storagePath = `business-${business_id}/landing-pages/${fileName}`
-          const { error: uploadError } = await supabase.storage
-            .from('landing-pages')
-            .upload(storagePath, buffer, { contentType: mime, upsert: true })
-          if (uploadError) return null
-          const { data } = await supabase.storage.from('landing-pages').getPublicUrl(storagePath)
-          return data?.publicUrl || null
+          const token = process.env.BLOB_READ_WRITE_TOKEN
+          if (!token) return null
+          const blobPath = `landing-pages/business-${business_id}/${fileName}`
+          const { url } = await put(blobPath, buffer, { access: 'public', contentType: mime, token })
+          return url || null
         } catch {
           return null
         }

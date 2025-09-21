@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { promises as fs } from 'fs'
 import { join } from 'path'
+import { put } from '@vercel/blob'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,57 +58,26 @@ export async function POST(request: NextRequest) {
     const extension = file.name.split('.').pop() || 'jpg'
     const filename = `${type}_${timestamp}_${randomString}.${extension}`
 
-    // Preferred: Upload to Supabase Storage so URLs are stable on Vercel
-    const bucket = 'landing-pages'
-    const storagePath = `business-${businessId}/landing-pages/${filename}`
-
-    try {
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(storagePath, buffer, { contentType, upsert: true })
-
-      if (uploadError) {
-        throw uploadError
-      }
-
-      const { data: publicData } = await supabase.storage
-        .from(bucket)
-        .getPublicUrl(storagePath)
-
-      if (publicData?.publicUrl) {
-        return NextResponse.json({
-          url: publicData.publicUrl,
-          message: 'File uploaded successfully',
-          fileName: file.name,
-          size: file.size,
-          type: file.type
-        })
-      }
-
-      // If storage succeeded but no public URL, treat as error
-      return NextResponse.json({ error: 'Storage public URL not available' }, { status: 500 })
-    } catch (e: any) {
-      // On Vercel, the filesystem is read-only at /var/task; do NOT try to write to /public in production
-      if (process.env.NODE_ENV !== 'production') {
-        // Dev-only fallback to public/uploads for local testing
-        const businessDir = join(process.cwd(), 'public', 'uploads', `business-${businessId}`, 'landing-pages')
-        await fs.mkdir(businessDir, { recursive: true })
-        const filepath = join(businessDir, filename)
-        await fs.writeFile(filepath, buffer)
-        const origin = request.headers.get('x-forwarded-proto') && request.headers.get('x-forwarded-host')
-          ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('x-forwarded-host')}`
-          : (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000')
-        const publicUrl = `${origin}/uploads/business-${businessId}/landing-pages/${filename}`
-        return NextResponse.json({
-          url: publicUrl,
-          message: 'File uploaded successfully (dev fallback)',
-          fileName: file.name,
-          size: file.size,
-          type: file.type
-        })
-      }
-      return NextResponse.json({ error: `Storage upload failed: ${e?.message || e}` }, { status: 500 })
+    // Upload to Vercel Blob Storage (public, per-business path)
+    const blobPath = `landing-pages/business-${businessId}/${filename}`
+    const token = process.env.BLOB_READ_WRITE_TOKEN
+    if (!token) {
+      return NextResponse.json({ error: 'Blob token missing' }, { status: 500 })
     }
+
+    const { url } = await put(blobPath, buffer, {
+      access: 'public',
+      contentType,
+      token
+    })
+
+    return NextResponse.json({
+      url,
+      message: 'File uploaded successfully',
+      fileName: file.name,
+      size: file.size,
+      type: file.type
+    })
 
   } catch (error) {
     console.error('Error uploading file:', error)
