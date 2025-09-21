@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     const { data: existingPrograms, error: programError } = await supabase
       .from('programs')
       .select('id, name')
-      .eq('business_id', 'be023bdf-c668-4cec-ac51-65d3c02ea191')
+      .eq('account_id', 'be023bdf-c668-4cec-ac51-65d3c02ea191')
       .limit(1)
 
     let programId = null
@@ -149,8 +149,8 @@ export async function POST(request: Request) {
       const { data: newProgram, error: createError } = await supabase
         .from('programs')
         .insert({
-          business_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191',
-          name: 'Pass Designer Templates'
+          account_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191',
+          name: templateData.name || 'Untitled Template'
         })
         .select()
         .single()
@@ -204,7 +204,10 @@ export async function POST(request: Request) {
           .update({ 
             template_json: templateData,
             passkit_json: body.passkit_json,  // CRITICAL: Save the passkit_json field
-            pass_type_identifier: templateData.metadata?.pass_type_identifier
+            pass_type_identifier: templateData.metadata?.pass_type_identifier,
+            account_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191',
+            previews: { generated_at: new Date().toISOString() },
+            published_at: new Date().toISOString()
           })
           .eq('id', existingTemplate.id)
           .select()
@@ -230,7 +233,10 @@ export async function POST(request: Request) {
           version: 1,
           template_json: templateData,
           passkit_json: body.passkit_json,  // CRITICAL: Save the passkit_json field
-          pass_type_identifier: templateData.metadata?.pass_type_identifier
+          pass_type_identifier: templateData.metadata?.pass_type_identifier,
+          account_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191',
+          previews: { generated_at: new Date().toISOString() },
+          published_at: new Date().toISOString()
         }
         
         if (programId) {
