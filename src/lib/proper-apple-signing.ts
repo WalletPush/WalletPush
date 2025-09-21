@@ -4,6 +4,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { CertificateExtractor } from './certificate-extractor'
 import { ManifestSigner } from './manifest-signer'
+import { zipPkpassDir } from './zip-pkpass'
 import * as crypto from 'crypto'
 
 // APPLE WALLET SECURITY: Forbidden files that must NEVER be in .pkpass
@@ -184,11 +185,11 @@ export class ProperAppleSigning {
       this.assertNoForbiddenFiles(payloadFiles)
       console.log(`🔒 Security check passed: No certificate/key files in payload`)
       
-      // 7. Create ZIP file (files at ROOT, strip Mac metadata)
+      // 7. Create ZIP file (files at ROOT, strip Mac metadata) - Pure Node.js
       console.log(`📦 Creating ZIP archive with proper structure`)
       const zipPath = join(payloadDir, '..', `signed-${Date.now()}.pkpass`)
       
-      execSync(`cd "${payloadDir}" && zip -r -X "${zipPath}" .`)
+      await zipPkpassDir(payloadDir, zipPath)
       
       const zipBuffer = readFileSync(zipPath)
       console.log(`✅ Signed .pkpass created: ${zipBuffer.length} bytes`)
