@@ -152,39 +152,31 @@ export async function POST(request: NextRequest) {
       console.log('🎨 Generating custom landing page with Claude using website screenshot...')
       console.log('📸 Screenshot URL:', screenshot)
       
-      const claudePrompt = `Create a professional landing page for a loyalty program that VISUALLY MATCHES the provided website screenshot.
+      // CRITICAL: Prevent sending base64 data which costs massive tokens!
+      if (screenshot.startsWith('data:image/') || screenshot.includes('base64')) {
+        console.error('❌ BLOCKED: Screenshot is base64 data, not URL! This would cost $100+ in tokens!')
+        console.log('🔄 Falling back to static template to prevent token explosion')
+        landingPageHtml = generateLandingPageHtml(landingPageData)
+        
+        const response = {
+          success: true,
+          message: `Landing page for "${programData.templateName}" generated successfully! (Static template used - screenshot was base64 data)`,
+          landingPageId: null,
+          landingPageData: landingPageData,
+          htmlContent: landingPageHtml,
+          previewUrl: `/business/distribution/preview?program=${programId}`,
+          publishUrl: `/programs/${programId}/join`
+        }
+        return NextResponse.json(response)
+      }
+      
+      const claudePrompt = `Create a loyalty program landing page that matches the visual style of the provided screenshot.
 
-**CRITICAL:** Match the website's exact visual style - colors, typography, layout patterns, spacing, and overall aesthetic. Make it look like it was designed by the same team.
+PROGRAM: ${landingPageData.programName} for ${landingPageData.organizationName}
+CONTENT: Hero "${landingPageData.heroTitle}", offer "${landingPageData.welcomeOffer.description}", 4 benefits, 3-step process, signup form
+DESIGN: Match screenshot colors, typography, spacing. Include logo: ${landingPageData.branding.logoUrl}
 
-**PROGRAM DETAILS:**
-- Program Name: ${landingPageData.programName}
-- Business: ${landingPageData.organizationName}
-- Business Type: ${landingPageData.businessType}
-- Welcome Offer: ${landingPageData.welcomeOffer.description}
-- Logo URL: ${landingPageData.branding.logoUrl}
-- Hero Image: ${landingPageData.heroImage}
-
-**REQUIRED CONTENT:**
-1. Hero section with "${landingPageData.heroTitle}" and "${landingPageData.heroSubtitle}"
-2. Welcome offer highlight: "${landingPageData.welcomeOffer.description}"
-3. Benefits section with these 4 benefits:
-   ${landingPageData.benefits.map((b: any) => `- ${b.title}: ${b.description}`).join('\n   ')}
-4. How it works (3 steps):
-   ${landingPageData.howItWorks.map((h: any) => `Step ${h.step}: ${h.title} - ${h.description}`).join('\n   ')}
-5. Form to capture: ${landingPageData.formFields.map((f: any) => f.label).join(', ')}
-6. Call-to-action button: "${landingPageData.ctaButton.text}"
-
-**DESIGN REQUIREMENTS:**
-- Use the EXACT color scheme from the screenshot
-- Match the typography style (font weights, sizes, line heights)
-- Replicate the layout patterns and spacing
-- Include the logo image: ${landingPageData.branding.logoUrl}
-- Use hero image: ${landingPageData.heroImage}
-- Make it responsive and mobile-friendly
-- Include smooth animations and modern CSS effects
-- Ensure form functionality with proper input types
-
-Generate ONLY the complete HTML page with inline CSS. No explanations, no markdown - just the full HTML.`
+Generate complete HTML with inline CSS only. No explanations.`
 
       try {
         const claudeResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -214,16 +206,38 @@ Generate ONLY the complete HTML page with inline CSS. No explanations, no markdo
               }
             ],
             temperature: 0.3,
-            max_tokens: 4000
+            max_tokens: 2000
           })
         })
 
         if (claudeResponse.ok) {
           const claudeResult = await claudeResponse.json()
+          
+          // Log token usage to track costs
+          const usage = claudeResult.usage
+          if (usage) {
+            console.log('💰 Claude Token Usage:')
+            console.log(`   Input tokens: ${usage.prompt_tokens}`)
+            console.log(`   Output tokens: ${usage.completion_tokens}`)
+            console.log(`   Total tokens: ${usage.total_tokens}`)
+            
+            // Rough cost calculation (Claude 3.5 Sonnet rates)
+            const inputCost = (usage.prompt_tokens / 1000) * 0.003  // $3 per 1K input tokens
+            const outputCost = (usage.completion_tokens / 1000) * 0.015  // $15 per 1K output tokens
+            const totalCost = inputCost + outputCost
+            console.log(`   Estimated cost: $${totalCost.toFixed(4)}`)
+            
+            if (totalCost > 1.0) {
+              console.warn(`⚠️ HIGH COST ALERT: This request cost $${totalCost.toFixed(2)}!`)
+            }
+          }
+          
           landingPageHtml = claudeResult.choices[0]?.message?.content || generateLandingPageHtml(landingPageData)
           console.log('✅ Custom landing page generated with Claude')
         } else {
           console.warn('⚠️ Claude generation failed, using static template')
+          const errorData = await claudeResponse.json()
+          console.error('Claude error:', errorData)
           landingPageHtml = generateLandingPageHtml(landingPageData)
         }
       } catch (error) {

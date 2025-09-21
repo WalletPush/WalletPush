@@ -331,6 +331,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Extract screenshot but prevent base64 data from being passed along
+    let screenshotUrl = data.data?.[0]?.screenshot
+    if (screenshotUrl && (screenshotUrl.startsWith('data:image/') || screenshotUrl.includes('base64'))) {
+      console.warn('⚠️ BLOCKED: Firecrawl returned base64 screenshot data instead of URL - this would cause massive token costs!')
+      screenshotUrl = null // Don't pass base64 data
+    }
+
     return NextResponse.json({
       jobId: data.id,
       status: data.status,
@@ -340,7 +347,7 @@ export async function GET(request: NextRequest) {
       expiresAt: data.expiresAt,
       data: data.data || [],
       visualAssets: enhancedVisualAssets,
-      screenshot: data.data?.[0]?.screenshot // Get screenshot from first page
+      screenshot: screenshotUrl // Only pass URL, never base64 data
     })
 
   } catch (error: any) {
