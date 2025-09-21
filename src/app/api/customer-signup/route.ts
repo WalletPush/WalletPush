@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ApplePassKitGenerator } from '@/lib/apple-passkit-generator'
+import { processTemplateForPassGeneration } from '@/lib/dynamic-template-processor'
 
 export async function POST(request: NextRequest) {
   try {
@@ -195,7 +196,26 @@ export async function POST(request: NextRequest) {
       
       // For development: Use hardcoded business ID if we can't determine it
       if (process.env.NODE_ENV === 'development') {
-        business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191' // Blue Karma business ID
+        // For public landing pages, get business_id from the landing page or template
+        if (landingPage?.business_id) {
+          business_id = landingPage.business_id
+        } else if (template?.account_id) {
+          business_id = template.account_id
+        } else {
+          // Last resort: find business_id from the template's account relationship
+          const { data: templateAccount } = await supabase
+            .from('templates')
+            .select('account_id')
+            .eq('id', template_id)
+            .single()
+          
+          if (templateAccount?.account_id) {
+            business_id = templateAccount.account_id
+          } else {
+            business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191' // Fallback for development
+            console.warn('⚠️ Using fallback business_id, could not determine from landing page or template')
+          }
+        }
         console.log('🚧 DEV MODE: Using hardcoded business_id:', business_id)
       } else {
         return NextResponse.json(
@@ -308,9 +328,29 @@ export async function POST(request: NextRequest) {
 
     // 4. Generate the Apple Pass
     try {
+      // Use dynamic template processing for better field mapping
+      const processingResult = await processTemplateForPassGeneration(
+        actualTemplate.id,
+        {
+          // Map all form data (keeping the existing formData structure)
+          ...formData,
+          // Also include raw form fields for better mapping
+          first_name, last_name, email, phone, company, date_of_birth,
+          address, city, state, zip_code,
+          firstName: first_name, lastName: last_name, // Common variations
+          ...additional_data
+        },
+        supabase
+      )
+      
+      // Use processed data if available, otherwise fallback to existing formData
+      const finalFormData = processingResult?.processedData || formData
+      
+      console.log('🎯 Final form data for pass generation:', finalFormData)
+
       const passResult = await ApplePassKitGenerator.generateApplePass({
         templateId: actualTemplate.id,
-        formData: formData,
+        formData: finalFormData,
         userId: email, // Use email as user identifier
         deviceType: 'web',
         templateOverride: {

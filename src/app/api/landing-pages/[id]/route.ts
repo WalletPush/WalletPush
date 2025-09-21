@@ -101,7 +101,7 @@ export async function PUT(
       )
     }
 
-    const { name, title, description, custom_url, html_content, settings, status } = body
+    const { name, title, description, custom_url, html_content, settings, status, template_id, program_id } = body
     
     // Update the landing page in database
     const { data, error } = await supabase
@@ -114,6 +114,8 @@ export async function PUT(
         ai_prompt: `Updated landing page for: ${title || name || 'Untitled Page'}. Description: ${description || 'No description provided'}`,
         generated_html: html_content,
         is_published: status === 'published',
+        template_id: template_id || null,
+        program_id: program_id || null,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
