@@ -484,34 +484,51 @@ export async function POST(request: NextRequest) {
       })
 
       // 6. Save complete pass data to passes table
+      console.log('🔍 STEP 6: Starting pass data save to passes table')
+      
       // Ensure pass_data is valid JSON
       let passDataJson = {}
       try {
+        console.log('🔍 passResult.actualData type:', typeof passResult.actualData)
+        console.log('🔍 passResult.actualData value:', passResult.actualData)
+        
         passDataJson = passResult.actualData && typeof passResult.actualData === 'object' 
           ? passResult.actualData 
           : JSON.parse(passResult.actualData || '{}')
+          
+        console.log('🔍 Processed passDataJson:', passDataJson)
       } catch (e) {
         console.error('❌ Invalid pass data JSON:', e)
+        console.error('❌ Raw actualData was:', passResult.actualData)
         passDataJson = {}
       }
 
+      const insertData = {
+        customer_id: customer.id,
+        business_id,
+        program_id: actualTemplate.program_id,
+        template_id: actualTemplate.id,
+        platform: 'apple',
+        serial: passResult.response.serialNumber,
+        object_id: passResult.response.passTypeIdentifier,
+        pass_data: passDataJson,
+        auth_token: null,
+        install_count: 0,
+        created_at: new Date().toISOString()
+      }
+      
+      console.log('🔍 ABOUT TO INSERT INTO PASSES TABLE:')
+      console.log('🔍 Insert data:', JSON.stringify(insertData, null, 2))
+      
       const { data: passRecord, error: passError } = await supabase
         .from('passes')
-        .insert({
-          customer_id: customer.id,
-          business_id,
-          program_id: actualTemplate.program_id,
-          template_id: actualTemplate.id,
-          platform: 'apple',
-          serial: passResult.response.serialNumber,
-          object_id: passResult.response.passTypeIdentifier,
-          pass_data: passDataJson, // Store the complete Apple Pass JSON
-          auth_token: null, // Auth token not currently generated
-          install_count: 0,
-          created_at: new Date().toISOString()
-        })
+        .insert(insertData)
         .select()
         .single()
+        
+      console.log('🔍 PASSES INSERT RESULT:')
+      console.log('🔍 passRecord:', passRecord)
+      console.log('🔍 passError:', passError)
 
       if (passError) {
         console.error('❌ Failed to save pass data:', passError)
@@ -526,7 +543,9 @@ export async function POST(request: NextRequest) {
         console.error('❌ Full passError details:', JSON.stringify(passError, null, 2))
         
         // CRITICAL: Delete the customer if pass creation fails to avoid orphaned records
-        await supabase.from('customers').delete().eq('id', customer.id)
+        console.log('🔍 ATTEMPTING TO DELETE CUSTOMER:', customer.id)
+        const { error: deleteError } = await supabase.from('customers').delete().eq('id', customer.id)
+        console.log('🔍 Customer deletion result:', deleteError ? `FAILED: ${deleteError.message}` : 'SUCCESS')
         
         return NextResponse.json(
           { 
