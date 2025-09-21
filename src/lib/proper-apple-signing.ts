@@ -2,6 +2,7 @@ import { execSync } from 'child_process'
 import { writeFileSync, readFileSync, mkdtempSync, existsSync, unlinkSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { CertificateExtractor } from './certificate-extractor'
 import * as crypto from 'crypto'
 
 // APPLE WALLET SECURITY: Forbidden files that must NEVER be in .pkpass
@@ -57,42 +58,8 @@ export class ProperAppleSigning {
     const keyPath = join(outputDir, 'pass-key.pem')
     
     try {
-      // Extract leaf certificate (try without -legacy first for compatibility)
-      try {
-        execSync(`openssl pkcs12 -in "${p12Path}" -clcerts -nokeys -out "${certPath}" -passin pass:${password}`)
-      } catch (error) {
-        // Fallback: try with -legacy flag for newer OpenSSL versions
-        console.log('⚠️ Retrying certificate extraction with -legacy flag...')
-        try {
-          execSync(`openssl pkcs12 -legacy -in "${p12Path}" -clcerts -nokeys -out "${certPath}" -passin pass:${password}`)
-        } catch (legacyError) {
-          console.error('❌ Both OpenSSL methods failed for certificate extraction')
-          console.error('Standard error:', error instanceof Error ? error.message : error)
-          console.error('Legacy error:', legacyError instanceof Error ? legacyError.message : legacyError)
-          throw new Error(`Certificate extraction failed: ${legacyError instanceof Error ? legacyError.message : legacyError}`)
-        }
-      }
-      
-      // Extract private key (unencrypted)
-      try {
-        execSync(`openssl pkcs12 -in "${p12Path}" -nocerts -nodes -out "${keyPath}" -passin pass:${password}`)
-      } catch (error) {
-        // Fallback: try with -legacy flag for newer OpenSSL versions
-        console.log('⚠️ Retrying private key extraction with -legacy flag...')
-        try {
-          execSync(`openssl pkcs12 -legacy -in "${p12Path}" -nocerts -nodes -out "${keyPath}" -passin pass:${password}`)
-        } catch (legacyError) {
-          console.error('❌ Both OpenSSL methods failed for private key extraction')
-          console.error('Standard error:', error instanceof Error ? error.message : error)
-          console.error('Legacy error:', legacyError instanceof Error ? legacyError.message : legacyError)
-          throw new Error(`Private key extraction failed: ${legacyError instanceof Error ? legacyError.message : legacyError}`)
-        }
-      }
-      
-      console.log(`✅ Certificate extracted to: ${certPath}`)
-      console.log(`✅ Private key extracted to: ${keyPath}`)
-      
-      return { certPath, keyPath }
+      // Use JavaScript-based extraction to avoid OpenSSL system dependency issues
+      return CertificateExtractor.extractP12(p12Path, password, outputDir)
       
     } catch (error) {
       console.error('❌ Failed to extract P12 certificate:', error)
