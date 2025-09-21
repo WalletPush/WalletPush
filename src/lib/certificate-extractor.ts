@@ -10,54 +10,17 @@ export class CertificateExtractor {
   
   /**
    * Extract certificate and private key from P12 file using node-forge
+   * Based on GPT's recommended approach for Vercel compatibility
    */
   static extractP12(p12Path: string, password: string, outputDir: string): { certPath: string; keyPath: string } {
     console.log(`🔐 Extracting P12 certificate using node-forge: ${p12Path}`)
     
     try {
-      // Read P12 file
+      // Read P12 file as buffer
       const p12Buffer = readFileSync(p12Path)
-      const p12Asn1 = forge.asn1.fromDer(p12Buffer.toString('binary'))
-      const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, password)
       
-      // Find certificate and private key
-      let certificate: forge.pki.Certificate | null = null
-      let privateKey: forge.pki.PrivateKey | null = null
-      
-      // Extract certificate bags
-      const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })
-      if (certBags[forge.pki.oids.certBag] && certBags[forge.pki.oids.certBag].length > 0) {
-        certificate = certBags[forge.pki.oids.certBag][0].cert
-        console.log('✅ Certificate found in P12')
-      }
-      
-      // Extract private key bags
-      const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })
-      if (keyBags[forge.pki.oids.pkcs8ShroudedKeyBag] && keyBags[forge.pki.oids.pkcs8ShroudedKeyBag].length > 0) {
-        privateKey = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0].key
-        console.log('✅ Private key found in P12')
-      }
-      
-      // Fallback: try other key bag types
-      if (!privateKey) {
-        const keyBags2 = p12.getBags({ bagType: forge.pki.oids.keyBag })
-        if (keyBags2[forge.pki.oids.keyBag] && keyBags2[forge.pki.oids.keyBag].length > 0) {
-          privateKey = keyBags2[forge.pki.oids.keyBag][0].key
-          console.log('✅ Private key found in P12 (keyBag)')
-        }
-      }
-      
-      if (!certificate) {
-        throw new Error('No certificate found in P12 file')
-      }
-      
-      if (!privateKey) {
-        throw new Error('No private key found in P12 file')
-      }
-      
-      // Convert to PEM format
-      const certPem = forge.pki.certificateToPem(certificate)
-      const keyPem = forge.pki.privateKeyToPem(privateKey)
+      // Extract using the GPT-recommended approach
+      const { certPem, keyPem } = this.extractFromP12Buffer(p12Buffer, password)
       
       // Write to files
       const certPath = join(outputDir, 'pass-cert.pem')
@@ -75,5 +38,35 @@ export class CertificateExtractor {
       console.error('❌ P12 extraction failed:', error)
       throw new Error(`P12 extraction failed: ${error instanceof Error ? error.message : error}`)
     }
+  }
+
+  /**
+   * GPT's recommended pure Node.js P12 extraction function
+   */
+  private static extractFromP12Buffer(p12Buffer: Buffer, passphrase: string): { certPem: string; keyPem: string } {
+    // p12Buffer is a Node Buffer of the .p12 file
+    const der = forge.util.createBuffer(p12Buffer.toString('binary'))
+    const asn1 = forge.asn1.fromDer(der)
+    const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, passphrase)
+
+    let certPem: string | null = null
+    let keyPem: string | null = null
+
+    for (const safeContent of p12.safeContents) {
+      for (const bag of safeContent.safeBags) {
+        if (bag.type === forge.pki.oids.certBag && !certPem) {
+          certPem = forge.pki.certificateToPem(bag.cert!)
+        }
+        if (bag.type === forge.pki.oids.pkcs8ShroudedKeyBag && !keyPem) {
+          keyPem = forge.pki.privateKeyToPem(bag.key!)
+        }
+      }
+    }
+    
+    if (!certPem || !keyPem) {
+      throw new Error('Failed to extract certificate or key from P12')
+    }
+    
+    return { certPem, keyPem }
   }
 }
