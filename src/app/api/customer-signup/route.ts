@@ -493,8 +493,12 @@ export async function POST(request: NextRequest) {
         console.error('❌ Pass insert data:', {
           customer_id: customer.id,
           business_id,
-          serial: passResult.response.serialNumber
+          program_id: actualTemplate.program_id,
+          template_id: actualTemplate.id,
+          serial: passResult.response.serialNumber,
+          object_id: passResult.response.passTypeIdentifier
         })
+        console.error('❌ Full passError details:', JSON.stringify(passError, null, 2))
         // Don't fail the whole request - customer is already saved
         console.warn('⚠️ Pass data not saved to passes table, but customer signup successful')
       } else {
