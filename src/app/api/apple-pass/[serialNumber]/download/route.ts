@@ -46,22 +46,9 @@ async function getMostRecentTemplateId(): Promise<string> {
 /**
  * DYNAMIC helper function to extract placeholder defaults from any template
  */
-async function extractPlaceholderDefaultsFromTemplate(templateId: string): Promise<{ [key: string]: string }> {
+async function extractPlaceholderDefaultsFromTemplate(templateId: string, supabase: any): Promise<{ [key: string]: string }> {
   try {
     console.log(`🎯 Extracting placeholders for template: ${templateId}`)
-    
-    // Use direct Supabase query instead of API call to avoid issues
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
     
     const { data: template, error } = await supabase
       .from('templates')
@@ -201,7 +188,7 @@ export async function GET(
           
           // Fallback to template defaults only if no customer found
           const templateId = '7c252dcb-81e6-4850-857b-9b071f33ceb1'
-          const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId)
+          const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId, supabase)
 
           passData = {
             templateId,
@@ -212,9 +199,20 @@ export async function GET(
       } catch (dbError) {
         console.error(`❌ Database lookup failed for ${serialNumber}:`, dbError)
         
-        // Final fallback to template defaults
+        // Final fallback to template defaults - create new supabase client for error case
+        const { createClient } = await import('@supabase/supabase-js')
+        const fallbackSupabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        )
         const templateId = '7c252dcb-81e6-4850-857b-9b071f33ceb1'
-        const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId)
+        const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId, fallbackSupabase)
 
         passData = {
           templateId,
