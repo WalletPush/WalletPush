@@ -103,34 +103,40 @@ export class ProperAppleSigning {
   }
 
   /**
-   * Verify the signature locally (OpenSSL verification)
+   * Verify the signature using node-forge (no OpenSSL dependency)
    */
-  static verifySignature(
+  static async verifySignatureNodeForge(
     signaturePath: string,
     manifestPath: string,
     wwdrPath: string
-  ): boolean {
-    console.log(`🔍 Verifying PKCS#7 signature locally`)
+  ): Promise<boolean> {
+    console.log(`🔍 Verifying PKCS#7 signature using node-forge`)
     
     try {
-      // Get Apple root certificates
-      execSync('security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain > /tmp/apple_roots.pem')
+      const forge = await import('node-forge')
       
-      const cmd = [
-        'openssl', 'smime',
-        '-verify',
-        '-in', signaturePath,
-        '-inform', 'DER',
-        '-content', manifestPath,
-        '-certfile', wwdrPath,
-        '-CAfile', '/tmp/apple_roots.pem',
-        '-purpose', 'any',
-        '-out', '/tmp/verify_output'
-      ].join(' ')
+      // Read signature and manifest
+      const signatureBuffer = readFileSync(signaturePath)
+      const manifestBuffer = readFileSync(manifestPath)
       
-      execSync(cmd)
-      console.log(`✅ Signature verification successful`)
-      return true
+      // Parse PKCS#7 signature
+      const p7obj = forge.pkcs7.messageFromAsn1(
+        forge.asn1.fromDer(signatureBuffer.toString('binary'))
+      )
+      
+      // Create content buffer for verification
+      const content = forge.util.createBuffer(manifestBuffer.toString('binary'))
+      
+      // Verify the signature
+      const isValid = p7obj.verify({ content })
+      
+      if (isValid) {
+        console.log(`✅ Signature verification successful`)
+      } else {
+        console.error('❌ Signature verification failed: Invalid signature')
+      }
+      
+      return isValid
       
     } catch (error) {
       console.error('❌ Signature verification failed:', error)
@@ -180,8 +186,8 @@ export class ProperAppleSigning {
       
       await this.signManifest(manifestPath, certPath, keyPath, wwdrPath, signaturePath)
       
-      // 5. Verify signature locally
-      const isValid = this.verifySignature(signaturePath, manifestPath, wwdrPath)
+      // 5. Verify signature locally using node-forge
+      const isValid = await this.verifySignatureNodeForge(signaturePath, manifestPath, wwdrPath)
       if (!isValid) {
         throw new Error('Signature verification failed')
       }
