@@ -57,37 +57,40 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      const systemPrompt = `You are an expert web developer creating landing pages for WalletPush.
+                  const systemPrompt = `You are an expert web developer creating mobile wallet pass signup pages.
 
-TASK: Create a complete, responsive HTML landing page based on the provided requirements.
+CRITICAL OUTPUT REQUIREMENT:
+Return ONLY complete HTML code. NO JavaScript, NO middleware code, NO explanations.
 
-OUTPUT FORMAT:
-1. Brief acknowledgment (1-2 sentences)
-2. Add separator: ---HTML---
-3. Complete HTML code
+DEFAULT DESIGN (use unless custom instructions specify otherwise):
+Based on proven high-converting pattern:
+- Centered form container with dark semi-transparent overlay
+- Logo at top center (if provided)
+- Compelling headline (large, bold, white text)
+- Sub-headline with benefit/incentive  
+- Signup form immediately below (above the fold on mobile)
+- Clean, minimal design focused purely on conversion
 
-REQUIREMENTS:
-- Use Tailwind CSS via CDN
+TECHNICAL REQUIREMENTS:
+- Complete HTML document starting with <!DOCTYPE html>
+- Use Tailwind CSS via CDN: <script src="https://cdn.tailwindcss.com"></script>
 - Form posts to /api/customer-signup with method="POST"
-- Include hidden fields: <input type="hidden" name="landing_page_id" value="LANDING_PAGE_ID_PLACEHOLDER">
-- MUST use provided logo and background images if URLs are provided
-- Include all specified form fields as <input> elements with correct names and types
-- Use the specified primary and secondary colors for branding consistency
-- Professional, conversion-optimized design
-- Prominently display the incentive offer
-- Clear benefits section with bullet points
-- Mobile responsive design
-- Include client-side form validation
-- Follow any custom design instructions provided
+- Include: <input type="hidden" name="landing_page_id" value="LANDING_PAGE_ID_PLACEHOLDER">
+- Include ALL specified form fields with exact input names from mapping
+- Use provided logo and background images if available
+- Mobile-first responsive design with proper viewport
+- Inline CSS for styling the dark overlay form container
 
-STRUCTURE:
-- Header with logo
-- Hero section with headline and incentive
-- Benefits section with bullet points
-- Signup form with specified fields
-- Footer
+DO NOT INCLUDE:
+❌ No JavaScript code (form handling is done by existing middleware)
+❌ No event listeners or form submission code
+❌ No device detection or redirect logic
+❌ No explanations, comments, or markdown
+❌ No acknowledgments or conversational text
 
-Do not ask questions. Build immediately using all provided information.`
+RETURN FORMAT:
+Complete HTML page only, starting with <!DOCTYPE html> and ending with </html>.
+The middleware system will automatically inject all JavaScript functionality.`
 
       // Sanitize text to remove problematic Unicode characters
       const sanitizeText = (text: string) => {
@@ -135,8 +138,24 @@ Do not ask questions. Build immediately using all provided information.`
       const optionalFields = project_state?.optionalFields || []
       const allFields = [...formFields, ...optionalFields]
       
-      const userPrompt = `Business: ${sanitizedBusinessName}
-${logoFullUrl ? `Logo URL: ${logoFullUrl}` : ''}
+            const userPrompt = `Create HTML signup page for: ${sanitizedBusinessName}
+
+BRANDING:
+${logoFullUrl ? `Logo: ${logoFullUrl}` : 'No logo'}
+${backgroundFullUrl ? `Background: ${backgroundFullUrl}` : 'No background'}
+Primary Color: ${project_state?.primaryColor || '#1877f2'}
+Secondary Color: ${project_state?.secondaryColor || '#6b7280'}
+
+FORM FIELDS (create input elements for ALL):
+${allFields.length > 0 ? allFields.map(field => `<input name="${field}" type="${field.includes('email') ? 'email' : field.includes('phone') ? 'tel' : 'text'}" ${formFields.includes(field) ? 'required' : ''} placeholder="${field.replace('_', ' ')}">`).join('\n') : '<input name="first_name" type="text" required placeholder="First Name">\n<input name="last_name" type="text" required placeholder="Last Name">\n<input name="email" type="email" required placeholder="Email">\n<input name="phone" type="tel" placeholder="Phone">'}
+
+${project_state?.customInstructions ? `CUSTOM INSTRUCTIONS:
+${sanitizeText(project_state.customInstructions).slice(0, 1000)}
+` : ''}
+
+CONTENT: ${sanitizedPrompt}
+
+Return complete HTML page only. No JavaScript - middleware handles functionality.`Logo URL: ${logoFullUrl}` : ''}
 ${backgroundFullUrl ? `Background Image URL: ${backgroundFullUrl}` : ''}
 
 FORM FIELDS REQUIRED:
