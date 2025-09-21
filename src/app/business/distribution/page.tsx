@@ -442,6 +442,19 @@ Secondary Color: ${wizardData.secondaryColor}
 This is for a ${programTemplates.find(t => t.id === wizardData.programTemplate)?.type || 'loyalty'} program.
 Make it modern, professional, and conversion-focused.`
 
+      // CRITICAL: Check for base64 data before sending to prevent massive token costs
+      console.log('🔍 Checking image data sizes before API call:')
+      console.log('Logo URL length:', wizardData.logo?.length || 0)
+      console.log('Background URL length:', wizardData.backgroundImage?.length || 0)
+      console.log('Prompt length:', prompt.length)
+      
+      if (wizardData.logo && wizardData.logo.length > 1000) {
+        console.warn('⚠️ Logo URL is very long:', wizardData.logo.substring(0, 100) + '...')
+      }
+      if (wizardData.backgroundImage && wizardData.backgroundImage.length > 1000) {
+        console.warn('⚠️ Background image URL is very long:', wizardData.backgroundImage.substring(0, 100) + '...')
+      }
+
       const response = await fetch('/api/generate-landing-page', {
         method: 'POST',
         headers: {

@@ -104,8 +104,27 @@ Do not ask questions. Build immediately using all provided information.`
       const sanitizedBusinessName = business_name ? sanitizeText(business_name) : 'Your Business'
 
       // Convert relative URLs to absolute URLs for the HTML generation
-      const logoFullUrl = logo_url ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}` : null
-      const backgroundFullUrl = background_image_url ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${background_image_url}` : null
+      // CRITICAL: Check for base64 data that would cause massive token costs
+      let logoFullUrl = null
+      let backgroundFullUrl = null
+      
+      if (logo_url) {
+        if (logo_url.startsWith('data:image/') || logo_url.includes('base64')) {
+          console.error('❌ BLOCKED: Logo is base64 data! This would cost $100+ in tokens!')
+          logoFullUrl = null // Don't include base64 in prompt
+        } else {
+          logoFullUrl = logo_url.startsWith('http') ? logo_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${logo_url}`
+        }
+      }
+      
+      if (background_image_url) {
+        if (background_image_url.startsWith('data:image/') || background_image_url.includes('base64')) {
+          console.error('❌ BLOCKED: Background image is base64 data! This would cost $100+ in tokens!')
+          backgroundFullUrl = null // Don't include base64 in prompt
+        } else {
+          backgroundFullUrl = background_image_url.startsWith('http') ? background_image_url : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${background_image_url}`
+        }
+      }
 
       const userPrompt = `Business: ${sanitizedBusinessName}
 ${logoFullUrl ? `Logo URL: ${logoFullUrl}` : ''}
@@ -127,7 +146,7 @@ Requirements: ${sanitizedPrompt}`
           { role: "system" as const, content: sanitizeText(systemPrompt || '') },
           { role: "user" as const, content: sanitizeText(userPrompt || '') }
         ],
-        max_tokens: 4000,
+        max_tokens: 2000,
         temperature: 0.7
       }
 
@@ -135,7 +154,33 @@ Requirements: ${sanitizedPrompt}`
       
       const completion = await openai.chat.completions.create(apiParams)
       
-      console.log('OpenRouter response:', JSON.stringify(completion, null, 2))
+      // Log token usage to track costs
+      const usage = completion.usage
+      if (usage) {
+        console.log('💰 OpenRouter Token Usage:')
+        console.log(`   Input tokens: ${usage.prompt_tokens}`)
+        console.log(`   Output tokens: ${usage.completion_tokens}`)
+        console.log(`   Total tokens: ${usage.total_tokens}`)
+        
+        // Rough cost calculation (varies by model)
+        const inputCost = (usage.prompt_tokens / 1000) * 0.003  // Approximate
+        const outputCost = (usage.completion_tokens / 1000) * 0.015  // Approximate
+        const totalCost = inputCost + outputCost
+        console.log(`   Estimated cost: $${totalCost.toFixed(4)}`)
+        
+        if (totalCost > 1.0) {
+          console.warn(`⚠️ HIGH COST ALERT: This request cost $${totalCost.toFixed(2)}!`)
+        }
+        if (usage.prompt_tokens > 50000) {
+          console.error(`🚨 MASSIVE INPUT TOKENS: ${usage.prompt_tokens} tokens! Check for base64 data in prompt!`)
+        }
+      }
+      
+      console.log('OpenRouter response structure:', {
+        choices: completion.choices?.length,
+        hasContent: !!completion.choices?.[0]?.message?.content,
+        finishReason: completion.choices?.[0]?.finish_reason
+      })
 
       // Check for API errors (OpenRouter format)
       if ((completion as any).error) {
