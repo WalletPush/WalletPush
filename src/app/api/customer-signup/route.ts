@@ -469,6 +469,15 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Customer saved successfully:', customer.id)
 
+      // 🔍 DEBUG: Log template data before passes insert
+      console.log('🔍 Template data for passes insert:', {
+        template_id: actualTemplate.id,
+        program_id: actualTemplate.program_id,
+        account_id: actualTemplate.account_id,
+        business_id,
+        customer_id: customer.id
+      })
+
       // 6. Save complete pass data to passes table
       const { data: passRecord, error: passError } = await supabase
         .from('passes')
