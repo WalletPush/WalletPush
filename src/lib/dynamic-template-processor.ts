@@ -203,16 +203,29 @@ export async function processTemplateForPassGeneration(
     // Extract placeholders from template structure
     let templatePlaceholders: Record<string, string> = {}
     
-    // Try to get placeholders from passkit_json first
-    if (template.passkit_json?.placeholders) {
-      templatePlaceholders = template.passkit_json.placeholders
+    // 🔍 CRITICAL FIX: Get placeholders from Pass Designer defaults
+    if (template.passkit_json?.placeholders && Array.isArray(template.passkit_json.placeholders)) {
+      // Convert Pass Designer placeholders array to key-value pairs
+      template.passkit_json.placeholders.forEach((placeholder: any) => {
+        if (placeholder.key && placeholder.defaultValue !== undefined) {
+          templatePlaceholders[placeholder.key] = placeholder.defaultValue
+        }
+      })
+      console.log('🎯 Using Pass Designer placeholder defaults:', templatePlaceholders)
     } else if (template.passkit_json) {
       // Extract from the entire passkit_json structure
       templatePlaceholders = extractPlaceholdersFromTemplate(template.passkit_json)
+      console.log('🔍 Extracted placeholders from passkit_json structure:', templatePlaceholders)
     } else if (template.template_json) {
       // Fallback to template_json
       templatePlaceholders = extractPlaceholdersFromTemplate(template.template_json)
+      console.log('🔍 Extracted placeholders from template_json structure:', templatePlaceholders)
     }
+    
+    // 🔍 DEBUG: Log what we found
+    console.log('🔍 Template passkit_json.placeholders exists:', !!template.passkit_json?.placeholders)
+    console.log('🔍 Template passkit_json.placeholders type:', typeof template.passkit_json?.placeholders)
+    console.log('🔍 Template passkit_json.placeholders length:', template.passkit_json?.placeholders?.length)
     
     console.log('🔍 Found template placeholders:', Object.keys(templatePlaceholders))
     console.log('📝 Form data received:', Object.keys(formData))

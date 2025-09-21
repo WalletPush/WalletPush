@@ -257,9 +257,25 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 3. Get template placeholders (business-defined default values)
-    const templateDefaults = actualTemplate?.passkit_json?.placeholders || {}
-    const templatePlaceholders = Object.keys(templateDefaults)
+    // 3. Get template placeholders (business-defined default values from Pass Designer)
+    let templateDefaults: Record<string, string> = {}
+    let templatePlaceholders: string[] = []
+    
+    if (actualTemplate?.passkit_json?.placeholders && Array.isArray(actualTemplate.passkit_json.placeholders)) {
+      // Convert Pass Designer placeholders array to key-value pairs
+      actualTemplate.passkit_json.placeholders.forEach((placeholder: any) => {
+        if (placeholder.key && placeholder.defaultValue !== undefined) {
+          templateDefaults[placeholder.key] = placeholder.defaultValue
+          templatePlaceholders.push(placeholder.key)
+        }
+      })
+      console.log('🎯 Using Pass Designer placeholder defaults:', templateDefaults)
+    } else {
+      // Fallback to old logic if no placeholders array
+      templateDefaults = actualTemplate?.passkit_json?.placeholders || {}
+      templatePlaceholders = Object.keys(templateDefaults)
+      console.log('🔍 Using fallback placeholder logic:', templateDefaults)
+    }
 
     console.log('🎯 Template placeholders from Pass Designer:', templatePlaceholders)
 
