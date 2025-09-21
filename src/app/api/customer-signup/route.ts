@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
       template_id,
       first_name, 
       last_name, 
+      firstName,    // Alternative field name from forms
+      lastName,     // Alternative field name from forms
       email, 
       phone, 
       date_of_birth,
@@ -34,7 +36,11 @@ export async function POST(request: NextRequest) {
       additional_data = {} 
     } = body
 
-    console.log('🎯 Customer signup request:', { landing_page_id, email, first_name, last_name })
+    // Handle field name variations - some forms use firstName/lastName instead of first_name/last_name
+    const actualFirstName = first_name || firstName || ''
+    const actualLastName = last_name || lastName || ''
+
+    console.log('🎯 Customer signup request:', { landing_page_id, email, actualFirstName, actualLastName })
 
     let landingPage = null
     let template = null
@@ -259,8 +265,8 @@ export async function POST(request: NextRequest) {
     const formData: { [key: string]: string } = {
       ...templateDefaults, // Start with Pass Designer defaults
       // Customer-provided data (from form)
-      firstName: first_name || '',
-      lastName: last_name || '',
+      firstName: actualFirstName,
+      lastName: actualLastName,
       email: email || '',
       phone: phone || '',
       dateOfBirth: date_of_birth || '',
@@ -279,11 +285,11 @@ export async function POST(request: NextRequest) {
       
       // Name mappings
       if (lower.includes('first') && lower.includes('name')) {
-        formData[placeholder] = first_name || ''
+        formData[placeholder] = actualFirstName
       } else if (lower.includes('last') && lower.includes('name')) {
-        formData[placeholder] = last_name || ''
+        formData[placeholder] = actualLastName
       } else if (lower.includes('full') && lower.includes('name')) {
-        formData[placeholder] = `${first_name || ''} ${last_name || ''}`.trim()
+        formData[placeholder] = `${actualFirstName} ${actualLastName}`.trim()
       }
       
       // Email mappings
@@ -341,9 +347,9 @@ export async function POST(request: NextRequest) {
           // Map all form data (keeping the existing formData structure)
           ...formData,
           // Also include raw form fields for better mapping
-          first_name, last_name, email, phone, company, date_of_birth,
+          first_name: actualFirstName, last_name: actualLastName, email, phone, company, date_of_birth,
           address, city, state, zip_code,
-          firstName: first_name, lastName: last_name, // Common variations
+          firstName: actualFirstName, lastName: actualLastName, // Common variations
           ...additional_data
         },
         supabase
@@ -381,8 +387,8 @@ export async function POST(request: NextRequest) {
           template_id: actualTemplate.id,
           
           // 👤 Customer personal information
-          first_name,
-          last_name,
+          first_name: actualFirstName,
+          last_name: actualLastName,
           email,
           phone,
           date_of_birth,

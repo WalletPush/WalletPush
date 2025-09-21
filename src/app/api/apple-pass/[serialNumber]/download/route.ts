@@ -22,7 +22,7 @@ async function getMostRecentTemplateId(): Promise<string> {
   } catch (error) {
     console.error('❌ Failed to get template ID:', error)
     // Fallback to Blue Karma template ID
-    return 'ae76dc2a-e295-4219-b5ce-f6ecd8961de1'
+    return '7c252dcb-81e6-4850-857b-9b071f33ceb1'
   }
 }
 
@@ -172,7 +172,7 @@ export async function GET(
           console.log(`⚠️ No customer found for serial ${serialNumber}, using template defaults`)
           
           // Fallback to template defaults only if no customer found
-          const templateId = 'ae76dc2a-e295-4219-b5ce-f6ecd8961de1'
+          const templateId = '7c252dcb-81e6-4850-857b-9b071f33ceb1'
           const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId)
 
           passData = {
@@ -185,7 +185,7 @@ export async function GET(
         console.error(`❌ Database lookup failed for ${serialNumber}:`, dbError)
         
         // Final fallback to template defaults
-        const templateId = 'ae76dc2a-e295-4219-b5ce-f6ecd8961de1'
+        const templateId = '7c252dcb-81e6-4850-857b-9b071f33ceb1'
         const sampleFormData = await extractPlaceholderDefaultsFromTemplate(templateId)
 
         passData = {
