@@ -3,6 +3,7 @@ import { writeFileSync, readFileSync, mkdtempSync, existsSync, unlinkSync, readd
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { CertificateExtractor } from './certificate-extractor'
+import { ManifestSigner } from './manifest-signer'
 import * as crypto from 'crypto'
 
 // APPLE WALLET SECURITY: Forbidden files that must NEVER be in .pkpass
@@ -68,33 +69,27 @@ export class ProperAppleSigning {
   }
 
   /**
-   * Sign manifest.json with PKCS#7 detached signature
+   * Sign manifest.json with PKCS#7 detached signature using node-forge
+   * Replaces OpenSSL to avoid system dependency issues
    */
-  static signManifest(
+  static async signManifest(
     manifestPath: string, 
     certPath: string, 
     keyPath: string, 
     wwdrPath: string,
     outputPath: string
   ) {
-    console.log(`🔏 Signing manifest with PKCS#7 detached signature`)
+    console.log(`🔏 Signing manifest with PKCS#7 detached signature (node-forge)`)
     
     try {
-      const cmd = [
-        'openssl', 'smime',
-        '-binary',
-        '-sign',
-        '-signer', certPath,
-        '-inkey', keyPath,
-        '-certfile', wwdrPath,
-        '-in', manifestPath,
-        '-out', outputPath,
-        '-outform', 'DER',
-        '-md', 'sha256'
-      ].join(' ')
-      
-      console.log(`📋 Signing command: ${cmd}`)
-      execSync(cmd)
+      // Use pure JavaScript signing to avoid OpenSSL system issues
+      await ManifestSigner.signManifestWithFiles({
+        manifestPath,
+        certPath,
+        keyPath,
+        appleWWDRPath: wwdrPath,
+        outPath: outputPath
+      })
       
       const signatureSize = readFileSync(outputPath).length
       console.log(`✅ PKCS#7 signature created: ${signatureSize} bytes`)
@@ -183,7 +178,7 @@ export class ProperAppleSigning {
       const signaturePath = join(payloadDir, 'signature')
       const manifestPath = join(payloadDir, 'manifest.json')
       
-      this.signManifest(manifestPath, certPath, keyPath, wwdrPath, signaturePath)
+      await this.signManifest(manifestPath, certPath, keyPath, wwdrPath, signaturePath)
       
       // 5. Verify signature locally
       const isValid = this.verifySignature(signaturePath, manifestPath, wwdrPath)
