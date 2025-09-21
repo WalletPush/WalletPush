@@ -66,11 +66,15 @@ export async function GET(
       )
     }
 
+    // Extract customer and template data safely
+    const customer = Array.isArray(passRecord.customers) ? passRecord.customers[0] : passRecord.customers
+    const template = Array.isArray(passRecord.templates) ? passRecord.templates[0] : passRecord.templates
+
     console.log(`✅ Found pass record:`, {
       id: passRecord.id,
       serial: passRecord.serial,
-      customer: Array.isArray(passRecord.customers) ? passRecord.customers[0]?.email : passRecord.customers?.email,
-      template: Array.isArray(passRecord.templates) ? passRecord.templates[0]?.id : passRecord.templates?.id
+      customer: customer?.email,
+      template: template?.id
     })
 
     // 2. Use the stored pass_data if available, otherwise generate from stored customer data
@@ -80,8 +84,7 @@ export async function GET(
       console.log(`⚠️ No stored pass_data, regenerating from customer data`)
       
       // Fallback: Regenerate from customer and template data
-      const customer = Array.isArray(passRecord.customers) ? passRecord.customers[0] : passRecord.customers
-      const template = Array.isArray(passRecord.templates) ? passRecord.templates[0] : passRecord.templates
+      // (customer and template already extracted above)
       
       if (!customer || !template) {
         console.error(`❌ Missing customer or template data for pass ${serialNumber}`)
@@ -139,9 +142,6 @@ export async function GET(
     console.log(`🔄 Generating .pkpass file for ${serialNumber}`)
 
     // Use the existing generateApplePass method to convert stored pass data to .pkpass
-    const customer = Array.isArray(passRecord.customers) ? passRecord.customers[0] : passRecord.customers
-    const template = Array.isArray(passRecord.templates) ? passRecord.templates[0] : passRecord.templates
-    
     const passResult = await ApplePassKitGenerator.generateApplePass({
       templateId: passRecord.template_id,
       formData: passData,
