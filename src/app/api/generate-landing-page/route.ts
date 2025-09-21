@@ -70,13 +70,15 @@ REQUIREMENTS:
 - Use Tailwind CSS via CDN
 - Form posts to /api/customer-signup with method="POST"
 - Include hidden fields: <input type="hidden" name="landing_page_id" value="LANDING_PAGE_ID_PLACEHOLDER">
-- Use provided branding assets (logo, background image)
-- Include all specified form fields as <input> elements
+- MUST use provided logo and background images if URLs are provided
+- Include all specified form fields as <input> elements with correct names and types
+- Use the specified primary and secondary colors for branding consistency
 - Professional, conversion-optimized design
 - Prominently display the incentive offer
 - Clear benefits section with bullet points
 - Mobile responsive design
 - Include client-side form validation
+- Follow any custom design instructions provided
 
 STRUCTURE:
 - Header with logo
@@ -128,11 +130,24 @@ Do not ask questions. Build immediately using all provided information.`
         }
       }
 
+      // Build comprehensive prompt with all necessary details
+      const formFields = project_state?.requiredFields || []
+      const optionalFields = project_state?.optionalFields || []
+      const allFields = [...formFields, ...optionalFields]
+      
       const userPrompt = `Business: ${sanitizedBusinessName}
 ${logoFullUrl ? `Logo URL: ${logoFullUrl}` : ''}
 ${backgroundFullUrl ? `Background Image URL: ${backgroundFullUrl}` : ''}
 
-Requirements: ${sanitizedPrompt}`
+FORM FIELDS REQUIRED:
+${allFields.length > 0 ? allFields.map(field => `- ${field} (${formFields.includes(field) ? 'required' : 'optional'})`).join('\n') : '- first_name (required)\n- last_name (required)\n- email (required)\n- phone (optional)'}
+
+DESIGN REQUIREMENTS:
+${project_state?.primaryColor ? `Primary Color: ${project_state.primaryColor}` : ''}
+${project_state?.secondaryColor ? `Secondary Color: ${project_state.secondaryColor}` : ''}
+${project_state?.customInstructions ? `Custom Instructions: ${sanitizeText(project_state.customInstructions).slice(0, 1000)}` : ''}
+
+CONTENT REQUIREMENTS: ${sanitizedPrompt}`
 
       const apiParams = {
         model: openrouterConfig.model,
@@ -140,7 +155,7 @@ Requirements: ${sanitizedPrompt}`
           { role: "system" as const, content: sanitizeText(systemPrompt || '') },
           { role: "user" as const, content: sanitizeText(userPrompt || '') }
         ],
-        max_tokens: 2000,
+        max_tokens: 4000,
         temperature: 0.7
       }
       

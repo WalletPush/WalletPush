@@ -457,11 +457,11 @@ Make it modern, professional, and conversion-focused.`
           project_state: {
             requiredFields: wizardData.requiredFields,
             optionalFields: wizardData.optionalFields,
-            // NOTE: Removed placeholder_mapping and selected_placeholders to prevent massive token costs
-            // These were causing 694K+ token requests but aren't used by the API
             primaryColor: wizardData.primaryColor,
             secondaryColor: wizardData.secondaryColor,
             customInstructions: wizardData.customInstructions
+            // NOTE: Removed placeholder_mapping and selected_placeholders to prevent massive token costs
+            // These contained entire template objects but aren't needed for HTML generation
           }
         })
       })
