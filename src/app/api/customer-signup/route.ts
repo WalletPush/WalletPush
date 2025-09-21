@@ -551,7 +551,15 @@ export async function POST(request: NextRequest) {
           { 
             success: false, 
             error: 'Failed to create your pass. Please try again.',
-            debug: process.env.NODE_ENV === 'development' ? passError : undefined
+            debug: {
+              passError: passError,
+              insertData: insertData,
+              template: {
+                id: actualTemplate.id,
+                program_id: actualTemplate.program_id,
+                account_id: actualTemplate.account_id
+              }
+            }
           },
           { status: 500 }
         )
