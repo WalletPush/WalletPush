@@ -76,13 +76,34 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
         const encodedEmail = encodeURIComponent(email || '');
         const passUrl = (data.download_url || '').replace('?t=', '.pkpass?t=');
 
+        // Get intelligent redirect URL based on customer account status
+        async function getRedirectUrl() {
+          if (!email) return LOGIN_BASE;
+          try {
+            const statusRes = await fetch('/api/customer/check-account-status?email=' + encodedEmail);
+            if (statusRes.ok) {
+              const statusData = await statusRes.json();
+              return statusData.redirectTo || LOGIN_BASE;
+            }
+          } catch (e) {
+            console.warn('Failed to check account status, using default redirect:', e);
+          }
+          return LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : '');
+        }
+
         if (isMobile) {
           window.location.href = passUrl;
-          setTimeout(function(){ window.location.href = LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : ''); }, 8000);
+          setTimeout(async function(){ 
+            const redirectUrl = await getRedirectUrl();
+            window.location.href = redirectUrl;
+          }, 8000);
         } else {
           try { window.open(data.download_url, '_blank'); } catch(_){}
-          if (note) { note.textContent = "Please wait... We're creating your account!"; note.style.display = 'block'; }
-          setTimeout(function(){ window.location.href = LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : ''); }, 3000);
+          if (note) { note.textContent = "Please wait... We're setting up your account!"; note.style.display = 'block'; }
+          setTimeout(async function(){ 
+            const redirectUrl = await getRedirectUrl();
+            window.location.href = redirectUrl;
+          }, 3000);
         }
         if (note) { note.style.display = 'none'; }
         if (button) { button.textContent = 'Pass Created'; }
