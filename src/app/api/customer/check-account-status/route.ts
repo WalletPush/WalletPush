@@ -6,6 +6,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email')
 
+    console.log('🔍 Check account status API called with email:', email)
+
     if (!email) {
       return NextResponse.json(
         { error: 'Email parameter is required' },
@@ -18,14 +20,14 @@ export async function GET(request: NextRequest) {
     // Check if customer exists in our database
     const { data: customer, error: customerError } = await supabase
       .from('customers')
-      .select('id, email, first_name, last_name, auth_user_id')
+      .select('id, email, first_name, last_name')
       .eq('email', email)
       .maybeSingle()
 
     if (customerError) {
       console.error('❌ Error checking customer:', customerError)
       return NextResponse.json(
-        { error: 'Failed to check customer status' },
+        { error: 'Failed to check customer status', details: customerError.message },
         { status: 500 }
       )
     }
@@ -39,30 +41,16 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Check if customer has a linked auth user (password set)
+    // Check if customer has a Supabase auth user (password set)
     let hasPassword = false
-    if (customer.auth_user_id) {
-      // Customer has an auth_user_id, they should have a password
-      hasPassword = true
-    } else {
-      // Double-check by looking up in Supabase auth
-      try {
-        const { data: authUser } = await supabase.auth.admin.getUserByEmail(email)
-        hasPassword = !!authUser.user
-        
-        // If we found an auth user but no auth_user_id in customer record, update it
-        if (authUser.user && !customer.auth_user_id) {
-          console.log('🔄 Updating customer with missing auth_user_id')
-          await supabase
-            .from('customers')
-            .update({ auth_user_id: authUser.user.id })
-            .eq('id', customer.id)
-        }
-      } catch (error) {
-        console.error('❌ Error checking auth user:', error)
-        // Assume no password if we can't check
-        hasPassword = false
-      }
+    try {
+      const { data: authUser } = await supabase.auth.admin.getUserByEmail(email)
+      hasPassword = !!authUser.user
+      console.log('🔍 Auth user exists for customer:', hasPassword)
+    } catch (error) {
+      console.error('❌ Error checking auth user:', error)
+      // Assume no password if we can't check
+      hasPassword = false
     }
 
     const customerName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim()

@@ -87,21 +87,9 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Auth user created successfully:', authUser.user.id)
 
-    // Update the customer record to link it to the auth user
-    const { error: updateError } = await supabase
-      .from('customers')
-      .update({ 
-        auth_user_id: authUser.user.id,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', existingCustomer.id)
-
-    if (updateError) {
-      console.error('❌ Error updating customer with auth_user_id:', updateError)
-      // Don't fail here, the auth user was created successfully
-    } else {
-      console.log('✅ Customer record updated with auth_user_id')
-    }
+    // Note: We're not storing auth_user_id in the customer record for now
+    // The relationship is managed through email matching
+    console.log('✅ Auth user created and linked via email to customer:', existingCustomer.id)
 
     return NextResponse.json({
       success: true,
