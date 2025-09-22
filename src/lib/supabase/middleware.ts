@@ -108,7 +108,9 @@ const publicRoutes = [
     request.nextUrl.pathname.startsWith('/api/apple-pass/') ||
     request.nextUrl.pathname.startsWith('/api/passkit/') ||
     request.nextUrl.pathname.startsWith('/api/validate-pass/') ||
-    request.nextUrl.pathname.startsWith('/api/admin/')
+    request.nextUrl.pathname.startsWith('/api/admin/') ||
+    request.nextUrl.pathname.startsWith('/api/customer/check-account-status') ||
+    request.nextUrl.pathname.startsWith('/api/customer/complete-account')
   )
 
   // Only redirect to login if it's not a public route and user is not authenticated
