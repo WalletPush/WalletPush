@@ -44,9 +44,12 @@ export async function GET(request: NextRequest) {
     // Check if customer has a Supabase auth user (password set)
     let hasPassword = false
     try {
-      const { data: authUser } = await supabase.auth.admin.getUserByEmail(email)
-      hasPassword = !!authUser.user
-      console.log('🔍 Auth user exists for customer:', hasPassword)
+      const { data: listResponse, error: listError } = await supabase.auth.admin.listUsers()
+      if (!listError && listResponse?.users) {
+        const authUser = listResponse.users.find((user: any) => user.email === email)
+        hasPassword = !!authUser
+        console.log('🔍 Auth user exists for customer:', hasPassword)
+      }
     } catch (error) {
       console.error('❌ Error checking auth user:', error)
       // Assume no password if we can't check

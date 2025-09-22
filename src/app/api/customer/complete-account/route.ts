@@ -46,9 +46,10 @@ export async function POST(request: NextRequest) {
     console.log('✅ Found existing customer:', existingCustomer.email)
 
     // Check if this email already has a Supabase auth user
-    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email)
+    const { data: listResponse, error: listError } = await supabase.auth.admin.listUsers()
+    const existingUser = listResponse?.users?.find((user: any) => user.email === email)
     
-    if (existingUser.user) {
+    if (existingUser) {
       return NextResponse.json(
         { error: 'An account already exists with this email. Please sign in instead.' },
         { status: 409 }
