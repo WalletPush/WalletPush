@@ -275,3 +275,273 @@ Appendix — Offer Categories schema (from your prompt)
 * category_description (text)
 
 IMPORTANT: We will only be using APPLE for now. Google dev will come later
+
+
+NEW PROGRAM CONFIGURATOR AND MEMBERS AREA PRD V1
+
+Build a template-first, JSON-driven program configurator that lets a business owner:
+
+Select a template (already designed),
+
+Choose a program type via radios (options gated by template placeholders) or manually add placeholders to unlock more options,
+
+Choose basic rewards (simple catalog / allowances / credit),
+
+Click Generate with AI → AI outputs a valid Benefits Spec JSON (including ui_contract.sections) and writes it to the DB, and the member dashboard updates immediately.
+
+Scope includes loyalty, membership, store card, universal offers (simple), member check-in scanner (inside the member area), staff scanner (PWA), and basic audit metrics. No RFM, no cost simulators, no heavy compliance engines.
+
+1) Goals & Non-Goals
+Goals
+
+Ship a fast, elegant MVP where templates constrain configuration and AI fills the blanks.
+
+One renderer for all programs; layout controlled by JSON (no page branching).
+
+Deterministic event ledger for earn/redeem/check-in; basic business audit.
+
+Non-Goals (explicitly out of MVP)
+
+RFM segmentation, advanced guardrails, liability sims, A/B testing, complex scheduling rules, jurisdiction-specific compliance.
+
+2) Personas
+
+Business Owner/Admin: sets up template & program, creates offers, publishes.
+
+Staff: uses scanner PWA to earn/redeem/check balance (optional).
+
+Member: uses member dashboard + member check-in scanner.
+
+3) End-to-End Flow (Wizard)
+
+Template Selection
+
+Show templates the business already created.
+
+On selection, run Template Validation System (TVS):
+
+Parse placeholders (e.g., ${points}, ${tier}, ${membershipStatus}, ${creditBalance}, ${storedValueBalance}, ${offers}, ${qrCheckIn}, ${checkInStamp}).
+
+Derive capabilities and allowed program types.
+
+Program Selection
+
+Show radio buttons for allowed types: Loyalty, Membership, Store Card.
+
+If an option is missing, show tip: “To enable X, add placeholder ${...}.”
+
+Manual placeholders: owner can switch templates or add placeholders; TVS rescans → radios update.
+
+Basic Rewards & Basics
+
+Loyalty: set points_per_currency (default 1), optional tiers (max 3), reward_catalog (e.g., Free drink = 100 pts).
+
+Membership: set price_monthly, add perks (text), optional allowances (e.g., 2 tastings/mo), optional credit (e.g., $20/mo).
+
+Store Card: enable stored value, optional expiry (≥30 days).
+
+Universal Offers (optional):
+
+Add simple offers with availability: Everyone / Specific tier / Inactive X days / New members 30 days.
+
+Redemption: points OR credit OR free, with simple per-member limits (e.g., 1/month).
+
+Generate with AI (single big button)
+
+Sends: business context, selected template capabilities, chosen program, basic rewards/offers → to AI Spec Writer.
+
+AI returns a single JSON spec with:
+
+program_type
+
+program rules
+
+offers[] (if added)
+
+copy (headlines/labels)
+
+ui_contract (layout + sections)
+
+optional warnings[]
+
+App validates (light checks), persists to program_versions (new version), and revalidates cache.
+
+Immediately renders the member dashboard from the new spec.
+
+4) Functional Requirements
+4.1 Template Validation System (TVS)
+
+Input: template file / metadata with placeholders.
+
+Output: { placeholders[], capabilities[], allowed_program_types[] }
+
+Rules:
+
+Map placeholders → capabilities:
+
+${points}→points, ${tier}→tiers, ${membershipStatus}→membership, ${allowance}→allowances, ${creditBalance}→credit, ${storedValueBalance}→stored_value, ${offers}→offers, ${qrCheckIn}→qr_check_in, ${checkInStamp}→check_in
+
+Allowed program types:
+
+Loyalty requires points (tiers optional)
+
+Membership requires membership (allowances/credit optional)
+
+Store Card requires stored_value
+
+Configurator gating: show only valid radios; if user adds placeholders, TVS rescans and updates.
+
+4.2 AI Spec Writer (single JSON)
+
+Contract (must return only JSON):
+
+version, program_id, program_type
+
+template_capabilities: string[]
+
+Loyalty: earning { basis:"spend", rate_per_currency }, optional tiers { enabled, levels[] }, redemption { catalog[] }
+
+Membership: billing { price_monthly, currency, billing_day }, membership { perks[], allowances[]?, credit? }, optional redemption { catalog[] }
+
+Store Card: stored_value { expiry_days? }
+
+Offers (optional): see 4.3
+
+Member check-in: if ${qrCheckIn} or ${checkInStamp} present, include check_in: { enabled: true }
+
+copy: program_name, tagline, how_it_works, fine_print (short)
+
+ui_contract: { layout: "<type>_dashboard_v1", sections: [{ type, props[] }] }
+
+Optional warnings[]
+
+Light validation (fail hard if):
+
+Tiers not strictly increasing
+
+Reward cost ≤ 0
+
+Store card expiry < 30 days (if provided)
+
+Check-in thresholds < 1 (if stamps used)
+
+4.3 Universal Offers (optional)
+
+Offer object:
+
+id, title, description, optional image_url
+
+redemption: { type: "points"|"credit"|"free", cost? }
+
+availability: { audience: "everyone"|"tier"|"inactive_days"|"new_members", value? }
+
+limits: { per_member?: "1/month"|"1/year"|number, total_quantity?: number } (optional)
+
+schedule: { start_date?, end_date? } (optional, keep simple)
+
+Apply across all program types.
+
+4.4 Member Dashboard (JSON-driven)
+
+One page renders from ui_contract.sections:
+
+Loyalty: balanceHeader, progressNextTier, rewardsGrid, offersStrip?, qrCheckInButton?, activityFeed
+
+Membership: membershipHeader, renewalCard, allowancesList, creditWallet, offersStrip?, qrCheckInButton?, activityFeed
+
+Store Card: storeCardHeader, balanceCard, redeemGrid, offersStrip?, qrCheckInButton?, activityFeed
+
+Member check-in scanner:
+
+If capability qr_check_in present, show “Check In” button.
+
+Member taps → camera opens → scans business QR (just an API URL for that business).
+
+Backend records check_in event for that member + business.
+
+4.5 Staff Scanner (PWA)
+
+QR member lookup.
+
+Actions: Earn, Redeem, Check balance.
+
+Online first; offline queue is post-MVP.
+
+Each action produces an event with staff_id, location_id, timestamp.
+
+4.6 Event Ledger
+
+Append-only member_events:
+
+event_id, member_id, program_id, program_version_id, idempotency_key
+
+type: earn | redeem | check_in | adjust | auto_reward
+
+amounts: { points_delta?, credit_delta?, stored_value_delta? }
+
+source: member_scanner | staff_scanner | api | admin
+
+observed_at, recorded_at, meta (sku, location, staff_id, etc.)
+
+Snapshots optional (only if performance demands).
+
+4.7 Audit Metrics (per business)
+
+Total members
+
+Total points/credits issued
+
+Total redemptions
+
+Outstanding liability (unredeemed points/credits/store value)
+
+Last 30-day activity count
+(Charts can be simple sums; no advanced analytics.)
+
+5) APIs (minimum)
+
+GET /api/program/spec → current program spec JSON (cached/ISR)
+
+POST /api/program/generate → runs AI Spec Writer, validates, writes new program_version (returns spec)
+
+GET /api/member/summary → normalized member state for current program (points | credit | stored_value | allowances, claimables, next_invoice, recent_activity)
+
+Scanner
+
+Staff: POST /api/scanner/earn, POST /api/scanner/redeem, GET /api/scanner/balance
+
+Member check-in: POST /api/checkin/:business_id (from QR), authenticated as member session
+
+6) Data Model (minimum viable)
+
+programs (id, business_id, status)
+
+program_versions (id, program_id, version, spec_json, created_at, created_by)
+
+member_events (id, member_id, program_id, program_version_id, type, amounts_json, source, observed_at, recorded_at, meta_json, idempotency_key)
+
+(Optional) member_snapshots (member_id, program_id, as_of, summary_json)
+
+7) Acceptance Criteria
+
+TVS correctly limits program radios based on placeholders; adding placeholders refreshes choices.
+
+Generate with AI creates a valid spec with ui_contract.sections; DB writes a new version; dashboard re-renders with no code changes.
+
+Member check-in from member UI creates a check_in event and updates summary.
+
+Staff scanner can earn/redeem and see balance; all actions create events.
+
+Audit metrics populate from events.
+
+Guardrails prevent obviously broken configs (tier order, >0 costs, expiry ≥30d).
+
+Zero branching in the dashboard page; components render purely from JSON.
+
+8) UX Notes (just enough)
+
+Wizard steps across the top: Template → Program → Rewards/Offers → Review → Generate.
+
+Always show the live preview on the right (rendered from the current draft JSON).
+
+On Generate, show a short diff (“Added: 2 perks, 1 offer; Tiers: Silver 1000, Gold 3000”).

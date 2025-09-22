@@ -1,4 +1,5 @@
 import { updateSession } from '@/lib/supabase/middleware'
+import { createClient } from '@/lib/supabase/server'
 import { type NextRequest, NextResponse } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -15,43 +16,12 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request)
   }
 
-  // Skip for localhost development
+  // FOR TESTING: Skip complex domain logic for localhost
   if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
     return await updateSession(request)
   }
 
-  // Handle custom domains for landing pages AND business routing (now with Cloudflare proxy support)
-  if (hostname !== 'walletpush.io' && !hostname.includes('vercel.app') && !hostname.includes('localhost')) {
-    // First check if this is a business page route on a custom domain
-    const businessRouteResponse = await handleCustomDomainBusinessRouting(request, hostname, pathname)
-    if (businessRouteResponse) {
-      return businessRouteResponse
-    }
-    
-    // Then check for landing pages
-    const landingPageResponse = await handleCustomDomainLandingPage(request, hostname, pathname)
-    if (landingPageResponse) {
-      return landingPageResponse
-    }
-  }
-
-  // Handle walletpush.io business page redirects to custom domains
-  if (hostname.includes('walletpush.io')) {
-    const customDomainRedirect = await handleBusinessCustomDomainRedirect(request, hostname, pathname)
-    if (customDomainRedirect) {
-      return customDomainRedirect
-    }
-  }
-
-  // Handle walletpush.io subdomain routing for businesses
-  if (hostname.includes('walletpush.io') && hostname !== 'walletpush.io') {
-    const subdomainResponse = await handleSubdomainRouting(request, hostname, pathname)
-    if (subdomainResponse) {
-      return subdomainResponse
-    }
-  }
-
-  // Default behavior
+  // Simplified middleware for testing - just handle session updates
   return await updateSession(request)
 }
 

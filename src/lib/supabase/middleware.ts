@@ -64,6 +64,11 @@ const publicRoutes = [
   '/customer/auth/sign-up',
   '/customer/auth/forgot-password',
   '/customer/dashboard',
+  // Testing APIs for JSON-driven dashboard
+  '/api/program/spec',
+  '/api/customer/summary',
+  '/api/program/offers',
+  '/api/templates',
   '/business/auth/login',
   '/business/auth/sign-up',
   '/business/auth/forgot-password',
@@ -72,6 +77,7 @@ const publicRoutes = [
   '/business/members', // Temporary public access for development
   '/business/settings', // Temporary public access for development
   '/business/distribution', // Temporary public access for development
+  '/business/program-configurator', // Temporary public access for development
   '/business/pass-type-ids', // Temporary public access for development
   '/agency/auth/login',
   '/agency/auth/sign-up',
