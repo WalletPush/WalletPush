@@ -104,23 +104,11 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
 // Handle redirects from walletpush.io to business custom domains
 async function handleBusinessCustomDomainRedirect(request: NextRequest, hostname: string, pathname: string) {
   try {
-    // Check if this is a business-related route that should be redirected
-    const businessRoutes = [
-      '/business/dashboard',
-      '/business/settings', 
-      '/business/pass-designer',
-      '/business/distribution',
-      '/business/members',
-      '/business/pass-type-ids',
-      '/business/auth/login',
-      '/business/auth/sign-up',
-      '/customer/auth/login',
-      '/customer/auth/sign-up', 
-      '/customer/dashboard'
-    ]
+    // Check if this is a business or customer route that should be redirected
+    const isBusinessRoute = pathname.startsWith('/business/') || pathname.startsWith('/customer/')
     
-    if (!businessRoutes.includes(pathname)) {
-      return null // Not a business route that needs redirecting
+    if (!isBusinessRoute) {
+      return null // Not a business/customer route that needs redirecting
     }
     
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -350,23 +338,11 @@ function extractTokenFromCookies(cookies: any): string | null {
 // Handle custom domain business routing (dashboard, login, etc.)
 async function handleCustomDomainBusinessRouting(request: NextRequest, hostname: string, pathname: string) {
   try {
-    // Check if this is a business-related route
-    const businessRoutes = [
-      '/business/dashboard',
-      '/business/settings', 
-      '/business/pass-designer',
-      '/business/distribution',
-      '/business/members',
-      '/business/pass-type-ids',
-      '/business/auth/login',
-      '/business/auth/sign-up',
-      '/customer/auth/login',
-      '/customer/auth/sign-up', 
-      '/customer/dashboard'
-    ]
+    // Check if this is a business or customer route
+    const isBusinessRoute = pathname.startsWith('/business/') || pathname.startsWith('/customer/')
     
-    if (!businessRoutes.includes(pathname)) {
-      return null // Not a business route
+    if (!isBusinessRoute) {
+      return null // Not a business/customer route
     }
     
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
