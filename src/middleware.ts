@@ -35,6 +35,14 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Handle walletpush.io business page redirects to custom domains
+  if (hostname.includes('walletpush.io')) {
+    const customDomainRedirect = await handleBusinessCustomDomainRedirect(request, hostname, pathname)
+    if (customDomainRedirect) {
+      return customDomainRedirect
+    }
+  }
+
   // Handle walletpush.io subdomain routing for businesses
   if (hostname.includes('walletpush.io') && hostname !== 'walletpush.io') {
     const subdomainResponse = await handleSubdomainRouting(request, hostname, pathname)
@@ -90,6 +98,73 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
     return html + script
   } catch {
     return html
+  }
+}
+
+// Handle redirects from walletpush.io to business custom domains
+async function handleBusinessCustomDomainRedirect(request: NextRequest, hostname: string, pathname: string) {
+  try {
+    // Check if this is a business-related route that should be redirected
+    const businessRoutes = [
+      '/business/dashboard',
+      '/business/settings', 
+      '/business/pass-designer',
+      '/business/distribution',
+      '/business/members',
+      '/business/pass-type-ids',
+      '/business/auth/login',
+      '/business/auth/sign-up',
+      '/customer/auth/login',
+      '/customer/auth/sign-up', 
+      '/customer/dashboard'
+    ]
+    
+    if (!businessRoutes.includes(pathname)) {
+      return null // Not a business route that needs redirecting
+    }
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    
+    console.log(`🔄 Checking for custom domain redirect: ${hostname}${pathname}`)
+    
+    // For Blue Karma specifically, we know the business_id from the logs
+    // TODO: In production, determine business from user session or other context
+    const blueKarmaBusinessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    
+    const domainResponse = await fetch(
+      `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id&status=eq.active&business_id=eq.${blueKarmaBusinessId}`,
+      {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (!domainResponse.ok) {
+      console.log(`❌ Custom domain lookup failed: ${domainResponse.status}`)
+      return null
+    }
+
+    const domainData = await domainResponse.json()
+    
+    if (!domainData || domainData.length === 0) {
+      console.log(`📝 No active custom domains found for redirect`)
+      return null
+    }
+
+    const customDomain = domainData[0]
+    const redirectUrl = `https://${customDomain.domain}${pathname}${request.nextUrl.search}`
+    
+    console.log(`✅ Redirecting to custom domain: ${hostname}${pathname} → ${redirectUrl}`)
+    
+    return NextResponse.redirect(redirectUrl, 302)
+    
+  } catch (error) {
+    console.error('❌ Custom domain redirect error:', error)
+    return null
   }
 }
 
