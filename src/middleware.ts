@@ -128,12 +128,51 @@ async function handleBusinessCustomDomainRedirect(request: NextRequest, hostname
     
     console.log(`🔄 Checking for custom domain redirect: ${hostname}${pathname}`)
     
-    // For Blue Karma specifically, we know the business_id from the logs
-    // TODO: In production, determine business from user session or other context
-    const blueKarmaBusinessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    // Step 1: Try to get the user's active business account from session
+    let businessId = await getUserActiveBusinessId(request, supabaseUrl, serviceRoleKey)
     
+    // Step 2: Fallback methods if we can't determine from session
+    if (!businessId) {
+      // Check URL parameters for business context
+      const urlParams = request.nextUrl.searchParams
+      const businessIdParam = urlParams.get('business_id') || urlParams.get('businessId')
+      if (businessIdParam) {
+        businessId = businessIdParam
+        console.log(`🎯 Using business ID from URL parameter: ${businessId}`)
+      }
+    }
+    
+    // Step 3: Final fallback - check if there's any business with custom domain
+    if (!businessId) {
+      console.log(`📝 No business context found, checking all custom domains`)
+      const allDomainsResponse = await fetch(
+        `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id&status=eq.active&limit=1`,
+        {
+          headers: {
+            'apikey': serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+      
+      if (allDomainsResponse.ok) {
+        const allDomains = await allDomainsResponse.json()
+        if (allDomains && allDomains.length > 0) {
+          businessId = allDomains[0].business_id
+          console.log(`🔄 Using first available business with custom domain: ${businessId}`)
+        }
+      }
+    }
+    
+    if (!businessId) {
+      console.log(`📝 No business context available for redirect`)
+      return null
+    }
+    
+    // Step 4: Look up the custom domain for this business
     const domainResponse = await fetch(
-      `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id&status=eq.active&business_id=eq.${blueKarmaBusinessId}`,
+      `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id&status=eq.active&business_id=eq.${businessId}`,
       {
         headers: {
           'apikey': serviceRoleKey,
@@ -144,14 +183,14 @@ async function handleBusinessCustomDomainRedirect(request: NextRequest, hostname
     )
 
     if (!domainResponse.ok) {
-      console.log(`❌ Custom domain lookup failed: ${domainResponse.status}`)
+      console.log(`❌ Custom domain lookup failed for business ${businessId}: ${domainResponse.status}`)
       return null
     }
 
     const domainData = await domainResponse.json()
     
     if (!domainData || domainData.length === 0) {
-      console.log(`📝 No active custom domains found for redirect`)
+      console.log(`📝 No custom domain found for business ${businessId}`)
       return null
     }
 
@@ -164,6 +203,146 @@ async function handleBusinessCustomDomainRedirect(request: NextRequest, hostname
     
   } catch (error) {
     console.error('❌ Custom domain redirect error:', error)
+    return null
+  }
+}
+
+// Helper function to get user's active business account ID
+async function getUserActiveBusinessId(request: NextRequest, supabaseUrl: string, serviceRoleKey: string): Promise<string | null> {
+  try {
+    // Extract session token from cookies
+    const cookies = request.cookies
+    const accessToken = cookies.get('sb-access-token')?.value || 
+                       cookies.get('supabase-auth-token')?.value ||
+                       extractTokenFromCookies(cookies)
+    
+    if (!accessToken) {
+      console.log(`📝 No session token found in cookies`)
+      return null
+    }
+    
+    // Get user from session
+    const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (!userResponse.ok) {
+      console.log(`❌ Failed to get user from session: ${userResponse.status}`)
+      return null
+    }
+    
+    const userData = await userResponse.json()
+    const userId = userData?.id
+    
+    if (!userId) {
+      console.log(`📝 No user ID found in session`)
+      return null
+    }
+    
+    console.log(`👤 Found user ID from session: ${userId}`)
+    
+    // Get user's active account
+    const activeAccountResponse = await fetch(
+      `${supabaseUrl}/rest/v1/user_active_account?select=active_account_id&user_id=eq.${userId}`,
+      {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+    
+    if (!activeAccountResponse.ok) {
+      console.log(`❌ Failed to get active account: ${activeAccountResponse.status}`)
+      return null
+    }
+    
+    const activeAccountData = await activeAccountResponse.json()
+    const activeAccountId = activeAccountData?.[0]?.active_account_id
+    
+    if (!activeAccountId) {
+      console.log(`📝 No active account found for user ${userId}`)
+      return null
+    }
+    
+    console.log(`🏢 Found active account: ${activeAccountId}`)
+    
+    // Check if this account is a business account
+    const accountResponse = await fetch(
+      `${supabaseUrl}/rest/v1/accounts?select=id,type&id=eq.${activeAccountId}&type=eq.business`,
+      {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+    
+    if (!accountResponse.ok) {
+      console.log(`❌ Failed to verify business account: ${accountResponse.status}`)
+      return null
+    }
+    
+    const accountData = await accountResponse.json()
+    
+    if (!accountData || accountData.length === 0) {
+      console.log(`📝 Active account ${activeAccountId} is not a business account`)
+      return null
+    }
+    
+    console.log(`✅ Found active business account: ${activeAccountId}`)
+    return activeAccountId
+    
+  } catch (error) {
+    console.error('❌ Error getting user active business ID:', error)
+    return null
+  }
+}
+
+// Helper function to extract token from various cookie formats
+function extractTokenFromCookies(cookies: any): string | null {
+  try {
+    // Check various cookie formats that Supabase might use
+    const possibleTokenNames = [
+      'sb-access-token',
+      'supabase-auth-token', 
+      'sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token',
+      'supabase.auth.token'
+    ]
+    
+    for (const tokenName of possibleTokenNames) {
+      const token = cookies.get(tokenName)?.value
+      if (token) {
+        console.log(`🔑 Found token in cookie: ${tokenName}`)
+        return token
+      }
+    }
+    
+    // Check if there's a composite cookie with access_token
+    const compositeCookie = cookies.get('supabase-auth-token')?.value
+    if (compositeCookie) {
+      try {
+        const parsed = JSON.parse(compositeCookie)
+        if (parsed.access_token) {
+          console.log(`🔑 Found access_token in composite cookie`)
+          return parsed.access_token
+        }
+      } catch (e) {
+        // Not JSON, might be just the token
+        return compositeCookie
+      }
+    }
+    
+    console.log(`📝 No session token found in any expected cookie format`)
+    return null
+  } catch (error) {
+    console.error('❌ Error extracting token from cookies:', error)
     return null
   }
 }
