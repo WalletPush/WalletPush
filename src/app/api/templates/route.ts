@@ -102,7 +102,7 @@ export async function GET(request: Request) {
             account_id
           )
         `)
-        .eq('programs.account_id', businessId)
+        // .eq('programs.account_id', businessId) // Temporarily disabled to test
         .order('created_at', { ascending: false })
 
       if (error) {
