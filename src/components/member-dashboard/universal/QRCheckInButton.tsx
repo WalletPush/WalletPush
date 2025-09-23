@@ -12,6 +12,7 @@ interface QRCheckInButtonProps {
   disabled?: boolean
   lastCheckIn?: string // ISO timestamp
   cooldownMinutes?: number
+  accentColor?: string
   onCheckIn?: (result: { success: boolean; message: string; eventId?: string }) => void
 }
 
@@ -24,6 +25,7 @@ export function QRCheckInButton({
   disabled = false,
   lastCheckIn,
   cooldownMinutes = 60,
+  accentColor = '#3b82f6',
   onCheckIn
 }: QRCheckInButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -115,6 +117,7 @@ export function QRCheckInButton({
           ${inCooldown ? 'opacity-50 cursor-not-allowed' : ''}
           ${isLoading ? 'opacity-75' : ''}
         `}
+        style={{ backgroundColor: accentColor }}
       >
         <div className="flex items-center gap-2">
           {isLoading ? (
@@ -203,6 +206,7 @@ export function QRCheckInButton({
           ${inCooldown ? 'opacity-50 cursor-not-allowed' : ''}
           ${isLoading ? 'opacity-75' : ''}
         `}
+        style={{ backgroundColor: accentColor }}
       >
         <div className="flex items-center gap-2">
           {isLoading ? (

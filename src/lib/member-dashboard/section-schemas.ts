@@ -5,7 +5,7 @@
 
 export interface FieldSchema {
   key: string;
-  type: 'select' | 'switch' | 'number' | 'text' | 'color';
+  type: 'select' | 'switch' | 'number' | 'text' | 'color' | 'earning_methods' | 'tier_config';
   label: string;
   options?: (string | number)[];
   min?: number;
@@ -21,45 +21,7 @@ export interface SectionSchema {
 }
 
 export const SECTION_SCHEMAS: Record<string, SectionSchema> = {
-  qrCheckInButton: {
-    appearance: [
-      { 
-        key: 'settings.style', 
-        type: 'select', 
-        label: 'Style', 
-        options: ['button', 'card'],
-        help: 'How the check-in button appears to members'
-      },
-      { 
-        key: 'settings.showCooldown', 
-        type: 'switch', 
-        label: 'Show cooldown timer',
-        help: 'Display remaining cooldown time to prevent spam check-ins'
-      }
-    ],
-    behavior: [
-      { 
-        key: 'rules.loyalty.check_in.points', 
-        type: 'number', 
-        label: 'Points per check-in', 
-        min: 0, 
-        max: 1000, 
-        step: 1,
-        help: 'How many points members earn for each check-in'
-      },
-      { 
-        key: 'rules.loyalty.check_in.cooldown_minutes', 
-        type: 'number', 
-        label: 'Cooldown (minutes)', 
-        min: 0, 
-        max: 1440, 
-        step: 5,
-        help: 'Minimum time between check-ins for the same member'
-      }
-    ]
-  },
-
-  balanceSpeedo: {
+  balanceHeader: {
     appearance: [
       { 
         key: 'settings.variant', 
@@ -87,8 +49,55 @@ export const SECTION_SCHEMAS: Record<string, SectionSchema> = {
         options: ['sm', 'md', 'lg'],
         help: 'Size of the balance display'
       }
+    ],
+    behavior: [
+      {
+        key: 'settings.tiers',
+        type: 'tier_config',
+        label: 'Loyalty Tiers',
+        help: 'Configure up to 3 tiers with names and point requirements'
+      }
     ]
   },
+
+  qrCheckInButton: {
+    appearance: [
+      { 
+        key: 'settings.style', 
+        type: 'select', 
+        label: 'Style', 
+        options: ['button', 'card'],
+        help: 'How the check-in button appears to members'
+      },
+      { 
+        key: 'settings.showCooldown', 
+        type: 'switch', 
+        label: 'Show cooldown timer',
+        help: 'Display remaining cooldown time to prevent spam check-ins'
+      }
+    ],
+    behavior: [
+      { 
+        key: 'rules.loyalty.check_in.points', 
+        type: 'number', 
+        label: 'Points per check-in', 
+        min: 0, 
+        max: 1000, 
+        step: 1,
+        help: 'How many points members earn for each check-in'
+      },
+      { 
+        key: 'rules.loyalty.check_in.cooldown_hours', 
+        type: 'number', 
+        label: 'Cooldown (hours)', 
+        min: 0, 
+        max: 24, 
+        step: 0.5,
+        help: 'Minimum time between check-ins for the same member'
+      }
+    ]
+  },
+
 
   rewardsGrid: {
     appearance: [
@@ -206,6 +215,52 @@ export const SECTION_SCHEMAS: Record<string, SectionSchema> = {
         max: 100,
         step: 1,
         help: 'Bonus amount for qualifying top-ups'
+      }
+    ]
+  },
+
+  howToEarn: {
+    appearance: [
+      {
+        key: 'settings.style',
+        type: 'select',
+        label: 'Layout style',
+        options: ['card', 'list', 'grid'],
+        help: 'How the earning methods are displayed'
+      },
+      {
+        key: 'settings.showIcons',
+        type: 'switch',
+        label: 'Show icons',
+        help: 'Display icons for each earning method'
+      },
+      {
+        key: 'settings.showPoints',
+        type: 'switch',
+        label: 'Show point values',
+        help: 'Display point amounts for each method'
+      }
+    ],
+    behavior: [
+      {
+        key: 'settings.title',
+        type: 'text',
+        label: 'Section title',
+        placeholder: 'How to Earn Points',
+        help: 'Custom title for this section'
+      },
+      {
+        key: 'settings.subtitle',
+        type: 'text',
+        label: 'Subtitle',
+        placeholder: 'Multiple ways to earn and unlock rewards',
+        help: 'Description text below the title'
+      },
+      {
+        key: 'settings.earningMethods',
+        type: 'earning_methods',
+        label: 'Earning Methods',
+        help: 'Configure how customers can earn points in your program'
       }
     ]
   }

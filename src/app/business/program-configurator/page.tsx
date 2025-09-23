@@ -659,7 +659,7 @@ export default function ProgramConfiguratorPage() {
           )}
         </div>
         
-        <div className="space-y-4 max-h-[500px] overflow-y-auto">
+        <div className="space-y-4 max-h-[500px] overflow-y-auto" key={JSON.stringify(draftSpec.ui_contract.sections)}>
           {draftSpec.ui_contract.sections.map((section, index) => {
             const Component = SECTION_REGISTRY[section.type as keyof typeof SECTION_REGISTRY]
             
@@ -673,8 +673,17 @@ export default function ProgramConfiguratorPage() {
             
             const boundProps = bindProps(section.props, mockData)
             
+            // Add settings from the configuration to the props
+            const componentProps = {
+              ...boundProps,
+              settings: section.settings || {},
+              business: mockData.business || {},
+              // Pass the full context for complex components
+              ...mockData
+            }
+            
             try {
-              return <Component key={index} {...boundProps} />
+              return <Component key={index} {...componentProps} />
             } catch (error) {
               console.warn(`Error rendering ${section.type}:`, error)
               return (
@@ -830,6 +839,29 @@ export default function ProgramConfiguratorPage() {
                 const schema = SECTION_SCHEMAS[selectedSectionForConfig]
                 if (!schema) return <p className="text-slate-500">No configuration available</p>
 
+                // Get current values from draftSpec
+                const getCurrentValue = (fieldKey: string) => {
+                  if (!draftSpec || !selectedSectionForConfig) return undefined
+                  
+                  if (fieldKey.startsWith('rules.')) {
+                    const pathParts = fieldKey.replace('rules.', '').split('.')
+                    let current = draftSpec.rules || {}
+                    for (const part of pathParts) {
+                      if (current && typeof current === 'object') {
+                        current = current[part]
+                      } else {
+                        return undefined
+                      }
+                    }
+                    return current
+                  } else if (fieldKey.startsWith('settings.')) {
+                    const settingKey = fieldKey.replace('settings.', '')
+                    const section = draftSpec.ui_contract.sections.find(s => s.type === selectedSectionForConfig)
+                    return section?.settings?.[settingKey]
+                  }
+                  return undefined
+                }
+
                 return (
                   <div className="space-y-6">
                     {/* Appearance Tab */}
@@ -845,6 +877,7 @@ export default function ProgramConfiguratorPage() {
                               {field.type === 'select' && (
                                 <select 
                                   className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                                  value={getCurrentValue(field.key) || (field.options?.[0] || '')}
                                   onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, e.target.value)}
                                 >
                                   {field.options?.map((option) => (
@@ -859,10 +892,15 @@ export default function ProgramConfiguratorPage() {
                                   <input 
                                     type="checkbox" 
                                     className="sr-only" 
+                                    checked={getCurrentValue(field.key) || false}
                                     onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, e.target.checked)}
                                   />
-                                  <div className="relative w-10 h-6 bg-slate-200 rounded-full transition-colors">
-                                    <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform" />
+                                  <div className={`relative w-10 h-6 rounded-full transition-colors ${
+                                    getCurrentValue(field.key) ? 'bg-blue-600' : 'bg-slate-200'
+                                  }`}>
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                                      getCurrentValue(field.key) ? 'translate-x-5' : 'translate-x-1'
+                                    }`} />
                                   </div>
                                 </label>
                               )}
@@ -893,18 +931,222 @@ export default function ProgramConfiguratorPage() {
                                   step={field.step}
                                   className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                                   placeholder={field.placeholder}
+                                  value={getCurrentValue(field.key) || ''}
                                   onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, parseFloat(e.target.value) || 0)}
                                 />
+                              )}
+                              {field.type === 'text' && (
+                                <input
+                                  type="text"
+                                  className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                                  placeholder={field.placeholder}
+                                  value={getCurrentValue(field.key) || ''}
+                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, e.target.value)}
+                                />
+                              )}
+                              {field.type === 'earning_methods' && (
+                                <div className="space-y-3">
+                                  {(() => {
+                                    const currentMethods = getCurrentValue(field.key) || [
+                                      { id: 'purchase', title: 'Make Purchases', description: 'Earn points with every dollar spent', points: '1 point per $1', icon: 'dollar' },
+                                      { id: 'checkin', title: 'Check In', description: 'Visit our location and check in', points: '50 points', icon: 'clock' },
+                                      { id: 'referral', title: 'Refer Friends', description: 'Invite friends to join our program', points: '500 points', icon: 'users' },
+                                      { id: 'bonus', title: 'Special Offers', description: 'Complete special challenges and promotions', points: 'Varies', icon: 'gift' }
+                                    ];
+                                    
+                                    return currentMethods.map((method: any, index: number) => (
+                                      <div key={method.id || index} className="p-3 border border-slate-200 rounded-lg">
+                                        <div className="grid grid-cols-2 gap-3 mb-2">
+                                          <input
+                                            type="text"
+                                            placeholder="Title (e.g., Make Purchases)"
+                                            className="text-sm p-2 border border-slate-300 rounded"
+                                            value={method.title || ''}
+                                            onChange={(e) => {
+                                              const updatedMethods = [...currentMethods];
+                                              updatedMethods[index] = { ...method, title: e.target.value };
+                                              updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                            }}
+                                          />
+                                          <input
+                                            type="text"
+                                            placeholder="Points (e.g., 50 points)"
+                                            className="text-sm p-2 border border-slate-300 rounded"
+                                            value={method.points || ''}
+                                            onChange={(e) => {
+                                              const updatedMethods = [...currentMethods];
+                                              updatedMethods[index] = { ...method, points: e.target.value };
+                                              updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                            }}
+                                          />
+                                        </div>
+                                        <textarea
+                                          placeholder="Description (e.g., Earn points with every dollar spent)"
+                                          className="w-full text-sm p-2 border border-slate-300 rounded resize-none"
+                                          rows={2}
+                                          value={method.description || ''}
+                                          onChange={(e) => {
+                                            const updatedMethods = [...currentMethods];
+                                            updatedMethods[index] = { ...method, description: e.target.value };
+                                            updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                          }}
+                                        />
+                                        <div className="flex justify-between items-center mt-2">
+                                          <select
+                                            className="text-sm p-1 border border-slate-300 rounded"
+                                            value={method.icon || 'dollar'}
+                                            onChange={(e) => {
+                                              const updatedMethods = [...currentMethods];
+                                              updatedMethods[index] = { ...method, icon: e.target.value };
+                                              updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                            }}
+                                          >
+                                            <option value="dollar">💰 Dollar</option>
+                                            <option value="clock">⏰ Clock</option>
+                                            <option value="users">👥 Users</option>
+                                            <option value="gift">🎁 Gift</option>
+                                            <option value="star">⭐ Star</option>
+                                            <option value="zap">⚡ Zap</option>
+                                          </select>
+                                          <button
+                                            onClick={() => {
+                                              const updatedMethods = currentMethods.filter((_: any, i: number) => i !== index);
+                                              updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                            }}
+                                            className="text-red-500 text-sm px-2 py-1 hover:bg-red-50 rounded"
+                                          >
+                                            Remove
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ));
+                                  })()}
+                                  <button
+                                    onClick={() => {
+                                      const currentMethods = getCurrentValue(field.key) || [];
+                                      const newMethod = {
+                                        id: `method_${Date.now()}`,
+                                        title: 'New Earning Method',
+                                        description: 'Describe how customers earn points',
+                                        points: '10 points',
+                                        icon: 'star'
+                                      };
+                                      updateSectionConfig(selectedSectionForConfig, field.key, [...currentMethods, newMethod]);
+                                    }}
+                                    className="w-full p-2 border-2 border-dashed border-slate-300 rounded-lg text-sm text-slate-600 hover:border-slate-400 hover:text-slate-700"
+                                  >
+                                    + Add Earning Method
+                                  </button>
+                                </div>
+                              )}
+                              {field.type === 'tier_config' && (
+                                <div className="space-y-4">
+                                  {(() => {
+                                    const currentTiers = getCurrentValue(field.key) || [
+                                      { id: 'bronze', name: 'Bronze', pointsRequired: 0, color: '#cd7f32' },
+                                      { id: 'silver', name: 'Silver', pointsRequired: 1000, color: '#c0c0c0' },
+                                      { id: 'gold', name: 'Gold', pointsRequired: 5000, color: '#ffd700' }
+                                    ];
+                                    
+                                    return (
+                                      <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                          <span className="text-sm font-medium text-slate-700">Loyalty Tiers (Max 3)</span>
+                                          {currentTiers.length < 3 && (
+                                            <button
+                                              onClick={() => {
+                                                const newTier = {
+                                                  id: `tier_${Date.now()}`,
+                                                  name: `Tier ${currentTiers.length + 1}`,
+                                                  pointsRequired: (currentTiers[currentTiers.length - 1]?.pointsRequired || 0) + 1000,
+                                                  color: '#6366f1'
+                                                };
+                                                updateSectionConfig(selectedSectionForConfig, field.key, [...currentTiers, newTier]);
+                                              }}
+                                              className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
+                                            >
+                                              + Add Tier
+                                            </button>
+                                          )}
+                                        </div>
+                                        
+                                        {currentTiers.map((tier: any, index: number) => (
+                                          <div key={tier.id || index} className="p-3 border border-slate-200 rounded-lg mb-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                              <span className="text-sm font-medium text-slate-600">Tier {index + 1}</span>
+                                              {currentTiers.length > 1 && (
+                                                <button
+                                                  onClick={() => {
+                                                    const updatedTiers = currentTiers.filter((_: any, i: number) => i !== index);
+                                                    updateSectionConfig(selectedSectionForConfig, field.key, updatedTiers);
+                                                  }}
+                                                  className="text-red-500 text-xs px-2 py-1 hover:bg-red-50 rounded"
+                                                >
+                                                  Remove
+                                                </button>
+                                              )}
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-2 mb-2">
+                                              <input
+                                                type="text"
+                                                placeholder="Tier name (e.g., Bronze)"
+                                                className="text-sm p-2 border border-slate-300 rounded"
+                                                value={tier.name || ''}
+                                                onChange={(e) => {
+                                                  const updatedTiers = [...currentTiers];
+                                                  updatedTiers[index] = { ...tier, name: e.target.value };
+                                                  updateSectionConfig(selectedSectionForConfig, field.key, updatedTiers);
+                                                }}
+                                              />
+                                              <input
+                                                type="number"
+                                                placeholder="Points required"
+                                                className="text-sm p-2 border border-slate-300 rounded"
+                                                value={tier.pointsRequired || 0}
+                                                onChange={(e) => {
+                                                  const updatedTiers = [...currentTiers];
+                                                  updatedTiers[index] = { ...tier, pointsRequired: parseInt(e.target.value) || 0 };
+                                                  updateSectionConfig(selectedSectionForConfig, field.key, updatedTiers);
+                                                }}
+                                              />
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2">
+                                              <label className="text-xs text-slate-600">Color:</label>
+                                              <input
+                                                type="color"
+                                                className="w-8 h-6 border border-slate-300 rounded cursor-pointer"
+                                                value={tier.color || '#6366f1'}
+                                                onChange={(e) => {
+                                                  const updatedTiers = [...currentTiers];
+                                                  updatedTiers[index] = { ...tier, color: e.target.value };
+                                                  updateSectionConfig(selectedSectionForConfig, field.key, updatedTiers);
+                                                }}
+                                              />
+                                              <span className="text-xs text-slate-500">{tier.color || '#6366f1'}</span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
                               )}
                               {field.type === 'switch' && (
                                 <label className="flex items-center cursor-pointer">
                                   <input 
                                     type="checkbox" 
                                     className="sr-only" 
+                                    checked={getCurrentValue(field.key) || false}
                                     onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, e.target.checked)}
                                   />
-                                  <div className="relative w-10 h-6 bg-slate-200 rounded-full transition-colors">
-                                    <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform" />
+                                  <div className={`relative w-10 h-6 rounded-full transition-colors ${
+                                    getCurrentValue(field.key) ? 'bg-blue-600' : 'bg-slate-200'
+                                  }`}>
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                                      getCurrentValue(field.key) ? 'translate-x-5' : 'translate-x-1'
+                                    }`} />
                                   </div>
                                 </label>
                               )}
@@ -919,15 +1161,19 @@ export default function ProgramConfiguratorPage() {
 
                     {/* Save Button */}
                     <div className="pt-4 border-t border-slate-200">
-                      <button
-                        onClick={() => {
-                          // TODO: Save configuration to draftSpec
-                          setConfigDrawerOpen(false)
-                        }}
-                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Save Configuration
-                      </button>
+                        <button
+                          onClick={() => {
+                            // Configuration is already saved via updateSectionConfig()
+                            setConfigDrawerOpen(false)
+                            // Force a re-render by updating the preview
+                            setMockData(prev => ({ ...prev, lastUpdate: Date.now() }))
+                            // Show success message
+                            alert('✅ Configuration saved successfully! Check the live preview →')
+                          }}
+                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Save Configuration
+                        </button>
                     </div>
                   </div>
                 )

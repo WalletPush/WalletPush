@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { QRCheckInButton } from '@/components/member-dashboard/universal/QRCheckInButton';
 import { BalanceSpeedo } from '@/components/member-dashboard/loyalty/BalanceSpeedo';
+import { HowToEarn as HowToEarnWidget } from '@/components/member-dashboard/universal/HowToEarn';
 import { WPThemeProvider } from '@/components/member-dashboard/WPThemeProvider';
 import { 
   Star, 
@@ -22,28 +23,30 @@ import {
 } from 'lucide-react';
 
 // WP-Themed Components with proper theming
-const BalanceHeader = ({ member }: any) => (
+const BalanceHeader = ({ member, ...props }: any) => (
   <WPThemeProvider theme="dark-midnight">
     <BalanceSpeedo 
       pointsBalance={member?.points_balance || 0}
       pointsToNextTier={member?.points_to_next_tier}
       tier={member?.tier}
-      variant="ring"
-      size="md"
-      showTier={true}
-      showProgress={true}
+      tiers={props.settings?.tiers}
+      variant={props.settings?.variant || "ring"}
+      size={props.settings?.size || "md"}
+      showTier={props.settings?.showTier !== undefined ? props.settings.showTier : true}
+      showProgress={props.settings?.showProgress !== undefined ? props.settings.showProgress : true}
       accent="primary"
     />
   </WPThemeProvider>
 );
 
 // Alternative Balance Speedo variants for the configurator
-const BalanceSpeedo_Ring = ({ member }: any) => (
+const BalanceSpeedo_Ring = ({ member, ...props }: any) => (
   <WPThemeProvider theme="dark-midnight">
     <BalanceSpeedo 
       pointsBalance={member?.points_balance || 0}
       pointsToNextTier={member?.points_to_next_tier}
       tier={member?.tier}
+      tiers={props.settings?.tiers}
       variant="ring"
       size="md"
       showTier={true}
@@ -53,12 +56,13 @@ const BalanceSpeedo_Ring = ({ member }: any) => (
   </WPThemeProvider>
 );
 
-const BalanceSpeedo_Half = ({ member }: any) => (
+const BalanceSpeedo_Half = ({ member, ...props }: any) => (
   <WPThemeProvider theme="dark-midnight">
     <BalanceSpeedo 
       pointsBalance={member?.points_balance || 0}
       pointsToNextTier={member?.points_to_next_tier}
       tier={member?.tier}
+      tiers={props.settings?.tiers}
       variant="half"
       size="md"
       showTier={true}
@@ -68,12 +72,13 @@ const BalanceSpeedo_Half = ({ member }: any) => (
   </WPThemeProvider>
 );
 
-const BalanceSpeedo_Bar = ({ member }: any) => (
+const BalanceSpeedo_Bar = ({ member, ...props }: any) => (
   <WPThemeProvider theme="dark-midnight">
     <BalanceSpeedo 
       pointsBalance={member?.points_balance || 0}
       pointsToNextTier={member?.points_to_next_tier}
       tier={member?.tier}
+      tiers={props.settings?.tiers}
       variant="bar"
       size="md"
       showTier={true}
@@ -83,12 +88,13 @@ const BalanceSpeedo_Bar = ({ member }: any) => (
   </WPThemeProvider>
 );
 
-const BalanceSpeedo_Minimal = ({ member }: any) => (
+const BalanceSpeedo_Minimal = ({ member, ...props }: any) => (
   <WPThemeProvider theme="dark-midnight">
     <BalanceSpeedo 
       pointsBalance={member?.points_balance || 0}
       pointsToNextTier={member?.points_to_next_tier}
       tier={member?.tier}
+      tiers={props.settings?.tiers}
       variant="minimal"
       size="md"
       showTier={true}
@@ -118,27 +124,17 @@ const ProgressNextTier = ({ current_points, next_tier_points, next_tier_name }: 
   );
 };
 
-const HowToEarn = ({ earning_rules }: any) => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <Gift className="w-5 h-5" />
-        How to Earn Points
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="space-y-3">
-        {earning_rules?.map((rule: any, index: number) => (
-          <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-            <span className="text-sm">{rule.description}</span>
-            <Badge variant="outline">+{rule.points} pts</Badge>
-          </div>
-        )) || (
-          <p className="text-gray-500 text-sm">No earning rules configured</p>
-        )}
-      </div>
-    </CardContent>
-  </Card>
+const HowToEarn_Component = ({ business, ...props }: any) => (
+  <WPThemeProvider theme="dark-midnight">
+    <HowToEarnWidget 
+      title={props.settings?.title || 'How to Earn Points'}
+      subtitle={props.settings?.subtitle || 'Multiple ways to earn and unlock rewards'}
+      style={props.settings?.style || 'card'}
+      showIcons={props.settings?.showIcons !== undefined ? props.settings.showIcons : true}
+      showPoints={props.settings?.showPoints !== undefined ? props.settings.showPoints : true}
+      earningMethods={props.settings?.earningMethods || business?.earning_methods || undefined}
+    />
+  </WPThemeProvider>
 );
 
 const RewardsGrid = ({ available_rewards }: any) => (
@@ -325,14 +321,14 @@ const DashboardHeader = ({ member_name, member_since, profile_image }: any) => (
   </Card>
 );
 
-const QrCheckInButton = ({ business }: any) => (
+const QrCheckInButton = ({ business, ...props }: any) => (
   <WPThemeProvider theme="dark-midnight">
     <QRCheckInButton 
       businessId={business?.id || 'demo-business'}
       businessName={business?.name || 'Blue Karma Loyalty'}
       location={business?.location || 'Main Location'}
-      style="card"
-      showCooldown={true}
+      style={props.settings?.style || "card"}
+      showCooldown={props.settings?.showCooldown !== undefined ? props.settings.showCooldown : true}
       cooldownMinutes={60}
       onCheckIn={(result) => {
         console.log('Check-in result:', result);
@@ -448,25 +444,24 @@ export const SECTION_REGISTRY = {
   balanceSpeedoMinimal: BalanceSpeedo_Minimal,
   progressNextTier: ProgressNextTier,
   ProgressNextTier,
-  howToEarn: HowToEarn,
-  HowToEarn,
+  howToEarn: HowToEarn_Component,
   rewardsGrid: RewardsGrid,
   RewardsGrid,
-  
-  // Membership components
+
+  // Membership components  
   membershipHeader: MembershipHeader,
   MembershipHeader,
   perksGrid: PerksGrid,
   PerksGrid,
   renewalCard: RenewalCard,
   RenewalCard,
-  
+
   // Store card components
   storeCardHeader: StoreCardHeader,
   StoreCardHeader,
   balanceCard: BalanceCard,
   BalanceCard,
-  
+
   // Universal/Shared components
   dashboardHeader: DashboardHeader,
   DashboardHeader,

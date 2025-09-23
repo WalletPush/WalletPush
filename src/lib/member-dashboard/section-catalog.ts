@@ -57,10 +57,10 @@ export const SECTION_CATALOG: CatalogItem[] = [
     key: 'howToEarn',
     label: 'How to Earn Points',
     description: 'Explain earning rules and multipliers',
-    programTypes: ['loyalty'],
-    requiredCapabilities: ['points'],
+    programTypes: ['loyalty', 'membership', 'store_card'],
+    requiredCapabilities: [],
     defaultProps: ['program.earning', 'program.multipliers'],
-    category: 'optional'
+    category: 'core'
   },
 
   // === MEMBERSHIP COMPONENTS ===
@@ -181,19 +181,19 @@ export const SECTION_CATALOG: CatalogItem[] = [
 // Default presets for different program types
 export const DEFAULT_PRESETS = {
   loyalty: {
-    minimal: ['balanceHeader', 'activityFeed'],
-    standard: ['balanceHeader', 'rewardsGrid', 'offersStrip', 'activityFeed'],
-    full: ['balanceHeader', 'progressNextTier', 'rewardsGrid', 'howToEarn', 'offersStrip', 'qrCheckInButton', 'activityFeed']
+    minimal: ['balanceHeader', 'qrCheckInButton', 'howToEarn'],
+    standard: ['balanceHeader', 'qrCheckInButton', 'howToEarn', 'rewardsGrid', 'offersStrip'],
+    full: ['balanceHeader', 'progressNextTier', 'qrCheckInButton', 'howToEarn', 'rewardsGrid', 'offersStrip', 'activityFeed']
   },
   membership: {
-    minimal: ['membershipHeader', 'renewalCard'],
-    standard: ['membershipHeader', 'renewalCard', 'perksGrid', 'offersStrip'],
-    full: ['membershipHeader', 'renewalCard', 'allowancesList', 'creditWallet', 'perksGrid', 'offersStrip', 'qrCheckInButton', 'activityFeed']
+    minimal: ['membershipHeader', 'qrCheckInButton', 'howToEarn'],
+    standard: ['membershipHeader', 'qrCheckInButton', 'howToEarn', 'renewalCard', 'perksGrid'],
+    full: ['membershipHeader', 'qrCheckInButton', 'howToEarn', 'renewalCard', 'allowancesList', 'creditWallet', 'perksGrid', 'offersStrip', 'activityFeed']
   },
   store_card: {
-    minimal: ['storeCardHeader', 'balanceCard'],
-    standard: ['storeCardHeader', 'balanceCard', 'redeemGrid'],
-    full: ['storeCardHeader', 'balanceCard', 'redeemGrid', 'offersStrip', 'qrCheckInButton', 'activityFeed']
+    minimal: ['storeCardHeader', 'qrCheckInButton', 'howToEarn'],
+    standard: ['storeCardHeader', 'qrCheckInButton', 'howToEarn', 'balanceCard', 'redeemGrid'],
+    full: ['storeCardHeader', 'qrCheckInButton', 'howToEarn', 'balanceCard', 'redeemGrid', 'offersStrip', 'activityFeed']
   }
 } as const;
 

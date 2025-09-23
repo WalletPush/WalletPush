@@ -11,6 +11,12 @@ interface BalanceSpeedoProps {
     threshold: number
     color?: string
   }
+  tiers?: Array<{
+    id: string
+    name: string
+    pointsRequired: number
+    color: string
+  }>
   variant?: 'ring' | 'half' | 'bar' | 'minimal'
   showTier?: boolean
   showProgress?: boolean
@@ -22,6 +28,7 @@ export function BalanceSpeedo({
   pointsBalance,
   pointsToNextTier,
   tier,
+  tiers,
   variant = 'ring',
   showTier = true,
   showProgress = true,
@@ -34,7 +41,60 @@ export function BalanceSpeedo({
     return points.toLocaleString()
   }
 
+  // Calculate current tier and progress based on configured tiers
+  const getCurrentTierInfo = () => {
+    if (!tiers || tiers.length === 0) {
+      return {
+        currentTier: tier || { name: 'Member', threshold: 0, color: '#6366f1' },
+        nextTier: null,
+        pointsToNextTier: 0,
+        progressPercentage: 0
+      }
+    }
+
+    // Sort tiers by points required
+    const sortedTiers = [...tiers].sort((a, b) => a.pointsRequired - b.pointsRequired)
+    
+    // Find current tier (highest tier the user has achieved)
+    let currentTier = sortedTiers[0]
+    for (const tierConfig of sortedTiers) {
+      if (pointsBalance >= tierConfig.pointsRequired) {
+        currentTier = tierConfig
+      } else {
+        break
+      }
+    }
+    
+    // Find next tier
+    const nextTier = sortedTiers.find(t => t.pointsRequired > pointsBalance)
+    const pointsToNext = nextTier ? nextTier.pointsRequired - pointsBalance : 0
+    
+    // Calculate progress percentage
+    let progressPercentage = 0
+    if (nextTier && currentTier) {
+      const tierRange = nextTier.pointsRequired - currentTier.pointsRequired
+      const currentProgress = pointsBalance - currentTier.pointsRequired
+      progressPercentage = tierRange > 0 ? (currentProgress / tierRange) * 100 : 100
+    } else if (!nextTier) {
+      progressPercentage = 100 // Max tier achieved
+    }
+    
+    return {
+      currentTier: {
+        name: currentTier.name,
+        threshold: currentTier.pointsRequired,
+        color: currentTier.color
+      },
+      nextTier,
+      pointsToNextTier: pointsToNext,
+      progressPercentage: Math.min(progressPercentage, 100)
+    }
+  }
+
   const getProgressPercentage = () => {
+    if (tiers && tiers.length > 0) {
+      return getCurrentTierInfo().progressPercentage
+    }
     if (!pointsToNextTier || !tier) return 0
     const currentTierProgress = tier.threshold - pointsToNextTier
     return Math.min((currentTierProgress / tier.threshold) * 100, 100)
@@ -61,8 +121,10 @@ export function BalanceSpeedo({
     lg: { main: 'text-3xl', label: 'text-base', tier: 'text-base' }
   }
 
+  const tierInfo = getCurrentTierInfo()
   const progressPercentage = getProgressPercentage()
-  const TierIcon = getTierIcon(tier?.name)
+  const displayTier = tierInfo.currentTier
+  const TierIcon = getTierIcon(displayTier?.name)
 
   if (variant === 'minimal') {
     return (
@@ -77,24 +139,24 @@ export function BalanceSpeedo({
             </div>
           </div>
           
-          {showTier && tier && (
+          {showTier && displayTier && (
             <div className="flex items-center gap-2">
-              <TierIcon className="w-4 h-4 wp-text-primary" />
+              <TierIcon className="w-4 h-4 wp-text-primary" style={{ color: displayTier.color }} />
               <span className={`wp-text-secondary ${textSizeClasses[size].tier}`}>
-                {tier.name}
+                {displayTier.name}
               </span>
             </div>
           )}
         </div>
         
-        {showProgress && pointsToNextTier !== undefined && pointsToNextTier > 0 && (
+        {showProgress && tierInfo.pointsToNextTier > 0 && (
           <div className="mt-3">
             <div className="flex justify-between mb-1">
               <span className="text-xs wp-text-muted">
                 Progress to next tier
               </span>
               <span className="text-xs wp-text-muted">
-                {formatPoints(pointsToNextTier)} to go
+                {formatPoints(tierInfo.pointsToNextTier)} to go
               </span>
             </div>
             <div className="w-full bg-gray-700 rounded-full h-2">
