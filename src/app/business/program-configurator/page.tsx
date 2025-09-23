@@ -8,6 +8,7 @@ import { getSectionsForProgramType, SECTION_CATALOG } from '@/lib/member-dashboa
 import { SECTION_REGISTRY } from '@/lib/member-dashboard/registry'
 import { bindProps } from '@/lib/member-dashboard/utils'
 import { SECTION_SCHEMAS, sectionHasConfig } from '@/lib/member-dashboard/section-schemas'
+import { BrandedHeader } from '@/components/branding/BrandedHeader'
 
 export default function ProgramConfiguratorPage() {
   console.log('🎯 ProgramConfiguratorPage component mounted!')
@@ -37,6 +38,8 @@ export default function ProgramConfiguratorPage() {
   const [mockData, setMockData] = useState<any>({})
   const [configDrawerOpen, setConfigDrawerOpen] = useState(false)
   const [selectedSectionForConfig, setSelectedSectionForConfig] = useState<string | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [profileUploading, setProfileUploading] = useState(false)
   
   // Legacy program config for form state
   const [programConfig, setProgramConfig] = useState({
@@ -74,6 +77,85 @@ export default function ProgramConfiguratorPage() {
     } finally {
       console.log('🏁 Setting loadingTemplates to false')
       setLoadingTemplates(false)
+    }
+  }
+
+  // Logo upload handler
+  const handleLogoUpload = async (file: File) => {
+    if (!file) return
+
+    setLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('logo', file)
+      formData.append('businessId', 'demo-business-123') // TODO: Get actual business ID
+
+      const response = await fetch('/api/branding/logo', {
+        method: 'POST',
+        body: formData
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        console.log('✅ Logo uploaded successfully:', result.logoUrl)
+        
+        // Update draft spec with new logo
+        if (draftSpec) {
+          updateProgramConfig({
+            branding: { ...draftSpec.branding, businessLogo: result.logoUrl }
+          })
+        }
+        
+        alert('Logo uploaded successfully!')
+      } else {
+        console.error('❌ Logo upload failed:', result.error)
+        alert(`Upload failed: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('❌ Logo upload error:', error)
+      alert('Upload failed. Please try again.')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  // Profile picture upload handler
+  const handleProfileUpload = async (file: File) => {
+    if (!file) return
+
+    setProfileUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('profile', file)
+      formData.append('customerId', 'demo-customer-456') // TODO: Get actual customer ID
+
+      const response = await fetch('/api/branding/profile', {
+        method: 'POST',
+        body: formData
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        console.log('✅ Profile picture uploaded successfully:', result.profileUrl)
+        
+        // Update mock data with new profile
+        setMockData(prev => ({
+          ...prev,
+          customer: { ...prev.customer, profilePicture: result.profileUrl }
+        }))
+        
+        alert('Profile picture uploaded successfully!')
+      } else {
+        console.error('❌ Profile upload failed:', result.error)
+        alert(`Upload failed: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('❌ Profile upload error:', error)
+      alert('Upload failed. Please try again.')
+    } finally {
+      setProfileUploading(false)
     }
   }
   
@@ -578,16 +660,89 @@ export default function ProgramConfiguratorPage() {
           </div>
         </div>
 
+        {/* Logo Upload Section */}
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Logo Upload</h3>
-          <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center">
-            <div className="text-slate-600">
-              <p className="mb-2">Upload your logo</p>
-              <p className="text-sm">Drag and drop or click to select</p>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Business Logo</h3>
+          <p className="text-sm text-slate-600 mb-4">Upload your business logo. Recommended size: 120x50 pixels (optimized for header)</p>
+          
+          <div className="flex items-center gap-6">
+            {/* Logo Preview */}
+            <div className="flex-shrink-0">
+              <div className="w-[120px] h-[50px] border border-slate-300 rounded-lg bg-slate-50 flex items-center justify-center">
+                <img
+                  src={draftSpec?.branding?.businessLogo || '/images/logo_placeholder.png'}
+                  alt="Business Logo"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
             </div>
-            <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              Choose File
-            </button>
+            
+            {/* Upload Button */}
+            <div className="flex-1">
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                <div className="text-slate-600">
+                  <p className="mb-2">Upload your business logo</p>
+                  <p className="text-sm mb-4">PNG, JPG up to 2MB. Will be stored securely by business ID.</p>
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleLogoUpload(file)
+                    }}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label
+                    htmlFor="logo-upload"
+                    className={`inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer ${
+                      logoUploading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {logoUploading ? 'Uploading...' : 'Choose Logo File'}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Theme Selection */}
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Dashboard Theme</h3>
+          <p className="text-sm text-slate-600 mb-4">Choose a theme for your customer dashboard</p>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[
+              { key: 'dark-midnight', name: 'Dark Midnight', bg: 'from-slate-900 to-slate-800', text: 'white' },
+              { key: 'dark-plum', name: 'Dark Plum', bg: 'from-purple-900 to-purple-800', text: 'white' },
+              { key: 'dark-emerald', name: 'Dark Emerald', bg: 'from-emerald-900 to-emerald-800', text: 'white' },
+              { key: 'light-classic', name: 'Light Classic', bg: 'from-gray-100 to-white', text: 'gray-900' },
+              { key: 'brand-auto', name: 'Brand Auto', bg: 'from-blue-600 to-blue-700', text: 'white' }
+            ].map((theme) => (
+              <button
+                key={theme.key}
+                onClick={() => {
+                  if (draftSpec) {
+                    updateProgramConfig({
+                      branding: { ...draftSpec.branding, theme: theme.key }
+                    });
+                  }
+                }}
+                className={`p-4 rounded-lg border-2 transition-colors ${
+                  draftSpec?.branding?.theme === theme.key || (!draftSpec?.branding?.theme && theme.key === 'dark-midnight')
+                    ? 'border-blue-500 ring-2 ring-blue-200' 
+                    : 'border-slate-300 hover:border-slate-400'
+                }`}
+              >
+                <div className={`w-full h-16 bg-gradient-to-r ${theme.bg} rounded mb-2 flex items-center justify-center`}>
+                  <span className={`text-sm font-medium text-${theme.text}`}>Preview</span>
+                </div>
+                <p className="text-sm font-medium text-slate-900">{theme.name}</p>
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -649,17 +804,22 @@ export default function ProgramConfiguratorPage() {
     const mockData = getMockCustomerData()
     
     return (
-      <div className="bg-gradient-to-br from-[#1a1f2e] via-[#2E3748] to-[#1a1f2e] rounded-lg p-6 h-full">
-        <div className="text-center mb-6">
-          <h2 className="text-xl font-bold text-white">
-            {draftSpec.copy?.program_name || 'Your Program'}
-          </h2>
-          {draftSpec.copy?.tagline && (
-            <p className="text-[#C6C8CC] mt-2">{draftSpec.copy.tagline}</p>
-          )}
+      <div className="bg-gradient-to-br from-[#1a1f2e] via-[#2E3748] to-[#1a1f2e] rounded-lg overflow-hidden h-full flex flex-col">
+        {/* Branded Header */}
+        <div className="wp-root" data-wp-theme={draftSpec.branding?.theme || 'dark-midnight'}>
+          <BrandedHeader
+            businessLogo={draftSpec.branding?.businessLogo}
+            businessName={draftSpec.copy?.program_name || 'Your Business'}
+            businessTagline={draftSpec.copy?.tagline || 'Customer loyalty made simple'}
+            profilePicture={mockData.customer?.profilePicture}
+            customerName={mockData.customer?.name || 'John Doe'}
+            showProfile={true}
+            theme={draftSpec.branding?.theme || 'dark-midnight'}
+          />
         </div>
         
-        <div className="space-y-4 max-h-[500px] overflow-y-auto" key={JSON.stringify(draftSpec.ui_contract.sections)}>
+        {/* Dashboard Content */}
+        <div className="flex-1 p-6 space-y-4 max-h-[400px] overflow-y-auto" key={JSON.stringify(draftSpec.ui_contract.sections)}>
           {draftSpec.ui_contract.sections.map((section, index) => {
             const Component = SECTION_REGISTRY[section.type as keyof typeof SECTION_REGISTRY]
             

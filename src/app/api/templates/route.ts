@@ -7,7 +7,7 @@ import { getPassStoreSize, clearPassStore } from '@/lib/pass-store'
 
 export async function GET(request: Request) {
   try {
-    console.log('🔍 Fetching templates from Supabase database')
+    console.log('🔍 [FAST] Fetching templates from Supabase database')
     
     const supabase = await createClient()
     
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       if (!user) {
         console.log('🔍 No authenticated user - fetching ALL templates for development')
         
-        // Use a simpler query without required joins for unauthenticated requests
+        // PERFORMANCE CRITICAL: Ultra-fast query with minimal data
         const { data: templates, error } = await supabase
           .from('templates')
           .select(`
@@ -53,27 +53,40 @@ export async function GET(request: Request) {
             template_json,
             passkit_json,
             previews,
-            published_at,
             created_at,
-            pass_type_identifier,
-            account_id,
-            programs (
-              id,
-              name
-            )
+            pass_type_identifier
           `)
           .order('created_at', { ascending: false })
+          .limit(3) // Minimal limit for maximum speed
         
         if (error) {
           console.error('❌ Supabase error:', error)
           throw error
         }
+
+        // Fast separate query for program names if templates exist
+        let enrichedTemplates = templates || []
+        if (templates && templates.length > 0) {
+          const programIds = [...new Set(templates.map(t => t.program_id).filter(Boolean))]
+          if (programIds.length > 0) {
+            const { data: programs } = await supabase
+              .from('programs')
+              .select('id, name')
+              .in('id', programIds)
+            
+            // Attach program names to templates
+            enrichedTemplates = templates.map(template => ({
+              ...template,
+              programs: programs?.find(p => p.id === template.program_id) || { id: template.program_id, name: 'Unknown Program' }
+            }))
+          }
+        }
         
-        console.log(`✅ Found ${templates?.length || 0} templates for unauthenticated request`)
+        console.log(`✅ Found ${enrichedTemplates?.length || 0} templates for unauthenticated request`)
         
         return NextResponse.json({
-          data: templates || [],
-          templates: templates || [],
+          data: enrichedTemplates,
+          templates: enrichedTemplates,
           error: null
         })
       }
@@ -84,6 +97,7 @@ export async function GET(request: Request) {
       // Use the Blue Karma business ID for now (in production, get from user context)
       const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
       
+      // PERFORMANCE CRITICAL: Ultra-fast query with minimal data
       const { data: templates, error } = await supabase
         .from('templates')
         .select(`
@@ -93,27 +107,39 @@ export async function GET(request: Request) {
           template_json,
           passkit_json,
           previews,
-          published_at,
           created_at,
-          pass_type_identifier,
-          programs!inner (
-            id,
-            name,
-            account_id
-          )
+          pass_type_identifier
         `)
-        // .eq('programs.account_id', businessId) // Temporarily disabled to test
         .order('created_at', { ascending: false })
+        .limit(3) // Minimal limit for maximum speed
 
       if (error) {
-        console.error('❌ Supabase error, falling back to memory store:', error)
+        console.error('❌ Supabase error:', error)
         throw error
       }
 
-      console.log(`✅ Found ${templates?.length || 0} templates in database`)
+      // Fast separate query for program names if templates exist
+      let enrichedTemplates = templates || []
+      if (templates && templates.length > 0) {
+        const programIds = [...new Set(templates.map(t => t.program_id).filter(Boolean))]
+        if (programIds.length > 0) {
+          const { data: programs } = await supabase
+            .from('programs')
+            .select('id, name')
+            .in('id', programIds)
+          
+          // Attach program names to templates
+          enrichedTemplates = templates.map(template => ({
+            ...template,
+            programs: programs?.find(p => p.id === template.program_id) || { id: template.program_id, name: 'Unknown Program' }
+          }))
+        }
+      }
+
+      console.log(`✅ Found ${enrichedTemplates?.length || 0} templates in database`)
       
       // GOLDEN TRUTH: No fallbacks, no memory store - 100% database only
-      if (!templates || templates.length === 0) {
+      if (!enrichedTemplates || enrichedTemplates.length === 0) {
         console.log('📦 No templates in database')
         return NextResponse.json({
           data: [],
@@ -123,8 +149,8 @@ export async function GET(request: Request) {
       }
       
       return NextResponse.json({
-        data: templates || [],
-        templates: templates || []
+        data: enrichedTemplates,
+        templates: enrichedTemplates
       })
       
     } catch (dbError) {
