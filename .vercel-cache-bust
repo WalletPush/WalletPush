@@ -1,0 +1,4 @@
+# Vercel Cache Bust
+# This file forces a fresh build to reset corrupted cache
+# Generated: 2025-01-29 12:00:00
+Build ID: CACHE_RESET_BUILD_001
