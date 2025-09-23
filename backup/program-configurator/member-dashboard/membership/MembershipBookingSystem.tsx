@@ -281,9 +281,9 @@ export function MembershipBookingSystem({
                       <span className={`text-xs px-2 py-0.5 rounded border ${getCategoryColor(slot.category)}`}>
                         {slot.category}
                       </span>
-                      {slot.memberPriority !== 'standard' && (
+                      {slot.memberPriority !== 'standard' && slot.memberPriority && (
                         <span className={`text-xs px-2 py-0.5 rounded ${getPriorityColor(slot.memberPriority)}`}>
-                          {slot.memberPriority?.toUpperCase()}
+                          {slot.memberPriority.toUpperCase()}
                         </span>
                       )}
                     </div>
