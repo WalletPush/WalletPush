@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
           program_id,
           template_json,
           passkit_json,
+          pass_type_identifier,
           account_id,
           programs (
             id,
@@ -400,7 +401,8 @@ export async function POST(request: NextRequest) {
         formData: finalFormData,
         userId: email, // Use email as user identifier
         deviceType: 'web',
-        templateOverride: templateOverrideData as any
+        templateOverride: templateOverrideData as any,
+        businessId: business_id // Pass business context for dynamic certificate selection
       })
 
       // 🔍 INLINE DEBUG: Pass generation results

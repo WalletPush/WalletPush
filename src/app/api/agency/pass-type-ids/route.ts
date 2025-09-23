@@ -205,19 +205,66 @@ export async function POST(request: NextRequest) {
 
     console.log('🏢 Creating Pass Type ID for agency:', agencyAccountId)
 
-    // TODO: Replace with actual database operations and certificate processing once schema is applied
-    // This would involve:
-    // 1. Validate the certificate file
-    // 2. Store certificate securely
-    // 3. Create Pass Type ID record
-    // 4. Initiate Apple validation process
+    // Generate unique timestamp for filename
+    const timestamp = Date.now()
+
+    // Handle certificate file upload if provided
+    let p12BlobUrl: string | null = null
+    if (certificateFile) {
+      const { put } = await import('@vercel/blob')
+      const certFileName = `agency_cert_${timestamp}.p12`
+      const blobKey = `certificates/${agencyAccountId}/${certFileName}`
+      
+      // Convert file to stream and upload to blob
+      console.log(`📤 Uploading agency certificate to Vercel Blob: ${blobKey}`)
+      const arrayBuffer = await certificateFile.arrayBuffer()
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(arrayBuffer))
+          controller.close()
+        }
+      })
+      
+      const blob = await put(blobKey, stream, {
+        access: 'public',
+        token: process.env.BLOB_READ_WRITE_TOKEN!
+      })
+      
+      p12BlobUrl = blob.url
+      console.log('💾 Agency certificate uploaded to blob:', p12BlobUrl)
+    }
+
+    // Create Pass Type ID record in database
+    const newPassTypeId = {
+      account_id: agencyAccountId,
+      label,
+      pass_type_identifier: passTypeIdentifier,
+      team_id: teamId,
+      p12_path: certificateFile ? `./private/certificates/agency_cert_${timestamp}.p12` : null,
+      p12_blob_url: p12BlobUrl,
+      p12_password_enc: formData.get('password') as string || null,
+      cert_password: formData.get('password') as string || null,
+      is_validated: true,
+      is_global: false
+    }
+
+    const { data: savedPassTypeId, error: saveError } = await supabase
+      .from('pass_type_ids')
+      .insert(newPassTypeId)
+      .select()
+      .single()
+
+    if (saveError) {
+      console.error('❌ Database save error:', saveError)
+      throw saveError
+    }
     
-    console.log(`✅ Successfully validated Pass Type ID creation: ${label}`)
+    console.log(`✅ Successfully created Pass Type ID: ${savedPassTypeId.id}`)
 
     return NextResponse.json({
       success: true,
       message: 'Pass Type ID created successfully',
-      passTypeId: Date.now().toString()
+      passTypeId: savedPassTypeId
     })
 
   } catch (error) {

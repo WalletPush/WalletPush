@@ -66,9 +66,8 @@ export async function GET(request: NextRequest) {
           is_global,
           created_at
         ),
-        assigned_by_accounts:accounts!assigned_by_account_id (
-          name,
-          type
+        assigned_by_accounts:agency_accounts!assigned_by_account_id (
+          name
         )
       `)
       .eq('business_account_id', businessAccountId)
@@ -107,9 +106,7 @@ export async function GET(request: NextRequest) {
       assigned_by: Array.isArray(apt.assigned_by_accounts) 
         ? apt.assigned_by_accounts[0]?.name 
         : (apt.assigned_by_accounts as any)?.name,
-      assigned_by_type: Array.isArray(apt.assigned_by_accounts) 
-        ? apt.assigned_by_accounts[0]?.type 
-        : (apt.assigned_by_accounts as any)?.type,
+      assigned_by_type: 'agency', // Since these come from agency_accounts, they're always 'agency' type
       assignment_id: apt.id,
       assignment_date: apt.created_at
     }))

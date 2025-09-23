@@ -29,28 +29,30 @@ export async function POST(request: NextRequest) {
       teamId
     })
     
-    // STORE THE ACTUAL CERTIFICATE FILE
-    const { writeFile, mkdir } = await import('fs/promises')
-    const { join } = await import('path')
-    const { existsSync } = await import('fs')
+    // UPLOAD GLOBAL CERTIFICATE TO VERCEL BLOB
+    const { put } = await import('@vercel/blob')
     
-    // Create certificates directory
-    const certsDir = join(process.cwd(), 'private', 'certificates', 'global')
-    if (!existsSync(certsDir)) {
-      await mkdir(certsDir, { recursive: true })
-    }
-    
-    // Save the certificate with a descriptive filename
+    // Generate unique filename for global blob storage
     const timestamp = Date.now()
     const certFileName = `global_cert_${timestamp}.p12`
-    const certPath = join(certsDir, certFileName)
+    const blobKey = `certificates/global/${certFileName}`
     
-    // Store the certificate binary data
-    const certBytes = await file.arrayBuffer()
-    const certBuffer = Buffer.from(certBytes)
-    await writeFile(certPath, certBuffer)
+    // Convert file to stream and upload to blob
+    console.log(`📤 Uploading global certificate to Vercel Blob: ${blobKey}`)
+    const arrayBuffer = await file.arrayBuffer()
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(arrayBuffer))
+        controller.close()
+      }
+    })
     
-    console.log('💾 Global Certificate saved to:', certPath)
+    const blob = await put(blobKey, stream, {
+      access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN!
+    })
+    
+    console.log('💾 Global certificate uploaded to blob:', blob.url)
     
     // Save to database as global Pass Type ID
     const supabase = await createClient()
@@ -60,8 +62,10 @@ export async function POST(request: NextRequest) {
       label: description || 'Global WalletPush Certificate',
       pass_type_identifier: passTypeIdentifier,
       team_id: teamId,
-      p12_path: certPath,
+      p12_path: `./private/certificates/global/${certFileName}`, // Keep legacy path for compatibility
+      p12_blob_url: blob.url, // New: Vercel Blob URL
       p12_password_enc: password, // TODO: Encrypt this in production!
+      cert_password: password, // Also store in new field
       is_validated: true,
       is_global: true
     }

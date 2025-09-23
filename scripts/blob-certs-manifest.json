@@ -1,0 +1,30 @@
+[
+  {
+    "identifier": "cert_1757690901247",
+    "p12_local": "/Users/davidsambor/Desktop/WalletPush/private/certificates/cert_1757690901247.p12",
+    "p12_blob_url": "https://5t5qn3slwjczwnoq.public.blob.vercel-storage.com/certificates/cert_1757690901247/cert_1757690901247-vNWASs2nevHFUPOwCmnq8DpOgROHVp.p12",
+    "wwdr_local": null,
+    "wwdr_blob_url": null
+  },
+  {
+    "identifier": "cert_1757691024002",
+    "p12_local": "/Users/davidsambor/Desktop/WalletPush/private/certificates/cert_1757691024002.p12",
+    "p12_blob_url": "https://5t5qn3slwjczwnoq.public.blob.vercel-storage.com/certificates/cert_1757691024002/cert_1757691024002-wDQfPbLT70xgOrk7pHhiemZgE2E6MD.p12",
+    "wwdr_local": null,
+    "wwdr_blob_url": null
+  },
+  {
+    "identifier": "cert_1757691111028",
+    "p12_local": "/Users/davidsambor/Desktop/WalletPush/private/certificates/cert_1757691111028.p12",
+    "p12_blob_url": "https://5t5qn3slwjczwnoq.public.blob.vercel-storage.com/certificates/cert_1757691111028/cert_1757691111028-NAK1PXWLvpXfrendNIsq7OyDNncxzd.p12",
+    "wwdr_local": null,
+    "wwdr_blob_url": null
+  },
+  {
+    "identifier": "global",
+    "p12_local": "/Users/davidsambor/Desktop/WalletPush/private/certificates/global/global_cert_1757709927817.p12",
+    "p12_blob_url": "https://5t5qn3slwjczwnoq.public.blob.vercel-storage.com/certificates/global/global_cert_1757709927817-6kQfKHUmJGakaRRLiFR3CClwEib9iO.p12",
+    "wwdr_local": "/Users/davidsambor/Desktop/WalletPush/private/certificates/global/AppleWWDRCAG4.pem",
+    "wwdr_blob_url": "https://5t5qn3slwjczwnoq.public.blob.vercel-storage.com/certificates/global/AppleWWDRCAG4-jbDN5pyBEP8MzPRsWMnRGqvMIkPgqg.pem"
+  }
+]

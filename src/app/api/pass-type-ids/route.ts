@@ -162,30 +162,7 @@ export async function POST(request: NextRequest) {
       isGlobal
     })
     
-    // STORE THE ACTUAL CERTIFICATE FILE
-    const { writeFile, mkdir } = await import('fs/promises')
-    const { join } = await import('path')
-    const { existsSync } = await import('fs')
-    
-    // Create certificates directory if it doesn't exist
-    const certDir = join(process.cwd(), 'private', 'certificates')
-    if (!existsSync(certDir)) {
-      await mkdir(certDir, { recursive: true })
-    }
-    
-    // Generate unique filename
-    const timestamp = Date.now()
-    const certFileName = `cert_${timestamp}.p12`
-    const certPath = join(certDir, certFileName)
-    
-    // Convert file to buffer and save
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    await writeFile(certPath, buffer)
-    
-    console.log('💾 Certificate saved to:', certPath)
-    
-    // Get current user and account
+    // Get current user and account first
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
@@ -212,6 +189,31 @@ export async function POST(request: NextRequest) {
 
       accountId = userAccounts?.account_id
     }
+    
+    // UPLOAD CERTIFICATE TO VERCEL BLOB
+    const { put } = await import('@vercel/blob')
+    
+    // Generate unique filename for blob storage
+    const timestamp = Date.now()
+    const certFileName = `cert_${timestamp}.p12`
+    const blobKey = `certificates/${accountId || 'global'}/${certFileName}`
+    
+    // Convert file to stream and upload to blob
+    console.log(`📤 Uploading certificate to Vercel Blob: ${blobKey}`)
+    const arrayBuffer = await file.arrayBuffer()
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(arrayBuffer))
+        controller.close()
+      }
+    })
+    
+    const blob = await put(blobKey, stream, {
+      access: 'public',
+      token: process.env.BLOB_READ_WRITE_TOKEN!
+    })
+    
+    console.log('💾 Certificate uploaded to blob:', blob.url)
 
     if (!accountId) {
       // Fallback for backward compatibility
@@ -223,8 +225,10 @@ export async function POST(request: NextRequest) {
       label: description || (isGlobal ? 'Global WalletPush Certificate' : 'Uploaded Certificate'),
       pass_type_identifier: 'pass.com.walletpushio', // TODO: Extract from certificate
       team_id: 'NC4W34D5LD', // TODO: Extract from certificate
-      p12_path: certPath,
+      p12_path: `./private/certificates/${certFileName}`, // Keep legacy path for compatibility
+      p12_blob_url: blob.url, // New: Vercel Blob URL
       p12_password_enc: password, // TODO: Encrypt this in production!
+      cert_password: password, // Also store in new field
       apns_key_id: null,
       apns_team_id: 'NC4W34D5LD',
       apns_p8_path: null,

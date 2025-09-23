@@ -2,6 +2,7 @@ import { PassTypeIDStore } from './pass-type-id-store'
 import { ProperAppleSigning } from './proper-apple-signing'
 import path from 'path'
 import { existsSync } from 'fs'
+import fs from 'fs'
 
 /**
  * GOLDEN RULES (Non-negotiable)
@@ -24,12 +25,33 @@ interface ApplePassData {
   userId?: string
   deviceType?: string
   templateOverride?: PassTemplate // when provided, bypass loadTemplate()
+  businessId?: string // business context for dynamic certificate selection
 }
 
 interface ApplePassResponse {
   serialNumber: string
   passTypeIdentifier: string
   downloadUrl: string
+}
+
+/**
+ * Fetch a file from Vercel Blob storage and return as Buffer
+ */
+async function fetchBlobBuffer(url: string): Promise<Buffer> {
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN!}` }
+  });
+  if (!res.ok) throw new Error(`Blob fetch failed ${res.status}: ${url}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+/**
+ * Write a buffer to a temporary file and return the path
+ */
+function writeTmp(name: string, buf: Buffer): string {
+  const p = path.join('/tmp', name);
+  if (!fs.existsSync(p)) fs.writeFileSync(p, buf);
+  return p;
 }
 
 export class ApplePassKitGenerator {
@@ -55,7 +77,7 @@ export class ApplePassKitGenerator {
     passBuffer: Buffer
     actualData: any
   }> {
-    const { templateId, formData = {}, userId, deviceType, templateOverride } = passData
+    const { templateId, formData = {}, userId, deviceType, templateOverride, businessId } = passData
 
     // 1) Load template (must exist) or use override from caller
     const template = templateOverride || await this.loadTemplate(templateId)
@@ -70,11 +92,12 @@ export class ApplePassKitGenerator {
     const selectedPassTypeIdentifier = template.pass_type_identifier
     if (!selectedPassTypeIdentifier) throw new Error(`❌ Template ${templateId} has no saved PassTypeID`)
 
-    // 3) Resolve signing material for THAT EXACT PassTypeID
+    // 3) Resolve signing material for THAT EXACT PassTypeID with business context
+    console.log(`🔍 Looking for PassTypeID: ${selectedPassTypeIdentifier} for business: ${businessId}`)
     const passTypeID =
       selectedPassTypeIdentifier === process.env.GLOBAL_PASSTYPE_ID
         ? await PassTypeIDStore.getDefault()
-        : await PassTypeIDStore.findByIdentifier(selectedPassTypeIdentifier)
+        : await PassTypeIDStore.findByIdentifier(selectedPassTypeIdentifier, businessId)
 
     if (!passTypeID) throw new Error(`❌ No .p12 found for PassTypeID: ${selectedPassTypeIdentifier}`)
 
@@ -93,15 +116,34 @@ export class ApplePassKitGenerator {
     // 6) Prepare assets strictly from template DB
     const assets = await this.prepareAssets(template)
 
-    // 7) Paths for signing
-    const p12Path = passTypeID.certificate_file_path || (passTypeID as any).p12_path
+    // 7) Certificate loading from Vercel Blob storage or fallback to local files
+    let p12Path: string
+    let wwdrPath: string
     const p12Password = passTypeID.certificate_password || (passTypeID as any).p12_password_enc
-    // GLOBAL WWDR (use your real global path or env)
-    const wwdrPath =
-      process.env.GLOBAL_WWDR_CER_PATH || path.join(process.cwd(), 'private', 'certificates', 'global', 'AppleWWDRCAG4.cer')
 
-    if (!existsSync(p12Path)) throw new Error(`❌ P12 certificate not found: ${p12Path}`)
-    if (!existsSync(wwdrPath)) throw new Error(`❌ WWDR certificate not found: ${wwdrPath}`)
+    // Check if we have blob URLs (new system) or fallback to local paths (legacy)
+    if ((passTypeID as any).p12_blob_url) {
+      console.log(`📥 Fetching P12 certificate from Blob storage`)
+      const p12Buffer = await fetchBlobBuffer((passTypeID as any).p12_blob_url)
+      p12Path = writeTmp(`cert_${encodeURIComponent(passTypeID.identifier)}.p12`, p12Buffer)
+
+      if ((passTypeID as any).wwdr_blob_url) {
+        console.log(`📥 Fetching WWDR certificate from Blob storage`)
+        const wwdrBuffer = await fetchBlobBuffer((passTypeID as any).wwdr_blob_url)
+        wwdrPath = writeTmp('AppleWWDRCA.cer', wwdrBuffer)
+      } else {
+        // Fallback to global WWDR path for blob-stored P12 certificates
+        wwdrPath = process.env.GLOBAL_WWDR_CER_PATH || path.join(process.cwd(), 'private', 'certificates', 'global', 'AppleWWDRCAG4.cer')
+      }
+    } else {
+      // Legacy: Use local file paths
+      console.log(`📁 Using local certificate files (legacy mode)`)
+      p12Path = passTypeID.certificate_file_path || (passTypeID as any).p12_path
+      wwdrPath = process.env.GLOBAL_WWDR_CER_PATH || path.join(process.cwd(), 'private', 'certificates', 'global', 'AppleWWDRCAG4.cer')
+      
+      if (!existsSync(p12Path)) throw new Error(`❌ P12 certificate not found: ${p12Path}`)
+      if (!existsSync(wwdrPath)) throw new Error(`❌ WWDR certificate not found: ${wwdrPath}`)
+    }
 
     // 8) SECURITY CHECK: Verify no forbidden files in payload
     const fileList = ['pass.json', ...Object.keys(assets)]
