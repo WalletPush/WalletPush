@@ -6,6 +6,18 @@ const nextConfig = {
   },
   experimental: {
     serverComponentsExternalPackages: ['archiver', 'node-forge']
+  },
+  // Exclude backup files from TypeScript checking
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  webpack: (config) => {
+    // Ignore backup directory during build
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: ['**/backup/**', '**/node_modules/**']
+    }
+    return config
   }
 }
 
