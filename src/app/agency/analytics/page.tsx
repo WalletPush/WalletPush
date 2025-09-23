@@ -69,10 +69,6 @@ export default function AgencyAnalyticsPage() {
   const [timeRange, setTimeRange] = useState('30d')
   const [selectedMetric, setSelectedMetric] = useState('revenue')
 
-  useEffect(() => {
-    loadAnalyticsData()
-  }, [timeRange, loadAnalyticsData])
-
   const loadAnalyticsData = useCallback(async () => {
     try {
       setIsLoading(true)
@@ -196,6 +192,10 @@ export default function AgencyAnalyticsPage() {
       setIsLoading(false)
     }
   }, [timeRange])
+
+  useEffect(() => {
+    loadAnalyticsData()
+  }, [timeRange, loadAnalyticsData])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
