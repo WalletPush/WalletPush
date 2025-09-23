@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { 
   SparklesIcon,
@@ -235,7 +236,7 @@ export default function DistributionPage() {
   }, [activeTab])
 
   // Load template placeholders when a template is selected
-  const loadTemplatePlaceholders = async (templateId: string) => {
+  const loadTemplatePlaceholders = useCallback(async (templateId: string) => {
     if (!templateId) {
       setSelectedTemplatePlaceholders([])
       return
@@ -272,7 +273,7 @@ export default function DistributionPage() {
     } catch (error) {
       console.error('Error loading template placeholders:', error)
     }
-  }
+  }, [])
 
   // Detect if a placeholder is customer-facing
   const isCustomerFacingPlaceholder = (placeholder: string): boolean => {
@@ -312,7 +313,7 @@ export default function DistributionPage() {
     if (wizardData.programTemplate) {
       loadTemplatePlaceholders(wizardData.programTemplate)
     }
-  }, [wizardData.programTemplate])
+  }, [wizardData.programTemplate, loadTemplatePlaceholders])
 
   const [uploadingImages, setUploadingImages] = useState<{[key: string]: boolean}>({})
 
@@ -896,7 +897,7 @@ Make it modern, professional, and conversion-focused.`
                 <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
                   {wizardData.socialImage ? (
                     <div className="space-y-3">
-                      <img src={wizardData.socialImage} alt="Social preview" className="w-full h-32 object-cover rounded-lg" />
+                      <Image src={wizardData.socialImage} alt="Social preview" width={400} height={128} className="w-full h-32 object-cover rounded-lg" />
                       <button
                         onClick={() => setWizardData(prev => ({ ...prev, socialImage: null }))}
                         className="text-red-600 hover:text-red-700 text-sm"
@@ -985,7 +986,7 @@ Make it modern, professional, and conversion-focused.`
                 <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
                   {wizardData.logo ? (
                     <div className="space-y-3">
-                      <img src={wizardData.logo} alt="Logo preview" className="w-full h-32 object-contain rounded-lg" />
+                      <Image src={wizardData.logo} alt="Logo preview" width={400} height={128} className="w-full h-32 object-contain rounded-lg" />
                       <button
                         onClick={() => setWizardData(prev => ({ ...prev, logo: null }))}
                         className="text-red-600 hover:text-red-700 text-sm"
@@ -1027,7 +1028,7 @@ Make it modern, professional, and conversion-focused.`
                 <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
                   {wizardData.backgroundImage ? (
                     <div className="space-y-3">
-                      <img src={wizardData.backgroundImage} alt="Background preview" className="w-full h-32 object-cover rounded-lg" />
+                      <Image src={wizardData.backgroundImage} alt="Background preview" width={400} height={128} className="w-full h-32 object-cover rounded-lg" />
                       <button
                         onClick={() => setWizardData(prev => ({ ...prev, backgroundImage: null }))}
                         className="text-red-600 hover:text-red-700 text-sm"
@@ -1072,7 +1073,7 @@ Make it modern, professional, and conversion-focused.`
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {wizardData.additionalImages.map((image) => (
                       <div key={image.id} className="relative">
-                        <img src={image.url} alt={image.name} className="w-full h-24 object-cover rounded-lg" />
+                        <Image src={image.url} alt={image.name} width={200} height={96} className="w-full h-24 object-cover rounded-lg" />
                         <button
                           onClick={() => removeAdditionalImage(image.id)}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"

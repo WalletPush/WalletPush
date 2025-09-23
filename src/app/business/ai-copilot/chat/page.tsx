@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { SparklesIcon, PaperAirplaneIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
@@ -86,7 +86,7 @@ export default function AICopilotChatPage() {
     } else {
       addDebug('🚫 useEffect conditions not met')
     }
-  }, [websiteUrl, crawlStarted])
+  }, [websiteUrl, crawlStarted, crawlStatus, startWebsiteCrawling])
 
   const formatMessageContent = (content: string) => {
     // Convert **text** to bold formatting
@@ -139,7 +139,7 @@ export default function AICopilotChatPage() {
     })
   }
 
-  const startWebsiteCrawling = async () => {
+  const startWebsiteCrawling = useCallback(async () => {
     addDebug(`🚀 startWebsiteCrawling called, current status: ${crawlStatus}`)
     
     // Prevent multiple calls
@@ -310,7 +310,7 @@ export default function AICopilotChatPage() {
       // Reset refs so function can be called again if needed
       aiProcessingRef.current = false
     }
-  }
+  }, [crawlStatus])
 
   const detectProgramReadyToCreate = (conversation: Message[]) => {
     // Look for key indicators that the program is ready to be created
