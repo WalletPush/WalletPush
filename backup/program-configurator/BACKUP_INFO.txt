@@ -1,7 +1,0 @@
-Program Configurator Backup Created: Tue Sep 23 09:12:40 WITA 2025
-Backup includes:
-- Full program-configurator page
-- All API endpoints (program/spec, customer/summary, program/offers)
-- Template validation system
-- All member dashboard libraries
-- All member dashboard components
