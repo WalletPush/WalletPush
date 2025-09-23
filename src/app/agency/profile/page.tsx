@@ -90,7 +90,7 @@ export default function AgencyProfilePage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [router])
 
   const loadStats = useCallback(async () => {
     try {
