@@ -2,12 +2,17 @@
   "name": "wallet-push",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.7.0",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "ci:vercel": "pnpm install --frozen-lockfile && pnpm dlx vercel build"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
