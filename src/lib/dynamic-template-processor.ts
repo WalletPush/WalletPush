@@ -278,9 +278,11 @@ export function validateTemplateData(
   }
 }
 
-export default {
+const DynamicTemplateProcessor = {
   extractPlaceholdersFromTemplate,
   mapFormDataToPlaceholders,
   processTemplateForPassGeneration,
   validateTemplateData
-}
+};
+
+export default DynamicTemplateProcessor;
