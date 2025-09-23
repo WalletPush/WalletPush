@@ -186,9 +186,9 @@ export default function AICopilotChatPage() {
       setCrawlStatus('error')
       addMessage('assistant', `I'm sorry, but I encountered an error while trying to analyze your website: ${error.message}. Would you like to try again or tell me about your business manually?`)
     }
-  }
 
-  const pollCrawlStatus = async (jobId: string) => {
+    // Move pollCrawlStatus inside the useCallback
+    const pollCrawlStatus = async (jobId: string) => {
     const maxAttempts = 30 // 5 minutes max
     let attempts = 0
 
@@ -261,9 +261,10 @@ export default function AICopilotChatPage() {
 
     // Start checking status after 5 seconds
     setTimeout(checkStatus, 5000)
-  }
+    }
 
-  const processWebsiteData = async (crawledData: any[], websiteUrl: string, visualAssets?: any) => {
+    // Move processWebsiteData inside the useCallback
+    const processWebsiteData = async (crawledData: any[], websiteUrl: string, visualAssets?: any) => {
     // Use REF to prevent multiple execution
     if (aiProcessingRef.current) {
       addDebug('🚫 AI PROCESSING BLOCKED BY REF!')
@@ -309,6 +310,7 @@ export default function AICopilotChatPage() {
     } finally {
       // Reset refs so function can be called again if needed
       aiProcessingRef.current = false
+    }
     }
   }, [crawlStatus])
 
