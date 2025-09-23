@@ -1,53 +1,69 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
+/**
+ * GET /api/program/offers
+ * Returns active offers for a program
+ */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const businessId = searchParams.get('businessId');
-    const programId = searchParams.get('programId');
+    const { searchParams } = new URL(request.url)
+    const businessId = searchParams.get('businessId')
+    const programId = searchParams.get('programId')
+    
+    console.log('🎁 Program offers API called')
+    console.log('🔍 Fetching offers for program:', programId)
     
     if (!businessId || !programId) {
-      return NextResponse.json({ 
-        error: 'businessId and programId are required' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'businessId and programId are required' }, { status: 400 })
     }
 
-    const supabase = await createClient();
-    
-    // For MVP, return mock offers data
-    // In production, this would query offers table with availability filtering
-    
-    const mockOffers = {
-      active: [
-        {
-          id: 'birthday_special',
-          title: 'Birthday Treat',
-          description: 'Free drink on your birthday month!',
-          cost_type: 'free',
-          cost_value: 0
-        },
-        {
-          id: 'double_points',
-          title: 'Double Points Weekend',
-          description: 'Earn 2x points on all purchases this weekend',
-          cost_type: 'free',
-          cost_value: 0
-        },
-        {
-          id: 'loyalty_bonus',
-          title: '20% Off Premium Items',
-          description: 'Exclusive discount for loyalty members',
-          cost_type: 'points',
-          cost_value: 50
-        }
-      ]
-    };
-    
-    return NextResponse.json(mockOffers);
-    
+    const supabase = await createClient()
+
+    // Get active offers for this program
+    const { data: offers, error: offersError } = await supabase
+      .from('offers')
+      .select('id, title, description, cost_type, cost_value, availability, limits, starts_at, ends_at')
+      .eq('business_id', businessId)
+      .eq('program_id', programId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (offersError) {
+      console.error('❌ Error fetching offers:', offersError)
+      return NextResponse.json({ error: 'Failed to fetch offers' }, { status: 500 })
+    }
+
+    // Filter offers by time window
+    const now = new Date()
+    const activeOffers = (offers || []).filter(offer => {
+      if (offer.starts_at && new Date(offer.starts_at) > now) return false
+      if (offer.ends_at && new Date(offer.ends_at) < now) return false
+      return true
+    })
+
+    const response = {
+      active: activeOffers.map(offer => ({
+        id: offer.id,
+        title: offer.title,
+        description: offer.description,
+        cost_type: offer.cost_type,
+        cost_value: offer.cost_value,
+        availability: offer.availability || { audience: 'everyone' },
+        limits: offer.limits || {}
+      }))
+    }
+
+    console.log('✅ Found active offers:', activeOffers.length)
+
+    return NextResponse.json(response)
+
   } catch (error) {
-    console.error('Program offers API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('❌ Error in program offers API:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

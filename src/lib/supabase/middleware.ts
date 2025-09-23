@@ -102,7 +102,11 @@ const publicRoutes = [
   '/admin/global-pass-type-id', // Admin page for global Pass Type ID management
   '/api/admin/global-pass-type-id', // API for global Pass Type ID management
   '/api/admin/wwdr-certificate', // API for WWDR certificate upload
-  '/api/webhooks/apple-wallet' // Apple Wallet webhook for automation triggers
+  '/api/webhooks/apple-wallet', // Apple Wallet webhook for automation triggers
+  '/api/ledger/append', // Universal ledger for customer events
+  '/api/scanner/earn', // Staff scanner earn points
+  '/api/scanner/redeem', // Staff scanner redeem points/offers
+  '/api/scanner/balance' // Staff scanner balance check
 ]
 
   const isPublicRoute = publicRoutes.some(route => 
@@ -116,7 +120,10 @@ const publicRoutes = [
     request.nextUrl.pathname.startsWith('/api/validate-pass/') ||
     request.nextUrl.pathname.startsWith('/api/admin/') ||
     request.nextUrl.pathname.startsWith('/api/customer/check-account-status') ||
-    request.nextUrl.pathname.startsWith('/api/customer/complete-account')
+    request.nextUrl.pathname.startsWith('/api/customer/complete-account') ||
+    request.nextUrl.pathname.startsWith('/api/checkin/') ||
+    request.nextUrl.pathname.startsWith('/api/ledger/') ||
+    request.nextUrl.pathname.startsWith('/api/scanner/')
   )
 
   // Only redirect to login if it's not a public route and user is not authenticated
