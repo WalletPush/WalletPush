@@ -21,7 +21,34 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request)
   }
 
-  // Simplified middleware for testing - just handle session updates
+  // Handle custom domain routing for production domains
+  console.log(`🌐 Middleware processing: ${hostname}${pathname}`)
+  
+  // Step 1: Check for custom domain business routing (dashboard, login, etc.)
+  const businessRouteResult = await handleCustomDomainBusinessRouting(request, hostname, pathname)
+  if (businessRouteResult) {
+    return businessRouteResult
+  }
+  
+  // Step 2: Check for custom domain landing pages
+  const landingPageResult = await handleCustomDomainLandingPage(request, hostname, pathname)
+  if (landingPageResult) {
+    return landingPageResult
+  }
+  
+  // Step 3: Check for subdomain routing
+  const subdomainResult = await handleSubdomainRouting(request, hostname, pathname)
+  if (subdomainResult) {
+    return subdomainResult
+  }
+  
+  // Step 4: Check for business custom domain redirects from main domain
+  const redirectResult = await handleBusinessCustomDomainRedirect(request, hostname, pathname)
+  if (redirectResult) {
+    return redirectResult
+  }
+
+  // Default: just handle session updates
   return await updateSession(request)
 }
 
