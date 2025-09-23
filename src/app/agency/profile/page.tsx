@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   UserIcon,
   BuildingOfficeIcon,
@@ -54,15 +54,15 @@ export default function AgencyProfilePage() {
 
   useEffect(() => {
     loadProfile()
-  }, [])
+  }, [loadProfile])
 
   useEffect(() => {
     if (profile) {
       loadStats()
     }
-  }, [profile])
+  }, [profile, loadStats])
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
@@ -90,9 +90,9 @@ export default function AgencyProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       const supabase = createClient()
       
@@ -128,7 +128,7 @@ export default function AgencyProfilePage() {
         activeBusinesses: 1
       })
     }
-  }
+  }, [profile])
 
   const startEditing = (field: string, currentValue: string) => {
     setEditingField(field)

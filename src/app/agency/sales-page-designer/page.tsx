@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { 
   SparklesIcon,
   PhotoIcon,
@@ -228,9 +228,9 @@ export default function SalesPageDesignerPage() {
     if (activeTab === 'saved') {
       fetchSavedPages()
     }
-  }, [activeTab])
+  }, [activeTab, fetchSavedPages])
 
-  const fetchSavedPages = async () => {
+  const fetchSavedPages = useCallback(async () => {
     setLoadingSavedPages(true)
     try {
       const supabase = createClient()
@@ -262,7 +262,7 @@ export default function SalesPageDesignerPage() {
     } finally {
       setLoadingSavedPages(false)
     }
-  }
+  }, [])
 
   const checkCurrentHomepage = async (pages = savedLandingPages) => {
     try {
