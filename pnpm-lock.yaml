@@ -47,6 +47,9 @@ importers:
       archiver:
         specifier: ^7.0.1
         version: 7.0.1
+      browserslist:
+        specifier: ^4.26.2
+        version: 4.26.2
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
