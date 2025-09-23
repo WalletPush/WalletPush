@@ -23,35 +23,32 @@ export function BrandedHeader({
   theme = 'dark-midnight'
 }: BrandedHeaderProps) {
   return (
-    <header className="wp-header flex items-center justify-between p-4" style={{ backgroundColor: 'var(--wp-surface)', borderBottom: '1px solid var(--wp-border)' }}>
-      {/* Left Side - Logo & Business Info */}
-      <div className="flex items-center gap-4">
-        {/* Business Logo */}
-        <div className="business-logo flex-shrink-0">
-          <Image
-            src={businessLogo || '/images/logo_placeholder.png'}
-            alt={`${businessName} logo`}
-            width={120}
-            height={50}
-            className="object-contain"
-            priority
-          />
-        </div>
-        
-        {/* Business Info */}
-        <div className="business-info text-center">
-          <h1 className="text-sm font-semibold leading-tight" style={{ color: 'var(--wp-text)' }}>
-            {businessName}
-          </h1>
-          <p className="text-xs leading-tight" style={{ color: 'var(--wp-text-secondary)' }}>
-            {businessTagline}
-          </p>
-        </div>
+    <div className="wp-header grid grid-cols-3 items-center p-4" style={{ backgroundColor: 'var(--wp-surface)', borderBottom: '1px solid var(--wp-border)' }}>
+      {/* Left Column - Logo */}
+      <div className="flex justify-start">
+        <Image
+          src={businessLogo || '/images/logo_placeholder.png'}
+          alt={`${businessName} logo`}
+          width={120}
+          height={50}
+          className="object-contain"
+          priority
+        />
+      </div>
+      
+      {/* Center Column - Business Info */}
+      <div className="text-center">
+        <h1 className="text-sm font-semibold leading-tight" style={{ color: 'var(--wp-text)' }}>
+          {businessName}
+        </h1>
+        <p className="text-xs leading-tight" style={{ color: 'var(--wp-text-secondary)' }}>
+          {businessTagline}
+        </p>
       </div>
 
-      {/* Right Side - Profile */}
-      {showProfile && (
-        <div className="profile-section flex items-center gap-3">
+      {/* Right Column - Profile */}
+      {showProfile ? (
+        <div className="flex items-center justify-end gap-3">
           <div className="profile-info text-right">
             <p className="text-xs font-medium" style={{ color: 'var(--wp-text)' }}>
               {customerName}
@@ -73,7 +70,9 @@ export function BrandedHeader({
             />
           </div>
         </div>
+      ) : (
+        <div></div>
       )}
-    </header>
+    </div>
   );
 }

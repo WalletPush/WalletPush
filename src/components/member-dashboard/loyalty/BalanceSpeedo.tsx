@@ -159,12 +159,11 @@ export function BalanceSpeedo({
                 {formatPoints(tierInfo.pointsToNextTier)} to go
               </span>
             </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
+            <div className="w-full wp-progress-bg rounded-full h-2">
               <div 
-                className="h-2 rounded-full transition-all duration-1000 ease-out"
+                className="h-2 rounded-full transition-all duration-1000 ease-out wp-progress-bar"
                 style={{ 
-                  width: `${progressPercentage}%`,
-                  background: `var(--wp-${accent})`
+                  width: `${progressPercentage}%`
                 }}
               />
             </div>
@@ -179,7 +178,7 @@ export function BalanceSpeedo({
       <div className="wp-card p-6" data-wp-section-accent={accent}>
         <div className="flex items-center gap-4">
           <div className="wp-gradient p-4 rounded-lg">
-            <TrendingUp className="w-8 h-8 text-white" />
+            <TrendingUp className="w-8 h-8 wp-text" />
           </div>
           
           <div className="flex-1">
@@ -200,12 +199,11 @@ export function BalanceSpeedo({
                     {formatPoints(pointsToNextTier)} to go
                   </span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-3">
+                <div className="w-full wp-progress-bg rounded-full h-3">
                   <div 
-                    className="h-3 rounded-full transition-all duration-1000 ease-out"
+                    className="h-3 rounded-full transition-all duration-1000 ease-out wp-progress-bar"
                     style={{ 
-                      width: `${progressPercentage}%`,
-                      background: `var(--wp-${accent})`
+                      width: `${progressPercentage}%`
                     }}
                   />
                 </div>

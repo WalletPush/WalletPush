@@ -269,6 +269,46 @@
   color: #ffffff !important;
 }
 
+/* Card Components */
+.wp-root .wp-card {
+  background: var(--wp-surface);
+  border: 1px solid var(--wp-border);
+  border-radius: var(--wp-radius);
+  box-shadow: var(--wp-shadow);
+  transition: var(--wp-transition);
+}
+
+.wp-root .wp-card:hover {
+  background: var(--wp-surface-hover);
+  border-color: var(--wp-border-hover);
+  box-shadow: var(--wp-shadow-lg);
+}
+
+.wp-root .wp-card-elevated {
+  background: var(--wp-surface-elevated);
+}
+
+.wp-root .wp-text {
+  color: var(--wp-text);
+}
+
+.wp-root .wp-text-secondary {
+  color: var(--wp-text-secondary);
+}
+
+.wp-root .wp-text-muted {
+  color: var(--wp-text-muted);
+}
+
+/* Progress bars */
+.wp-root .wp-progress-bg {
+  background: var(--wp-surface-elevated);
+}
+
+.wp-root .wp-progress-bar {
+  background: var(--wp-primary);
+}
+
 .wp-root .wp-force-white * {
   color: #ffffff !important;
 }

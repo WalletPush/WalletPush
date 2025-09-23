@@ -132,6 +132,18 @@ function resolvePath(path: string, data: any): any {
 }
 
 /**
+ * Utility functions
+ */
+export function formatPoints(points: number): string {
+  if (points >= 1000000) {
+    return `${(points / 1000000).toFixed(1)}M`;
+  } else if (points >= 1000) {
+    return `${(points / 1000).toFixed(1)}K`;
+  }
+  return points.toLocaleString();
+}
+
+/**
  * Mock data generators for testing
  */
 export function generateMockProgramSpec(type: 'loyalty' | 'membership' | 'store_card'): ProgramSpecResponse {

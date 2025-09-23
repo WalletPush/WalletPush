@@ -28,6 +28,7 @@ export default function ProgramConfiguratorPage() {
     goToStep,
     nextStep,
     prevStep,
+    publishConfiguration,
     isSectionActive,
     getEnabledSections,
   } = useConfiguratorState()
@@ -40,6 +41,8 @@ export default function ProgramConfiguratorPage() {
   const [selectedSectionForConfig, setSelectedSectionForConfig] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const [profileUploading, setProfileUploading] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [publishSuccess, setPublishSuccess] = useState(false)
   
   // Legacy program config for form state
   const [programConfig, setProgramConfig] = useState({
@@ -158,7 +161,7 @@ export default function ProgramConfiguratorPage() {
       setProfileUploading(false)
     }
   }
-  
+
   const selectTemplate = (template: any) => {
     setSelectedTemplate(template)
     
@@ -185,6 +188,35 @@ export default function ProgramConfiguratorPage() {
     console.log('🎯 Template selected:', template.programs?.name)
     console.log('🔍 Capabilities:', capabilityList)
     console.log('💡 Recommendations:', recommendations)
+  }
+
+  // Handle publish functionality
+  const handlePublish = async () => {
+    if (!draftSpec || !selectedTemplate) {
+      alert('Please complete all configuration steps first')
+      return
+    }
+
+    setPublishing(true)
+    setPublishSuccess(false)
+
+    try {
+      // Use the real Blue Karma Loyalty program ID
+      const programId = '64030dd3-c196-4899-b283-9a49e673de93' // Blue Karma Loyalty
+      
+      const result = await publishConfiguration(programId)
+      
+      console.log('✅ Published successfully:', result)
+      setPublishSuccess(true)
+      
+      alert(`🎉 Dashboard published successfully!\n\nYour "${draftSpec.copy?.program_name || 'Blue Karma Loyalty'}" dashboard is now live for customers.`)
+      
+    } catch (error) {
+      console.error('❌ Publish failed:', error)
+      alert(`Publishing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setPublishing(false)
+    }
   }
 
   // Mock customer data for preview
@@ -745,6 +777,7 @@ export default function ProgramConfiguratorPage() {
             ))}
           </div>
         </div>
+
       </div>
     )
   }
@@ -780,8 +813,12 @@ export default function ProgramConfiguratorPage() {
         <div className="bg-green-50 border border-green-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-green-900 mb-2">Ready to Publish</h3>
           <p className="text-green-700 mb-4">Your program is configured and ready to go live!</p>
-          <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-            Publish Program
+          <button 
+            onClick={handlePublish}
+            disabled={publishing}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {publishing ? 'Publishing...' : 'Publish Program'}
           </button>
         </div>
       </div>
@@ -804,19 +841,17 @@ export default function ProgramConfiguratorPage() {
     const mockData = getMockCustomerData()
     
     return (
-      <div className="bg-gradient-to-br from-[#1a1f2e] via-[#2E3748] to-[#1a1f2e] rounded-lg overflow-hidden h-full flex flex-col">
+      <div className="wp-root bg-gradient-to-br from-[#1a1f2e] via-[#2E3748] to-[#1a1f2e] rounded-lg overflow-hidden h-full flex flex-col" data-wp-theme={draftSpec.branding?.theme || 'dark-midnight'}>
         {/* Branded Header */}
-        <div className="wp-root" data-wp-theme={draftSpec.branding?.theme || 'dark-midnight'}>
-          <BrandedHeader
-            businessLogo={draftSpec.branding?.businessLogo}
-            businessName={draftSpec.copy?.program_name || 'Your Business'}
-            businessTagline={draftSpec.copy?.tagline || 'Customer loyalty made simple'}
-            profilePicture={mockData.customer?.profilePicture}
-            customerName={mockData.customer?.name || 'John Doe'}
-            showProfile={true}
-            theme={draftSpec.branding?.theme || 'dark-midnight'}
-          />
-        </div>
+        <BrandedHeader
+          businessLogo={draftSpec.branding?.businessLogo}
+          businessName={draftSpec.copy?.program_name || 'Your Business'}
+          businessTagline={draftSpec.copy?.tagline || 'Customer loyalty made simple'}
+          profilePicture={mockData.customer?.profilePicture}
+          customerName={mockData.customer?.name || 'John Doe'}
+          showProfile={true}
+          theme={draftSpec.branding?.theme || 'dark-midnight'}
+        />
         
         {/* Dashboard Content */}
         <div className="flex-1 p-6 space-y-4 max-h-[400px] overflow-y-auto" key={JSON.stringify(draftSpec.ui_contract.sections)}>
