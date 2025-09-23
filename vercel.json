@@ -1,5 +1,13 @@
 {
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "VERCEL_FORCE_NO_BUILD_CACHE": "1"
+  },
+  "build": {
+    "env": {
+      "SKIP_ENV_VALIDATION": "1"
+    }
+  }
 }
