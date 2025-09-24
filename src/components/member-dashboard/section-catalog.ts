@@ -217,5 +217,5 @@ export function getCatalogItem(sectionKey: SectionKey): CatalogItem | undefined 
 }
 
 export function getDefaultSections(programType: ProgramType, preset: 'minimal' | 'standard' | 'full' = 'standard'): SectionKey[] {
-  return DEFAULT_PRESETS[programType][preset] as SectionKey[];
+  return [...DEFAULT_PRESETS[programType][preset]] as SectionKey[];
 }

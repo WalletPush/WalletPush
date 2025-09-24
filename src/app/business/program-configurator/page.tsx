@@ -1059,7 +1059,7 @@ export default function ProgramConfiguratorPage() {
                                     type="checkbox" 
                                     className="sr-only" 
                                     checked={getCurrentValue(field.key) || false}
-                                    onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, e.target.checked)}
+                                    onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, e.target.checked)}
                                   />
                                   <div className={`relative w-10 h-6 rounded-full transition-colors ${
                                     getCurrentValue(field.key) ? 'bg-blue-600' : 'bg-slate-200'
@@ -1098,7 +1098,7 @@ export default function ProgramConfiguratorPage() {
                                   className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                                   placeholder={field.placeholder}
                                   value={getCurrentValue(field.key) || ''}
-                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, parseFloat(e.target.value) || 0)}
                                 />
                               )}
                               {field.type === 'text' && (
@@ -1107,7 +1107,7 @@ export default function ProgramConfiguratorPage() {
                                   className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                                   placeholder={field.placeholder}
                                   value={getCurrentValue(field.key) || ''}
-                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, e.target.value)}
+                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, e.target.value)}
                                 />
                               )}
                               {field.type === 'earning_methods' && (
@@ -1131,7 +1131,7 @@ export default function ProgramConfiguratorPage() {
                                             onChange={(e) => {
                                               const updatedMethods = [...currentMethods];
                                               updatedMethods[index] = { ...method, title: e.target.value };
-                                              updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                              updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedMethods);
                                             }}
                                           />
                                           <input
@@ -1142,7 +1142,7 @@ export default function ProgramConfiguratorPage() {
                                             onChange={(e) => {
                                               const updatedMethods = [...currentMethods];
                                               updatedMethods[index] = { ...method, points: e.target.value };
-                                              updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                              updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedMethods);
                                             }}
                                           />
                                         </div>
@@ -1154,7 +1154,7 @@ export default function ProgramConfiguratorPage() {
                                           onChange={(e) => {
                                             const updatedMethods = [...currentMethods];
                                             updatedMethods[index] = { ...method, description: e.target.value };
-                                            updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                            updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedMethods);
                                           }}
                                         />
                                         <div className="flex justify-between items-center mt-2">
@@ -1164,7 +1164,7 @@ export default function ProgramConfiguratorPage() {
                                             onChange={(e) => {
                                               const updatedMethods = [...currentMethods];
                                               updatedMethods[index] = { ...method, icon: e.target.value };
-                                              updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                              updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedMethods);
                                             }}
                                           >
                                             <option value="dollar">💰 Dollar</option>
@@ -1177,7 +1177,7 @@ export default function ProgramConfiguratorPage() {
                                           <button
                                             onClick={() => {
                                               const updatedMethods = currentMethods.filter((_: any, i: number) => i !== index);
-                                              updateSectionConfig(selectedSectionForConfig, field.key, updatedMethods);
+                                              updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedMethods);
                                             }}
                                             className="text-red-500 text-sm px-2 py-1 hover:bg-red-50 rounded"
                                           >
@@ -1197,7 +1197,7 @@ export default function ProgramConfiguratorPage() {
                                         points: '10 points',
                                         icon: 'star'
                                       };
-                                      updateSectionConfig(selectedSectionForConfig, field.key, [...currentMethods, newMethod]);
+                                      updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, [...currentMethods, newMethod]);
                                     }}
                                     className="w-full p-2 border-2 border-dashed border-slate-300 rounded-lg text-sm text-slate-600 hover:border-slate-400 hover:text-slate-700"
                                   >
@@ -1227,7 +1227,7 @@ export default function ProgramConfiguratorPage() {
                                                   pointsRequired: (currentTiers[currentTiers.length - 1]?.pointsRequired || 0) + 1000,
                                                   color: '#6366f1'
                                                 };
-                                                updateSectionConfig(selectedSectionForConfig, field.key, [...currentTiers, newTier]);
+                                                updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, [...currentTiers, newTier]);
                                               }}
                                               className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
                                             >
@@ -1244,7 +1244,7 @@ export default function ProgramConfiguratorPage() {
                                                 <button
                                                   onClick={() => {
                                                     const updatedTiers = currentTiers.filter((_: any, i: number) => i !== index);
-                                                    updateSectionConfig(selectedSectionForConfig, field.key, updatedTiers);
+                                                    updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedTiers);
                                                   }}
                                                   className="text-red-500 text-xs px-2 py-1 hover:bg-red-50 rounded"
                                                 >
@@ -1262,7 +1262,7 @@ export default function ProgramConfiguratorPage() {
                                                 onChange={(e) => {
                                                   const updatedTiers = [...currentTiers];
                                                   updatedTiers[index] = { ...tier, name: e.target.value };
-                                                  updateSectionConfig(selectedSectionForConfig, field.key, updatedTiers);
+                                                  updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedTiers);
                                                 }}
                                               />
                                               <input
@@ -1273,7 +1273,7 @@ export default function ProgramConfiguratorPage() {
                                                 onChange={(e) => {
                                                   const updatedTiers = [...currentTiers];
                                                   updatedTiers[index] = { ...tier, pointsRequired: parseInt(e.target.value) || 0 };
-                                                  updateSectionConfig(selectedSectionForConfig, field.key, updatedTiers);
+                                                  updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedTiers);
                                                 }}
                                               />
                                             </div>
@@ -1287,7 +1287,7 @@ export default function ProgramConfiguratorPage() {
                                                 onChange={(e) => {
                                                   const updatedTiers = [...currentTiers];
                                                   updatedTiers[index] = { ...tier, color: e.target.value };
-                                                  updateSectionConfig(selectedSectionForConfig, field.key, updatedTiers);
+                                                  updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedTiers);
                                                 }}
                                               />
                                               <span className="text-xs text-slate-500">{tier.color || '#6366f1'}</span>
@@ -1305,7 +1305,7 @@ export default function ProgramConfiguratorPage() {
                                     type="checkbox" 
                                     className="sr-only" 
                                     checked={getCurrentValue(field.key) || false}
-                                    onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, e.target.checked)}
+                                    onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, e.target.checked)}
                                   />
                                   <div className={`relative w-10 h-6 rounded-full transition-colors ${
                                     getCurrentValue(field.key) ? 'bg-blue-600' : 'bg-slate-200'
