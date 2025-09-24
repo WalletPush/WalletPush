@@ -139,7 +139,7 @@ export function useConfiguratorState() {
       
       if (sectionIndex !== -1) {
         const section = { ...newSpec.ui_contract.sections[sectionIndex] };
-        section.settings = { ...section.settings, [settingKey]: value };
+        (section as any).settings = { ...(section as any).settings, [settingKey]: value };
         newSpec.ui_contract.sections[sectionIndex] = section;
       }
     }
