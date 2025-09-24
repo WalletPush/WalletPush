@@ -34,6 +34,9 @@ export type ProgramSpec = {
     businessLogo?: string;
     [key: string]: any;
   };
+  rules?: {
+    [key: string]: any;
+  };
   copy?: {
     program_name?: string;
     tagline?: string;
