@@ -1023,6 +1023,7 @@ export default function PassDesigner() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: currentPass.id, // ensure updates target this template
           ...templateData,
           passkit_json: passkitJson  // CRITICAL: Add the passkit_json field
         })

@@ -178,6 +178,7 @@ export async function POST(request: Request) {
     
     // Get template data early so we can use it for program creation
     const templateData = body
+    const explicitId: string | undefined = (body.id || body.template_id)
     
     // Try to get existing programs, but don't fail if none exist
     const { data: existingPrograms, error: programError } = await supabase
@@ -232,32 +233,20 @@ export async function POST(request: Request) {
     // Check if template already exists and UPDATE instead of INSERT
     let template
     try {
-      console.log(`🔍 Searching for existing template with program_id: ${programId}, version: 1`)
-      
-      // First try to find existing template
-      const { data: existingTemplates, error: findError } = await supabase
-        .from('templates')
-        .select('id, version, program_id')
-        .eq('program_id', programId)
-        .eq('version', 1)
-        
-      console.log(`🔍 Search results:`, { existingTemplates, findError })
-      
-      if (existingTemplates && existingTemplates.length > 0 && !findError) {
-        const existingTemplate = existingTemplates[0]
-        // UPDATE existing template
-        console.log(`🔄 Updating existing template: ${existingTemplate.id}`)
+      if (explicitId) {
+        // UPDATE by explicit template id (correct behavior)
+        console.log(`🔄 Updating template by explicit id: ${explicitId}`)
         const { data, error } = await supabase
           .from('templates')
-          .update({ 
+          .update({
             template_json: templateData,
-            passkit_json: body.passkit_json,  // CRITICAL: Save the passkit_json field
+            passkit_json: body.passkit_json,
             pass_type_identifier: templateData.metadata?.pass_type_identifier,
             account_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191',
             previews: { generated_at: new Date().toISOString() },
             published_at: new Date().toISOString()
           })
-          .eq('id', existingTemplate.id)
+          .eq('id', explicitId)
           .select()
           .single()
 
@@ -265,32 +254,24 @@ export async function POST(request: Request) {
           console.error('❌ Supabase update error:', error)
           throw error
         }
-        
         template = data
         console.log('✅ Template updated in Supabase:', template.id)
-        
-        // CRITICAL: Clear pass store cache when template is updated
         console.log(`🧹 Clearing pass store cache (${getPassStoreSize()} passes) due to template update`)
         clearPassStore()
-        console.log(`✅ Pass store cache cleared - fresh passes will use updated template`)
-        
       } else {
-        // INSERT new template
+        // INSERT new template (no id provided)
         console.log(`➕ Creating new template`)
         const insertData: any = {
           version: 1,
           template_json: templateData,
-          passkit_json: body.passkit_json,  // CRITICAL: Save the passkit_json field
+          passkit_json: body.passkit_json,
           pass_type_identifier: templateData.metadata?.pass_type_identifier,
           account_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191',
           previews: { generated_at: new Date().toISOString() },
           published_at: new Date().toISOString()
         }
-        
-        if (programId) {
-          insertData.program_id = programId
-        }
-        
+        if (programId) insertData.program_id = programId
+
         const { data, error } = await supabase
           .from('templates')
           .insert(insertData)
@@ -301,14 +282,10 @@ export async function POST(request: Request) {
           console.error('❌ Supabase insert error:', error)
           throw error
         }
-        
         template = data
         console.log('✅ Template created in Supabase:', template.id)
-        
-        // CRITICAL: Clear pass store cache when new template is created
         console.log(`🧹 Clearing pass store cache (${getPassStoreSize()} passes) due to new template`)
         clearPassStore()
-        console.log(`✅ Pass store cache cleared - fresh passes will use new template`)
       }
       
     } catch (error: any) {

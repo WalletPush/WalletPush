@@ -41,7 +41,9 @@ export default function ProgramConfiguratorPage() {
   const [selectedSectionForConfig, setSelectedSectionForConfig] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const [profileUploading, setProfileUploading] = useState(false)
-  
+  const [publishing, setPublishing] = useState(false)
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
+
   // Legacy program config for form state
   const [programConfig, setProgramConfig] = useState({
     name: '',
@@ -52,26 +54,15 @@ export default function ProgramConfiguratorPage() {
   })
 
   const loadTemplates = async () => {
-    console.log('🚀 Starting template load...')
     try {
       setLoadingTemplates(true)
-      console.log('📡 Fetching /api/templates...')
-      const response = await fetch('/api/templates')
-      console.log('📝 Response status:', response.status)
-      const data = await response.json()
-      console.log('📦 Raw response data:', data)
-      
-      if (data.templates) {
-        setTemplates(data.templates)
-        console.log('✅ Successfully loaded templates:', data.templates.length)
-        console.log('🎨 Template details:', data.templates.map((t: any) => ({ id: t.id, name: t.programs?.name || t.name })))
-      } else {
-        console.log('❌ No templates found in response')
-      }
-    } catch (error) {
-      console.error('🔥 Failed to load templates:', error)
+      const res = await fetch('/api/templates/with-meta')
+      const json = await res.json()
+      const list = json?.data ?? []
+      setTemplates(list)
+    } catch (e) {
+      console.error('Failed to load templates with meta', e)
     } finally {
-      console.log('🏁 Setting loadingTemplates to false')
       setLoadingTemplates(false)
     }
   }
@@ -161,6 +152,19 @@ export default function ProgramConfiguratorPage() {
     }
   }
   
+  // Merge utility to combine loaded spec with current scaffold to preserve defaults
+  const deepMerge = (base: any, override: any): any => {
+    if (Array.isArray(base) && Array.isArray(override)) return override
+    if (base && typeof base === 'object' && override && typeof override === 'object') {
+      const out: any = { ...base }
+      for (const key of Object.keys(override)) {
+        out[key] = deepMerge(base[key], override[key])
+      }
+      return out
+    }
+    return override !== undefined ? override : base
+  }
+
   const selectTemplate = (template: any) => {
     setSelectedTemplate(template)
     
@@ -187,6 +191,79 @@ export default function ProgramConfiguratorPage() {
     console.log('🎯 Template selected:', template.programs?.name)
     console.log('🔍 Capabilities:', capabilityList)
     console.log('💡 Recommendations:', recommendations)
+  }
+
+  const editExistingProgram = async (template: any) => {
+    try {
+      setEditingTemplateId(template?.id || null)
+      setSelectedTemplate(template)
+      const res = await fetch(`/api/programs/${template.program_id}/versions/latest`)
+      const json = await res.json()
+      const latest = json?.data
+      if (!latest?.spec_json) {
+        alert('No published version found for this program.')
+        return
+      }
+      // Initialize scaffold using detected program type (fallback loyalty) and proper capabilities
+      const caps = analyzeTemplate(template)
+      const capabilityList = caps?.capabilities || []
+      initializeDraftSpec(template, latest.spec_json.program_type || 'loyalty', capabilityList)
+      // Overwrite with loaded spec and ensure Points Balance exists
+      const merged = { ...latest.spec_json }
+      if (merged?.ui_contract?.sections) {
+        const hasBalanceHeader = merged.ui_contract.sections.some((s: any) => s.type === 'balanceHeader')
+        if (!hasBalanceHeader) {
+          merged.ui_contract.sections = [
+            { type: 'balanceHeader', props: ['member.points_balance', 'member.tier.name'] },
+            ...merged.ui_contract.sections
+          ]
+        }
+      }
+      updateProgramConfig(merged as any)
+      goToStep('components')
+    } catch (e) {
+      console.error('Edit flow failed', e)
+      alert('Failed to load program for editing.')
+    } finally {
+      setEditingTemplateId(null)
+    }
+  }
+
+  const publishProgram = async () => {
+    if (!draftSpec || !selectedTemplate) {
+      alert('Missing draft or template')
+      return
+    }
+    if (!(selectedTemplate as any).program_id) {
+      alert('Template is missing program_id')
+      return
+    }
+
+    try {
+      setPublishing(true)
+      const res = await fetch('/api/programs/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId: (selectedTemplate as any).id,
+          programId: (selectedTemplate as any).program_id,
+          draftSpec
+        })
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        console.error('Publish failed:', json)
+        alert(json.error || 'Failed to publish')
+        return
+      }
+      alert(`✅ Published version v${json.version}`)
+      loadTemplates()
+    } catch (e) {
+      console.error('Publish error', e)
+      alert('Publish failed')
+    } finally {
+      setPublishing(false)
+    }
   }
 
   // Mock customer data for preview
@@ -296,46 +373,74 @@ export default function ProgramConfiguratorPage() {
           {templates.map((template) => {
             const capabilities = analyzeTemplate(template)
             const recommendations = getRecommendations(template)
-            
             return (
-              <div 
-                key={template.id} 
-                className="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => selectTemplate(template)}
+              <div
+                key={template.id}
+                className="relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                    {template.programs?.name || template.name || 'Untitled Template'}
-                  </h3>
-                  
-                  <div className="mb-4">
-                    <p className="text-sm text-slate-600 mb-2">Detected Capabilities:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {capabilities.capabilities.map((cap) => (
-                        <span key={cap} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                          {cap.replace('_', ' ')}
-                        </span>
-                      ))}
+                <button
+                  disabled={template.meta?.has_versions}
+                  onClick={() => selectTemplate(template)}
+                  className={`block w-full text-left ${template.meta?.has_versions ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                >
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                      {template.programs?.name || template.name || 'Untitled Template'}
+                    </h3>
+
+                    <div className="mb-4">
+                      <p className="text-sm text-slate-600 mb-2">Detected Capabilities:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {capabilities.capabilities.map((cap) => (
+                          <span key={cap} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                            {cap.replace('_', ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <p className="text-sm text-slate-600 mb-2">Recommended Program Types:</p>
+                      <div className="space-y-1">
+                        {recommendations.slice(0, 2).map((rec) => (
+                          <div key={rec.programType} className="flex items-center gap-2">
+                            <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                            <span className="text-sm text-slate-700 capitalize">{rec.programType.replace('_', ' ')}</span>
+                            <span className="text-xs text-slate-500">({Math.round(rec.confidence * 100)}%)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-slate-500">
+                      Program ID: {template.program_id} · Latest Version: {template.meta?.latest_version ?? '—'}
                     </div>
                   </div>
-                  
-                  <div className="mb-4">
-                    <p className="text-sm text-slate-600 mb-2">Recommended Program Types:</p>
-                    <div className="space-y-1">
-                      {recommendations.slice(0, 2).map((rec) => (
-                        <div key={rec.programType} className="flex items-center gap-2">
-                          <CheckCircleIcon className="w-4 h-4 text-green-500" />
-                          <span className="text-sm text-slate-700 capitalize">{rec.programType.replace('_', ' ')}</span>
-                          <span className="text-xs text-slate-500">({Math.round(rec.confidence * 100)}%)</span>
-                        </div>
-                      ))}
+                </button>
+
+                {template.meta?.has_versions && (
+                  <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
+                    <div className="bg-white rounded-lg shadow p-3">
+                      <div className="text-sm font-medium mb-2">Program already exists</div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => editExistingProgram(template)}
+                          disabled={editingTemplateId === template.id}
+                          className={`px-3 py-1.5 text-white rounded-md ${editingTemplateId === template.id ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        >
+                          {editingTemplateId === template.id ? 'Loading…' : 'Edit Program'}
+                        </button>
+                        <button
+                          disabled
+                          className="px-3 py-1.5 border border-slate-300 text-slate-500 rounded-md cursor-not-allowed"
+                          title="Duplicate creation disabled"
+                        >
+                          Create New (disabled)
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="text-xs text-slate-500">
-                    Placeholders: {capabilities.placeholders.join(', ')}
-                  </div>
-                </div>
+                )}
               </div>
             )
           })}
@@ -348,6 +453,7 @@ export default function ProgramConfiguratorPage() {
     if (!selectedTemplate || !draftSpec) return null;
 
     const capabilities = analyzeTemplate(selectedTemplate);
+    const editingExisting = !!(selectedTemplate as any)?.meta?.has_versions
     
     return (
       <div className="space-y-6">
@@ -361,6 +467,9 @@ export default function ProgramConfiguratorPage() {
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Program Type</h3>
           <p className="text-sm text-slate-600 mb-4">Based on your template's placeholders:</p>
+          {editingExisting && (
+            <div className="text-xs text-amber-600 mb-3">Editing existing program — program type locked.</div>
+          )}
           
           <div className="space-y-3">
             {[
@@ -386,12 +495,12 @@ export default function ProgramConfiguratorPage() {
                     value={program.type}
                     checked={draftSpec.program_type === program.type}
                     onChange={(e) => {
-                      if (isAllowed) {
+                      if (isAllowed && !editingExisting) {
                         // Reinitialize with new program type
                         initializeDraftSpec(selectedTemplate, e.target.value as ProgramType, templateCapabilities)
                       }
                     }}
-                    disabled={!isAllowed}
+                    disabled={editingExisting || !isAllowed}
                     className="mr-3"
                   />
                   <div className="flex-1">
@@ -786,8 +895,8 @@ export default function ProgramConfiguratorPage() {
         <div className="bg-green-50 border border-green-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-green-900 mb-2">Ready to Publish</h3>
           <p className="text-green-700 mb-4">Your program is configured and ready to go live!</p>
-          <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-            Publish Program
+          <button onClick={publishProgram} disabled={publishing} className={`px-6 py-2 text-white rounded-lg transition-colors ${publishing ? 'bg-green-400 cursor-wait' : 'bg-green-600 hover:bg-green-700'}`}>
+            {publishing ? 'Publishing…' : 'Publish Program'}
           </button>
         </div>
       </div>
@@ -979,15 +1088,14 @@ export default function ProgramConfiguratorPage() {
 
       {/* Configuration Drawer */}
       {configDrawerOpen && selectedSectionForConfig && (
-        <div className="fixed inset-0 z-50 flex">
-          {/* Drawer */}
-          <div className="relative w-96 h-full bg-white shadow-xl overflow-y-auto">
-          
+        <div className="fixed inset-0 z-[9990] pointer-events-none">
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/50 -z-10" 
+            className="absolute inset-0 bg-black/50 z-[9990] pointer-events-auto"
             onClick={() => setConfigDrawerOpen(false)}
           />
+          {/* Drawer (left side, above sidebar) */}
+          <div className="fixed left-0 top-0 h-full w-96 bg-white shadow-xl overflow-y-auto z-[9999] pointer-events-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-slate-900">
@@ -1044,7 +1152,7 @@ export default function ProgramConfiguratorPage() {
                                 <select 
                                   className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                                   value={getCurrentValue(field.key) || (field.options?.[0] || '')}
-                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, e.target.value)}
+                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, field.key, e.target.value)}
                                 >
                                   {field.options?.map((option) => (
                                     <option key={option} value={option}>
@@ -1059,7 +1167,7 @@ export default function ProgramConfiguratorPage() {
                                     type="checkbox" 
                                     className="sr-only" 
                                     checked={getCurrentValue(field.key) || false}
-                                    onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, e.target.checked)}
+                                    onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, field.key, e.target.checked)}
                                   />
                                   <div className={`relative w-10 h-6 rounded-full transition-colors ${
                                     getCurrentValue(field.key) ? 'bg-blue-600' : 'bg-slate-200'
@@ -1098,7 +1206,7 @@ export default function ProgramConfiguratorPage() {
                                   className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                                   placeholder={field.placeholder}
                                   value={getCurrentValue(field.key) || ''}
-                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, field.key, parseFloat(e.target.value) || 0)}
                                 />
                               )}
                               {field.type === 'text' && (
@@ -1107,7 +1215,7 @@ export default function ProgramConfiguratorPage() {
                                   className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                                   placeholder={field.placeholder}
                                   value={getCurrentValue(field.key) || ''}
-                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, e.target.value)}
+                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, field.key, e.target.value)}
                                 />
                               )}
                               {field.type === 'earning_methods' && (
@@ -1131,7 +1239,7 @@ export default function ProgramConfiguratorPage() {
                                             onChange={(e) => {
                                               const updatedMethods = [...currentMethods];
                                               updatedMethods[index] = { ...method, title: e.target.value };
-                                              updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedMethods);
+                                              updateSectionConfig(selectedSectionForConfig as any, field.key, updatedMethods);
                                             }}
                                           />
                                           <input
@@ -1142,7 +1250,7 @@ export default function ProgramConfiguratorPage() {
                                             onChange={(e) => {
                                               const updatedMethods = [...currentMethods];
                                               updatedMethods[index] = { ...method, points: e.target.value };
-                                              updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedMethods);
+                                              updateSectionConfig(selectedSectionForConfig as any, field.key, updatedMethods);
                                             }}
                                           />
                                         </div>
@@ -1164,7 +1272,7 @@ export default function ProgramConfiguratorPage() {
                                             onChange={(e) => {
                                               const updatedMethods = [...currentMethods];
                                               updatedMethods[index] = { ...method, icon: e.target.value };
-                                              updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedMethods);
+                                              updateSectionConfig(selectedSectionForConfig as any, field.key, updatedMethods);
                                             }}
                                           >
                                             <option value="dollar">💰 Dollar</option>
@@ -1177,7 +1285,7 @@ export default function ProgramConfiguratorPage() {
                                           <button
                                             onClick={() => {
                                               const updatedMethods = currentMethods.filter((_: any, i: number) => i !== index);
-                                              updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedMethods);
+                                              updateSectionConfig(selectedSectionForConfig as any, field.key, updatedMethods);
                                             }}
                                             className="text-red-500 text-sm px-2 py-1 hover:bg-red-50 rounded"
                                           >
@@ -1197,7 +1305,7 @@ export default function ProgramConfiguratorPage() {
                                         points: '10 points',
                                         icon: 'star'
                                       };
-                                      updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, [...currentMethods, newMethod]);
+                                      updateSectionConfig(selectedSectionForConfig as any, field.key, [...currentMethods, newMethod]);
                                     }}
                                     className="w-full p-2 border-2 border-dashed border-slate-300 rounded-lg text-sm text-slate-600 hover:border-slate-400 hover:text-slate-700"
                                   >
@@ -1262,7 +1370,7 @@ export default function ProgramConfiguratorPage() {
                                                 onChange={(e) => {
                                                   const updatedTiers = [...currentTiers];
                                                   updatedTiers[index] = { ...tier, name: e.target.value };
-                                                  updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedTiers);
+                                                  updateSectionConfig(selectedSectionForConfig as any, field.key, updatedTiers);
                                                 }}
                                               />
                                               <input
@@ -1273,7 +1381,7 @@ export default function ProgramConfiguratorPage() {
                                                 onChange={(e) => {
                                                   const updatedTiers = [...currentTiers];
                                                   updatedTiers[index] = { ...tier, pointsRequired: parseInt(e.target.value) || 0 };
-                                                  updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedTiers);
+                                                  updateSectionConfig(selectedSectionForConfig as any, field.key, updatedTiers);
                                                 }}
                                               />
                                             </div>
@@ -1287,7 +1395,7 @@ export default function ProgramConfiguratorPage() {
                                                 onChange={(e) => {
                                                   const updatedTiers = [...currentTiers];
                                                   updatedTiers[index] = { ...tier, color: e.target.value };
-                                                  updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, updatedTiers);
+                                                  updateSectionConfig(selectedSectionForConfig as any, field.key, updatedTiers);
                                                 }}
                                               />
                                               <span className="text-xs text-slate-500">{tier.color || '#6366f1'}</span>
@@ -1305,7 +1413,7 @@ export default function ProgramConfiguratorPage() {
                                     type="checkbox" 
                                     className="sr-only" 
                                     checked={getCurrentValue(field.key) || false}
-                                    onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, e.target.checked)}
+                                    onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, field.key, e.target.checked)}
                                   />
                                   <div className={`relative w-10 h-6 rounded-full transition-colors ${
                                     getCurrentValue(field.key) ? 'bg-blue-600' : 'bg-slate-200'

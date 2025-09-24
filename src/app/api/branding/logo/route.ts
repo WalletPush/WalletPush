@@ -43,10 +43,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`🖼️ Uploading business logo to: ${blobPath}`)
 
-    // Upload to Vercel Blob
+    // Upload to Vercel Blob with token from env
+    const token = process.env.BLOB_READ_WRITE_TOKEN
+    if (!token) {
+      throw new Error('Vercel Blob token missing. Set BLOB_READ_WRITE_TOKEN in environment.')
+    }
+
     const blob = await put(blobPath, file, {
       access: 'public',
-      addRandomSuffix: false // Keep consistent filename for updates
+      addRandomSuffix: false, // Keep consistent filename for updates
+      token
     })
 
     console.log(`✅ Logo uploaded successfully: ${blob.url}`)

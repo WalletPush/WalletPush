@@ -1,0 +1,209 @@
+
+> wallet-push@0.1.0 dev /Users/davidsambor/Desktop/WalletPush
+> next dev
+
+  ▲ Next.js 14.2.32
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.4s
+ ✓ Compiled /src/middleware in 427ms (141 modules)
+ ○ Compiling /business/dashboard ...
+ ✓ Compiled /business/dashboard in 2.5s (585 modules)
+ ✓ Compiled in 319ms (275 modules)
+ GET /business/dashboard 200 in 2861ms
+ GET /business/dashboard 200 in 30ms
+ ○ Compiling / ...
+ ✓ Compiled / in 653ms (648 modules)
+ HEAD / 200 in 762ms
+ ○ Compiling /business/program-configurator ...
+ ✓ Compiled /business/program-configurator in 502ms (743 modules)
+ ✓ Compiled /api/templates in 332ms (509 modules)
+🔍 [FAST] Fetching templates from Supabase database
+🔍 Template request - tenantId: null
+🔍 Fetching templates for authenticated business user: david.sambor@icloud.com
+✅ Found 2 templates in database
+ GET /api/templates 200 in 5006ms
+🔍 [FAST] Fetching templates from Supabase database
+🔍 Template request - tenantId: null
+🔍 Fetching templates for authenticated business user: david.sambor@icloud.com
+✅ Found 2 templates in database
+ GET /api/templates 200 in 2429ms
+ ✓ Compiled in 971ms (886 modules)
+ ✓ Compiled in 663ms (886 modules)
+ ✓ Compiled in 570ms (886 modules)
+ ✓ Compiled in 1086ms (745 modules)
+ ✓ Compiled in 557ms (745 modules)
+ ✓ Compiled in 733ms (745 modules)
+ ✓ Compiled in 676ms (745 modules)
+🎯 ProgramConfiguratorPage component mounted!
+ GET /business/program-configurator 200 in 114ms
+ ✓ Compiled /api/templates/with-meta in 280ms (494 modules)
+ GET /api/templates/with-meta 200 in 3355ms
+ GET /api/templates/with-meta 200 in 3134ms
+ ✓ Compiled /api/programs/[programId]/versions/latest in 84ms (496 modules)
+ GET /api/programs/64030dd3-c196-4899-b283-9a49e673de93/versions/latest 200 in 1920ms
+ ○ Compiling /api/branding/logo ...
+ ✓ Compiled /api/branding/logo in 523ms (617 modules)
+🖼️ Uploading business logo to: business-logos/demo-business-123/logo.png
+ POST /api/branding/logo 500 in 597ms
+ ✓ Compiled /api/programs/publish in 244ms (494 modules)
+ POST /api/programs/publish 200 in 5119ms
+ POST /api/programs/publish 200 in 5467ms
+ ✓ Compiled /api/templates/with-meta in 58ms (496 modules)
+ GET /api/templates/with-meta 200 in 4172ms
+ GET /api/templates/with-meta 200 in 3053ms
+ ✓ Compiled / in 246ms (509 modules)
+ HEAD / 200 in 359ms
+ ○ Compiling /business/pass-designer ...
+ ✓ Compiled /business/pass-designer in 1738ms (1871 modules)
+ ✓ Compiled /api/tenants in 102ms (1018 modules)
+ ✓ Compiled /api/pass-type-ids in 250ms (1141 modules)
+🔍 Fetching Pass Type IDs from REAL database
+🔍 Fetching Pass Type IDs from REAL database
+🔍 Fetching accounts for user: 485ec6aa-89a4-48d1-b6e2-42c06067da67 david.sambor@icloud.com
+🔍 Fetching accounts for user: 485ec6aa-89a4-48d1-b6e2-42c06067da67 david.sambor@icloud.com
+✅ Found 1 accounts for user, current: Blue Karma
+ GET /api/tenants?t=1758704266976 200 in 1562ms
+✅ Found 1 accounts for user, current: Blue Karma
+ GET /api/tenants?t=1758704266973 200 in 2228ms
+ ✓ Compiled /api/templates in 89ms (1144 modules)
+🔍 [FAST] Fetching templates from Supabase database
+🔍 Template request - tenantId: be023bdf-c668-4cec-ac51-65d3c02ea191
+🔍 [FAST] Fetching templates from Supabase database
+🔍 Template request - tenantId: be023bdf-c668-4cec-ac51-65d3c02ea191
+🔍 Fetching templates for authenticated business user: david.sambor@icloud.com
+🔍 Fetching templates for authenticated business user: david.sambor@icloud.com
+✅ Found 3 Pass Type IDs in database
+ GET /api/pass-type-ids 200 in 3050ms
+✅ Found 3 Pass Type IDs in database
+ GET /api/pass-type-ids 200 in 3531ms
+✅ Found 2 templates in database
+ GET /api/templates?tenantId=be023bdf-c668-4cec-ac51-65d3c02ea191&t=1758704269328 200 in 3966ms
+✅ Found 2 templates in database
+ GET /api/templates?tenantId=be023bdf-c668-4cec-ac51-65d3c02ea191&t=1758704269461 200 in 4501ms
+ GET /api/templates/with-meta 200 in 2999ms
+ GET /api/templates/with-meta 200 in 3212ms
+ ✓ Compiled /api/programs/[programId]/versions/latest in 122ms (1133 modules)
+ GET /api/programs/64030dd3-c196-4899-b283-9a49e673de93/versions/latest 200 in 1558ms
+ ○ Compiling /_error ...
+ GET /business/program-configurator 500 in 16ms
+ ✓ Compiled /_not-found in 1394ms (1971 modules)
+ GET /_next/static/webpack/f0912cee8e8e7bf5.webpack.hot-update.json 404 in 1485ms
+🎯 ProgramConfiguratorPage component mounted!
+ GET /business/program-configurator 200 in 54ms
+ ✓ Compiled /api/templates/with-meta in 439ms (1043 modules)
+ GET /api/templates/with-meta 200 in 4124ms
+ GET /api/templates/with-meta 200 in 2508ms
+ ✓ Compiled in 818ms (2098 modules)
+🎯 ProgramConfiguratorPage component mounted!
+ GET /business/program-configurator 200 in 137ms
+ GET /api/templates/with-meta 200 in 4050ms
+ ✓ Compiled /api/programs/[programId]/versions/latest in 331ms (1043 modules)
+ GET /api/templates/with-meta 200 in 3496ms
+ GET /api/programs/64030dd3-c196-4899-b283-9a49e673de93/versions/latest 200 in 1785ms
+ ✓ Compiled in 1124ms (1983 modules)
+ ✓ Compiled in 965ms (1983 modules)
+ ✓ Compiled in 1005ms (1983 modules)
+ ✓ Compiled in 724ms (1983 modules)
+🎯 ProgramConfiguratorPage component mounted!
+ GET /business/program-configurator 200 in 135ms
+ ✓ Compiled /api/templates/with-meta in 465ms (959 modules)
+ ✓ Compiled (1070 modules)
+ GET /favicon.ico 200 in 821ms
+ GET /api/templates/with-meta 200 in 9917ms
+ GET /api/templates/with-meta 200 in 11861ms
+ ✓ Compiled /api/programs/[programId]/versions/latest in 291ms (1072 modules)
+ GET /api/programs/64030dd3-c196-4899-b283-9a49e673de93/versions/latest 200 in 1801ms
+ ✓ Compiled in 1081ms (1983 modules)
+ ✓ Compiled in 710ms (1983 modules)
+ ✓ Compiled in 2.1s (1983 modules)
+ ✓ Compiled in 873ms (1983 modules)
+🎯 ProgramConfiguratorPage component mounted!
+ GET /business/program-configurator 200 in 139ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 597ms (959 modules)
+ GET /favicon.ico 200 in 701ms
+ ✓ Compiled /api/templates/with-meta in 266ms (1070 modules)
+ GET /api/templates/with-meta 200 in 6420ms
+ ✓ Compiled /api/programs/[programId]/versions/latest in 198ms (1072 modules)
+ GET /api/templates/with-meta 200 in 3894ms
+ GET /api/programs/64030dd3-c196-4899-b283-9a49e673de93/versions/latest 200 in 1981ms
+ ✓ Compiled in 995ms (1983 modules)
+ ✓ Compiled /favicon.ico in 279ms (959 modules)
+ GET /favicon.ico 200 in 365ms
+ GET /favicon.ico 200 in 19ms
+ GET /favicon.ico 200 in 15ms
+ GET /favicon.ico 200 in 14ms
+ ✓ Compiled in 479ms (2015 modules)
+🎯 ProgramConfiguratorPage component mounted!
+ GET /business/program-configurator 200 in 134ms
+ GET /favicon.ico 200 in 31ms
+ ✓ Compiled /api/templates/with-meta in 322ms (1070 modules)
+ GET /api/templates/with-meta 200 in 6287ms
+ GET /api/templates/with-meta 200 in 3565ms
+ ✓ Compiled /api/programs/[programId]/versions/latest in 247ms (1072 modules)
+ GET /api/programs/64030dd3-c196-4899-b283-9a49e673de93/versions/latest 200 in 1262ms
+ ✓ Compiled /api/branding/logo in 374ms (1079 modules)
+🖼️ Uploading business logo to: business-logos/demo-business-123/logo.png
+ POST /api/branding/logo 500 in 502ms
+ ✓ Compiled in 1038ms (1983 modules)
+ ✓ Compiled /api/templates/with-meta in 100ms (1041 modules)
+ ✓ Compiled /favicon.ico in 127ms (1070 modules)
+ GET /favicon.ico 200 in 201ms
+ GET /favicon.ico 200 in 16ms
+ GET /favicon.ico 200 in 14ms
+ GET /favicon.ico 200 in 14ms
+ ✓ Compiled in 308ms (1056 modules)
+ GET /api/templates/with-meta 200 in 3825ms
+ ✓ Compiled in 590ms (2126 modules)
+ GET /api/templates/with-meta 200 in 28072ms
+   Reload env: .env.local
+ ✓ Compiled in 678ms (2124 modules)
+   Reload env: .env.local
+ ✓ Compiled in 159ms (2109 modules)
+   Reload env: .env.local
+ ✓ Compiled in 168ms (2109 modules)
+🎯 ProgramConfiguratorPage component mounted!
+ GET /business/program-configurator 200 in 103ms
+   Reload env: .env.local
+ ✓ Compiled in 561ms (2109 modules)
+ ✓ Compiled /api/programs/[programId]/versions/latest in 303ms (1041 modules)
+ GET /api/programs/64030dd3-c196-4899-b283-9a49e673de93/versions/latest 200 in 2405ms
+ ✓ Compiled /api/branding/logo in 445ms (1079 modules)
+🖼️ Uploading business logo to: business-logos/demo-business-123/logo.png
+✅ Logo uploaded successfully: https://5t5qn3slwjczwnoq.public.blob.vercel-storage.com/business-logos/demo-business-123/logo.png
+ POST /api/branding/logo 200 in 1700ms
+ ✓ Compiled /api/programs/publish in 330ms (1041 modules)
+ POST /api/programs/publish 200 in 7627ms
+ ✓ Compiled /api/templates/with-meta in 187ms (1043 modules)
+ ✓ Compiled /api/pass-type-ids in 268ms (1046 modules)
+ ✓ Compiled (1169 modules)
+🔍 Fetching Pass Type IDs from REAL database
+🔍 Fetching Pass Type IDs from REAL database
+🔍 Fetching accounts for user: 485ec6aa-89a4-48d1-b6e2-42c06067da67 david.sambor@icloud.com
+🔍 Fetching accounts for user: 485ec6aa-89a4-48d1-b6e2-42c06067da67 david.sambor@icloud.com
+✅ Found 1 accounts for user, current: Blue Karma
+ GET /api/tenants?t=1758709258184 200 in 2851ms
+ ✓ Compiled /api/templates in 102ms (1172 modules)
+🔍 [FAST] Fetching templates from Supabase database
+🔍 Template request - tenantId: be023bdf-c668-4cec-ac51-65d3c02ea191
+✅ Found 1 accounts for user, current: Blue Karma
+ GET /api/tenants?t=1758709258195 200 in 3893ms
+🔍 Fetching templates for authenticated business user: david.sambor@icloud.com
+🔍 [FAST] Fetching templates from Supabase database
+🔍 Template request - tenantId: be023bdf-c668-4cec-ac51-65d3c02ea191
+✅ Found 3 Pass Type IDs in database
+ GET /api/pass-type-ids 200 in 4693ms
+✅ Found 3 Pass Type IDs in database
+ GET /api/pass-type-ids 200 in 5320ms
+🔍 Fetching templates for authenticated business user: david.sambor@icloud.com
+ GET /api/templates/with-meta 200 in 63666ms
+✅ Found 2 templates in database
+ GET /api/templates?tenantId=be023bdf-c668-4cec-ac51-65d3c02ea191&t=1758709261708 200 in 52856ms
+✅ Found 2 templates in database
+ GET /api/templates?tenantId=be023bdf-c668-4cec-ac51-65d3c02ea191&t=1758709262934 200 in 66061ms
+ ✓ Compiled in 750ms (1983 modules)
+ ✓ Compiled in 1419ms (1983 modules)
+ ✓ Compiled in 894ms (1983 modules)
