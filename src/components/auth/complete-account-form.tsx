@@ -16,17 +16,37 @@ export function CompleteAccountForm() {
   const { branding } = useBranding()
   const searchParams = useSearchParams()
 
+  // Prefill from URL
   useEffect(() => {
-    // Get pre-filled email from URL parameters
     const prefillEmail = searchParams?.get('email') || ''
     const firstName = searchParams?.get('firstName') || ''
     const lastName = searchParams?.get('lastName') || ''
-    
     if (prefillEmail) setEmail(prefillEmail)
-    if (firstName || lastName) {
-      setCustomerName(`${firstName} ${lastName}`.trim())
-    }
+    if (firstName || lastName) setCustomerName(`${firstName} ${lastName}`.trim())
   }, [searchParams])
+
+  // Already-signed-in guard -> go straight to dashboard
+  useEffect(() => {
+    const run = async () => {
+      const supabase = createClient()
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        redirectToDashboard()
+      }
+    }
+    run()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const redirectToDashboard = () => {
+    const host = window.location.hostname
+    if (host !== 'localhost' && host !== '127.0.0.1' && !host.includes('walletpush.io')) {
+      window.location.href = '/customer/dashboard'
+    } else {
+      router.replace('/customer/dashboard')
+      router.refresh()
+    }
+  }
 
   const handleCompleteAccount = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,70 +54,57 @@ export function CompleteAccountForm() {
     setError('')
 
     try {
-      if (!email) {
-        setError('Email is required')
-        return
-      }
-      if (!password) {
-        setError('Please create a password')
-        return
-      }
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters')
-        return
-      }
-      if (password !== confirmPassword) {
-        setError('Passwords do not match')
-        return
-      }
+      if (!email) return setError('Email is required')
+      if (!password) return setError('Please create a password')
+      if (password.length < 6) return setError('Password must be at least 6 characters')
+      if (password !== confirmPassword) return setError('Passwords do not match')
 
-      // Call our complete account API
-      const response = await fetch('/api/customer/complete-account', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        setError(result.error || 'Failed to complete account setup')
-        return
-      }
-
-      // Account completed successfully, now sign them in
       const supabase = createClient()
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
 
-      if (signInError) {
-        setError('Account created but sign-in failed. Please try logging in.')
+      // 1) Try sign-up
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password })
+
+      if (!signUpErr) {
+        // If email confirmations are OFF, you’ll get a live session here
+        if (signUpData.session) {
+          redirectToDashboard()
+          return
+        }
+        // Safety fallback: try to sign in anyway
+        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+        if (!signInErr && signInData.session) {
+          redirectToDashboard()
+          return
+        }
+        // If still no session, confirmation is probably ON
+        setError('Account created. Please check your email to verify before signing in.')
         return
       }
 
-      if (data.user) {
-        // Redirect to customer dashboard
-        // If we're on a custom domain, stay on the same domain
-        const currentHost = window.location.hostname
-        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1' && !currentHost.includes('walletpush.io')) {
-          // We're on a custom domain, redirect within the same domain
-          window.location.href = '/customer/dashboard'
-        } else {
-          // Default routing
-          router.push('/customer/dashboard')
-          router.refresh()
+      // 2) If user already exists, attempt sign-in
+      const msg = (signUpErr?.message || '').toLowerCase()
+      if (msg.includes('already') || msg.includes('registered') || msg.includes('user exists')) {
+        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
+        if (signInErr) {
+          const em = (signInErr.message || '').toLowerCase()
+          if (em.includes('email not confirmed') || em.includes('email_confirm')) {
+            setError('Please verify your email before signing in.')
+            return
+          }
+          setError('This email already has an account. Try signing in or reset your password.')
+          return
+        }
+        if (signInData.session) {
+          redirectToDashboard()
+          return
         }
       }
-    } catch (err) {
-      setError('An unexpected error occurred')
+
+      // 3) Any other failure
+      setError(signUpErr.message || 'Unable to complete account setup.')
+    } catch (err: any) {
       console.error('Complete account error:', err)
+      setError(err?.message ?? 'An unexpected error occurred')
     } finally {
       setIsLoading(false)
     }
@@ -109,32 +116,27 @@ export function CompleteAccountForm() {
         {/* Logo */}
         {branding?.logoUrl && (
           <div className="flex justify-center mb-6">
-            <img 
-              src={branding.logoUrl} 
-              alt={branding.companyName || 'Logo'} 
-              className="h-12 w-auto"
-            />
+            <img src={branding.logoUrl} alt={branding.companyName || 'Logo'} className="h-12 w-auto" />
           </div>
         )}
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Complete Your Account
-          </h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Complete Your Account</h1>
           <p className="text-[#C6C8CC]">
-            {customerName ? `Welcome ${customerName}! ` : ''}Create your password to access your {branding?.companyName || 'member'} dashboard
+            {customerName ? `Welcome ${customerName}! ` : ''}
+            Create your password to access your {branding?.companyName || 'member'} dashboard
           </p>
         </div>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <p className="text-red-200 text-sm">{error}</p>
           </div>
         )}
 
-        {/* Complete Account Form */}
+        {/* Form */}
         <form onSubmit={handleCompleteAccount} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
