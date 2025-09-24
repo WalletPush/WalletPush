@@ -843,7 +843,7 @@ export default function ProgramConfiguratorPage() {
             const componentProps = {
               ...boundProps,
               settings: (section as any).settings || {},
-              business: mockData.business || {},
+              business: (mockData as any).business || {},
               // Pass the full context for complex components
               ...mockData
             }
