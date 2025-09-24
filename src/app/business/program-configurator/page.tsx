@@ -817,8 +817,8 @@ export default function ProgramConfiguratorPage() {
             businessLogo={draftSpec.branding?.businessLogo}
             businessName={draftSpec.copy?.program_name || 'Your Business'}
             businessTagline={draftSpec.copy?.tagline || 'Customer loyalty made simple'}
-            profilePicture={mockData?.customer?.profilePicture}
-            customerName={mockData?.customer?.name || 'John Doe'}
+            profilePicture={(mockData as any)?.customer?.profilePicture}
+            customerName={(mockData as any)?.customer?.name || 'John Doe'}
             showProfile={true}
             theme={draftSpec.branding?.theme || 'dark-midnight'}
           />
@@ -842,7 +842,7 @@ export default function ProgramConfiguratorPage() {
             // Add settings from the configuration to the props
             const componentProps = {
               ...boundProps,
-              settings: section.settings || {},
+              settings: (section as any).settings || {},
               business: mockData.business || {},
               // Pass the full context for complex components
               ...mockData
