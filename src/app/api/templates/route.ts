@@ -67,7 +67,7 @@ export async function GET(request: Request) {
         // Fast separate query for program names if templates exist
         let enrichedTemplates = templates || []
         if (templates && templates.length > 0) {
-          const programIds = Array.from(new Set(templates.map(t => t.program_id).filter(Boolean)))
+          const programIds = [...new Set(templates.map(t => t.program_id).filter(Boolean))]
           if (programIds.length > 0) {
             const { data: programs } = await supabase
               .from('programs')
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
       // Fast separate query for program names if templates exist
       let enrichedTemplates = templates || []
       if (templates && templates.length > 0) {
-        const programIds = Array.from(new Set(templates.map(t => t.program_id).filter(Boolean)))
+        const programIds = [...new Set(templates.map(t => t.program_id).filter(Boolean))]
         if (programIds.length > 0) {
           const { data: programs } = await supabase
             .from('programs')

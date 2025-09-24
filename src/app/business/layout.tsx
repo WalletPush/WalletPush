@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Toaster } from 'react-hot-toast'
 
@@ -18,7 +17,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
       <aside className="dashboard-sidebar">
         <div className="p-6">
           <div className="flex items-center justify-center mb-8">
-            <Image src="/images/walletpush-logo.png" alt="WalletPush" width={160} height={40} className="h-10 w-auto" />
+            <img src="/images/walletpush-logo.png" alt="WalletPush" className="h-10 w-auto" />
           </div>
 
           <nav className="space-y-2">

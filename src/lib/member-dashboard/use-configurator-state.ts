@@ -7,7 +7,7 @@ import { useState, useCallback } from 'react';
 import { ProgramSpec, enableSection, disableSection, reorderSections, resetToDefaultSections, isSectionEnabled } from './spec-mutations';
 import { SectionKey, ProgramType, getDefaultSections } from './section-catalog';
 
-export type ConfiguratorStep = 'template' | 'program-type' | 'components' | 'branding' | 'publish';
+export type ConfiguratorStep = 'template' | 'program-type' | 'components' | 'branding' | 'preview';
 
 export function useConfiguratorState() {
   const [currentStep, setCurrentStep] = useState<ConfiguratorStep>('template');
@@ -147,35 +147,6 @@ export function useConfiguratorState() {
     setDraftSpec(newSpec);
   }, [draftSpec]);
 
-  // Publish configuration
-  const publishConfiguration = useCallback(async (programId: string) => {
-    if (!draftSpec) {
-      throw new Error('No draft specification to publish');
-    }
-
-    console.log('📤 Publishing configuration...', { programId, draftSpec });
-
-    const response = await fetch('/api/program/publish', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        programId,
-        draftSpec
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || 'Failed to publish configuration');
-    }
-
-    console.log('✅ Configuration published successfully!', result);
-    return result;
-  }, [draftSpec]);
-
   return {
     // State
     currentStep,
@@ -204,8 +175,5 @@ export function useConfiguratorState() {
     // Queries
     isSectionActive,
     getEnabledSections,
-    
-    // Publishing
-    publishConfiguration,
   };
 }

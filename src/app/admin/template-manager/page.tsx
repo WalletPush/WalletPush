@@ -2,7 +2,6 @@
 
 import TemplateManager from '@/components/templates/template-manager'
 import Link from 'next/link'
-import Image from 'next/image'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 
 export default function TemplateManagerPage() {
@@ -21,11 +20,9 @@ export default function TemplateManagerPage() {
                 Back to Main Page
               </Link>
               <div className="flex items-center">
-                <Image 
+                <img 
                   src="/images/walletpush-logo.png" 
                   alt="WalletPush" 
-                  width={160}
-                  height={40}
                   className="h-10 w-auto mr-3"
                 />
                 <div>

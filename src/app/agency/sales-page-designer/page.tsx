@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import Image from 'next/image'
+import React, { useState, useRef, useEffect } from 'react'
 import { 
   SparklesIcon,
   PhotoIcon,
@@ -229,9 +228,9 @@ export default function SalesPageDesignerPage() {
     if (activeTab === 'saved') {
       fetchSavedPages()
     }
-  }, [activeTab, fetchSavedPages])
+  }, [activeTab])
 
-  const fetchSavedPages = useCallback(async () => {
+  const fetchSavedPages = async () => {
     setLoadingSavedPages(true)
     try {
       const supabase = createClient()
@@ -263,9 +262,9 @@ export default function SalesPageDesignerPage() {
     } finally {
       setLoadingSavedPages(false)
     }
-  }, [checkCurrentHomepage])
+  }
 
-  const checkCurrentHomepage = useCallback(async (pages = savedLandingPages) => {
+  const checkCurrentHomepage = async (pages = savedLandingPages) => {
     try {
       const response = await fetch('/api/admin/get-homepage')
       if (response.ok) {
@@ -284,7 +283,7 @@ export default function SalesPageDesignerPage() {
       // Ignore errors, just assume React homepage
       setCurrentHomepageId(null)
     }
-  }, [savedLandingPages])
+  }
 
   // Load program templates from API
   useEffect(() => {
@@ -960,7 +959,7 @@ export default function SalesPageDesignerPage() {
                 <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition-colors">
                   {wizardData.logo ? (
                     <div className="space-y-4">
-                      <Image src={wizardData.logo} alt="Logo" width={80} height={80} className="max-h-20 mx-auto" />
+                      <img src={wizardData.logo} alt="Logo" className="max-h-20 mx-auto" />
                       <button
                         onClick={() => updateWizardData({ logo: null })}
                         className="text-red-600 hover:text-red-700 text-sm"
@@ -1011,7 +1010,7 @@ export default function SalesPageDesignerPage() {
                 <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition-colors">
                   {wizardData.backgroundImage ? (
                     <div className="space-y-4">
-                      <Image src={wizardData.backgroundImage} alt="Hero" width={120} height={80} className="max-h-20 mx-auto rounded" />
+                      <img src={wizardData.backgroundImage} alt="Hero" className="max-h-20 mx-auto rounded" />
                       <button
                         onClick={() => updateWizardData({ backgroundImage: null })}
                         className="text-red-600 hover:text-red-700 text-sm"
@@ -1066,7 +1065,7 @@ export default function SalesPageDesignerPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                       {wizardData.additionalImages.map((image) => (
                         <div key={image.id} className="relative group">
-                          <Image src={image.url} alt={image.name} width={120} height={80} className="w-full h-20 object-cover rounded" />
+                          <img src={image.url} alt={image.name} className="w-full h-20 object-cover rounded" />
                           <button
                             onClick={() => removeAdditionalImage(image.id)}
                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"

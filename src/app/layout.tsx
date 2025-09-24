@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import '@/components/member-dashboard/wp-themes.css'
 import { BrandingProvider } from '@/lib/branding'
 
 export const metadata: Metadata = {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { SparklesIcon, PaperAirplaneIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
@@ -86,7 +86,7 @@ export default function AICopilotChatPage() {
     } else {
       addDebug('🚫 useEffect conditions not met')
     }
-  }, [websiteUrl, crawlStarted, crawlStatus, startWebsiteCrawling])
+  }, [websiteUrl, crawlStarted])
 
   const formatMessageContent = (content: string) => {
     // Convert **text** to bold formatting
@@ -139,7 +139,7 @@ export default function AICopilotChatPage() {
     })
   }
 
-  const startWebsiteCrawling = useCallback(async () => {
+  const startWebsiteCrawling = async () => {
     addDebug(`🚀 startWebsiteCrawling called, current status: ${crawlStatus}`)
     
     // Prevent multiple calls
@@ -186,9 +186,9 @@ export default function AICopilotChatPage() {
       setCrawlStatus('error')
       addMessage('assistant', `I'm sorry, but I encountered an error while trying to analyze your website: ${error.message}. Would you like to try again or tell me about your business manually?`)
     }
+  }
 
-    // Move pollCrawlStatus inside the useCallback
-    const pollCrawlStatus = async (jobId: string) => {
+  const pollCrawlStatus = async (jobId: string) => {
     const maxAttempts = 30 // 5 minutes max
     let attempts = 0
 
@@ -261,10 +261,9 @@ export default function AICopilotChatPage() {
 
     // Start checking status after 5 seconds
     setTimeout(checkStatus, 5000)
-    }
+  }
 
-    // Move processWebsiteData inside the useCallback
-    const processWebsiteData = async (crawledData: any[], websiteUrl: string, visualAssets?: any) => {
+  const processWebsiteData = async (crawledData: any[], websiteUrl: string, visualAssets?: any) => {
     // Use REF to prevent multiple execution
     if (aiProcessingRef.current) {
       addDebug('🚫 AI PROCESSING BLOCKED BY REF!')
@@ -311,8 +310,7 @@ export default function AICopilotChatPage() {
       // Reset refs so function can be called again if needed
       aiProcessingRef.current = false
     }
-    }
-  }, [crawlStatus])
+  }
 
   const detectProgramReadyToCreate = (conversation: Message[]) => {
     // Look for key indicators that the program is ready to be created

@@ -2,7 +2,16 @@
 
 import React, { createContext, useContext, ReactNode } from 'react'
 
-export type WPTheme = 'dark-midnight' | 'dark-plum' | 'dark-emerald' | 'light-classic' | 'brand-auto'
+export type WPTheme =
+  | 'dark-midnight'
+  | 'dark-plum'
+  | 'dark-emerald'
+  | 'light-classic'
+  | 'brand-auto'
+  | 'dark-ocean'
+  | 'dark-ink'
+  | 'dark-violet'
+  | 'dark-charcoal'
 
 interface WPThemeContextType {
   theme: WPTheme

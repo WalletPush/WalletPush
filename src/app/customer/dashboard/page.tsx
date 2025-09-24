@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useBranding } from '@/lib/branding'
 import { SECTION_REGISTRY } from '@/lib/member-dashboard/registry'
 import { bindProps, ProgramSpecResponse, CustomerSummary } from '@/lib/member-dashboard/utils'
+import '@/components/member-dashboard/wp-themes.css'
 
 export default function CustomerDashboard() {
   const [user, setUser] = useState<any>(null)
@@ -177,7 +178,7 @@ export default function CustomerDashboard() {
         </div>
 
         {/* JSON-Driven Dashboard Sections */}
-        <main className="space-y-6">
+        <main className="wp-root space-y-6" data-wp-theme="dark-midnight">
           {programSpec.spec.ui_contract.sections.map((section, index) => {
             const Component = SECTION_REGISTRY[section.type as keyof typeof SECTION_REGISTRY]
             

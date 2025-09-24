@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react';
-import { formatRelativeTime } from '@/lib/member-dashboard/utils';
+import { formatRelativeTime } from '@/components/member-dashboard/utils';
 
 interface ActivityFeedProps {
   recent_activity?: Array<{
@@ -15,9 +15,9 @@ interface ActivityFeedProps {
 export function ActivityFeed({ recent_activity }: ActivityFeedProps) {
   if (!recent_activity || recent_activity.length === 0) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-        <p className="text-[#C6C8CC]">No recent activity</p>
+      <div className="wp-card p-6">
+        <h3 className="text-lg font-semibold wp-text-primary mb-4">Recent Activity</h3>
+        <p className="wp-text-muted">No recent activity</p>
       </div>
     );
   }
@@ -40,13 +40,13 @@ export function ActivityFeed({ recent_activity }: ActivityFeedProps) {
   };
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
+    <div className="wp-card p-6">
+      <h3 className="text-lg font-semibold wp-text-primary mb-4">Recent Activity</h3>
       <div className="space-y-3">
         {recent_activity.map((activity, index) => (
-          <div key={index} className="flex justify-between items-center py-2 border-b border-white/10 last:border-b-0">
-            <span className="text-white">{formatActivityLine(activity)}</span>
-            <span className="text-[#C6C8CC] text-sm">
+          <div key={index} className="flex justify-between items-center py-2 border-b border-slate-600/20 last:border-b-0">
+            <span>{formatActivityLine(activity)}</span>
+            <span className="wp-text-muted text-sm">
               {formatRelativeTime(activity.ts)}
             </span>
           </div>

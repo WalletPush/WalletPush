@@ -1,7 +1,5 @@
 # 🚀 **WalletPush Development Summary - Multi-Tenant SaaS Platform**
 
-<!-- Deployment trigger: 2025-01-23 build fixes -->
-
 ## 📊 **Project Overview**
 A comprehensive multi-tenant SaaS platform for Apple Wallet pass creation and customer engagement, featuring agency management, business operations, and seamless customer onboarding.
 

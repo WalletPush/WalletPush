@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface CustomField {
@@ -44,7 +44,7 @@ export default function CustomFieldsManager() {
     is_required: false
   })
 
-  const loadCustomFields = useCallback(async () => {
+  const loadCustomFields = async () => {
     try {
       const response = await fetch(`/api/business/custom-fields?applies_to=${selectedTab}`)
       if (response.ok) {
@@ -56,7 +56,7 @@ export default function CustomFieldsManager() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedTab])
+  }
 
   const resetForm = () => {
     setFormData({
@@ -147,7 +147,7 @@ export default function CustomFieldsManager() {
 
   useEffect(() => {
     loadCustomFields()
-  }, [selectedTab, loadCustomFields])
+  }, [selectedTab])
 
   return (
     <div className="space-y-6">

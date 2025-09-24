@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
-import Image from 'next/image'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -84,9 +83,9 @@ export default function TemplateSelector({
 
   useEffect(() => {
     loadTemplates()
-  }, [templateType, loadTemplates])
+  }, [templateType])
 
-  const loadTemplates = useCallback(async () => {
+  const loadTemplates = async () => {
     try {
       setLoading(true)
       setError(null)
@@ -160,7 +159,7 @@ export default function TemplateSelector({
     } finally {
       setLoading(false)
     }
-  }, [templateType])
+  }
 
   const getFilteredTemplates = () => {
     if (selectedCategory === 'all') {
@@ -240,11 +239,9 @@ export default function TemplateSelector({
             <CardHeader className="p-4">
               <div className="aspect-video bg-slate-100 rounded-lg mb-4 overflow-hidden">
                 {template.preview ? (
-                  <Image 
+                  <img 
                     src={template.preview} 
                     alt={template.name}
-                    width={400}
-                    height={225}
                     className="w-full h-full object-cover"
                   />
                 ) : (

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   ChartBarIcon,
   CurrencyDollarIcon,
@@ -69,7 +69,11 @@ export default function AgencyAnalyticsPage() {
   const [timeRange, setTimeRange] = useState('30d')
   const [selectedMetric, setSelectedMetric] = useState('revenue')
 
-  const loadAnalyticsData = useCallback(async () => {
+  useEffect(() => {
+    loadAnalyticsData()
+  }, [timeRange])
+
+  const loadAnalyticsData = async () => {
     try {
       setIsLoading(true)
       const response = await fetch(`/api/agency/analytics?timeRange=${timeRange}`)
@@ -191,11 +195,7 @@ export default function AgencyAnalyticsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [timeRange])
-
-  useEffect(() => {
-    loadAnalyticsData()
-  }, [timeRange, loadAnalyticsData])
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

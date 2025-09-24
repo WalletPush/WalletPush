@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +6,10 @@ import { Progress } from '@/components/ui/progress';
 import { QRCheckInButton } from '@/components/member-dashboard/universal/QRCheckInButton';
 import { BalanceSpeedo } from '@/components/member-dashboard/loyalty/BalanceSpeedo';
 import { HowToEarn as HowToEarnWidget } from '@/components/member-dashboard/universal/HowToEarn';
-import { WPThemeProvider } from '@/components/member-dashboard/WPThemeProvider';
+// import { WPThemeProvider } from '@/components/member-dashboard/WPThemeProvider';
+import { RewardsGrid as WPRewardsGrid } from '@/components/member-dashboard/loyalty/RewardsGrid';
+import { OffersStrip as WPOffersStrip } from '@/components/member-dashboard/shared/OffersStrip';
+import { ActivityFeed as WPActivityFeed } from '@/components/member-dashboard/shared/ActivityFeed';
 import { 
   Star, 
   Gift, 
@@ -25,19 +27,17 @@ import {
 
 // WP-Themed Components with proper theming
 const BalanceHeader = ({ member, ...props }: any) => (
-  <WPThemeProvider theme="dark-midnight">
-    <BalanceSpeedo 
-      pointsBalance={member?.points_balance || 0}
-      pointsToNextTier={member?.points_to_next_tier}
-      tier={member?.tier}
-      tiers={props.settings?.tiers}
-      variant={props.settings?.variant || "ring"}
-      size={props.settings?.size || "md"}
-      showTier={props.settings?.showTier !== undefined ? props.settings.showTier : true}
-      showProgress={props.settings?.showProgress !== undefined ? props.settings.showProgress : true}
-      accent="primary"
-    />
-  </WPThemeProvider>
+  <BalanceSpeedo 
+    pointsBalance={member?.points_balance || 0}
+    pointsToNextTier={member?.points_to_next_tier}
+    tier={member?.tier}
+    tiers={props.settings?.tiers}
+    variant={props.settings?.variant || "ring"}
+    size={props.settings?.size || "md"}
+    showTier={props.settings?.showTier !== undefined ? props.settings.showTier : true}
+    showProgress={props.settings?.showProgress !== undefined ? props.settings.showProgress : true}
+    accent="primary"
+  />
 );
 
 // Alternative Balance Speedo variants for the configurator
@@ -102,21 +102,18 @@ const ProgressNextTier = ({ current_points, next_tier_points, next_tier_name }: 
   const pointsNeeded = next_tier_points ? next_tier_points - current_points : 0;
   
   return (
-    <div className="wp-card p-6">
-      <div className="flex items-center justify-between mb-2">
-        <p className="font-medium wp-text">Progress to {next_tier_name || 'Next Tier'}</p>
-        <Trophy className="w-5 h-5" style={{ color: 'var(--wp-primary)' }} />
-      </div>
-      <div className="wp-progress-bg rounded-full h-2 mb-2">
-        <div 
-          className="wp-progress-bar h-2 rounded-full transition-all duration-500"
-          style={{ width: `${Math.min(progress, 100)}%` }}
-        />
-      </div>
-      <p className="text-sm wp-text-muted">
-        {pointsNeeded > 0 ? `${pointsNeeded.toLocaleString()} points to go` : 'Tier achieved!'}
-      </p>
-    </div>
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-medium">Progress to {next_tier_name || 'Next Tier'}</p>
+          <Trophy className="w-5 h-5 text-yellow-500" />
+        </div>
+        <Progress value={Math.min(progress, 100)} className="mb-2" />
+        <p className="text-sm text-gray-600">
+          {pointsNeeded > 0 ? `${pointsNeeded.toLocaleString()} points to go` : 'Tier achieved!'}
+        </p>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -132,32 +129,30 @@ const HowToEarn_Component = ({ business, ...props }: any) => (
 );
 
 const RewardsGrid = ({ available_rewards }: any) => (
-  <div className="wp-card p-6">
-    <div className="mb-4">
-      <h3 className="flex items-center gap-2 font-semibold wp-text">
-        <Gift className="w-5 h-5" style={{ color: 'var(--wp-primary)' }} />
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <Gift className="w-5 h-5" />
         Available Rewards
-      </h3>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {available_rewards?.map((reward: any, index: number) => (
-        <div key={index} className="border rounded-lg p-4 hover:opacity-80 transition-colors" style={{ borderColor: 'var(--wp-border)', backgroundColor: 'var(--wp-surface)' }}>
-          <h4 className="font-medium mb-1 wp-text">{reward.name}</h4>
-          <p className="text-sm wp-text-muted mb-2">{reward.description}</p>
-          <div className="flex justify-between items-center">
-            <span className="text-xs px-2 py-1 rounded border wp-text-secondary" style={{ borderColor: 'var(--wp-border)' }}>
-              {reward.cost} points
-            </span>
-            <button className="wp-button text-xs px-3 py-1 rounded">
-              Redeem
-            </button>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {available_rewards?.map((reward: any, index: number) => (
+          <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+            <h4 className="font-medium mb-1">{reward.name}</h4>
+            <p className="text-sm text-gray-600 mb-2">{reward.description}</p>
+            <div className="flex justify-between items-center">
+              <Badge variant="outline">{reward.cost} points</Badge>
+              <Button size="sm" variant="outline">Redeem</Button>
+            </div>
           </div>
-        </div>
-      )) || (
-        <p className="wp-text-muted text-sm col-span-2">No rewards available</p>
-      )}
-    </div>
-  </div>
+        )) || (
+          <p className="text-gray-500 text-sm col-span-2">No rewards available</p>
+        )}
+      </div>
+    </CardContent>
+  </Card>
 );
 
 // Membership Components
@@ -301,7 +296,7 @@ const DashboardHeader = ({ member_name, member_since, profile_image }: any) => (
       <div className="flex items-center gap-4">
         <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
           {profile_image ? (
-            <Image src={profile_image} alt="Profile" width={64} height={64} className="rounded-full object-cover" />
+            <img src={profile_image} alt="Profile" className="w-16 h-16 rounded-full object-cover" />
           ) : (
             member_name?.charAt(0) || 'M'
           )}
@@ -318,19 +313,17 @@ const DashboardHeader = ({ member_name, member_since, profile_image }: any) => (
 );
 
 const QrCheckInButton = ({ business, ...props }: any) => (
-  <WPThemeProvider theme="dark-midnight">
-    <QRCheckInButton 
-      businessId={business?.id || 'demo-business'}
-      businessName={business?.name || 'Blue Karma Loyalty'}
-      location={business?.location || 'Main Location'}
-      style={props.settings?.style || "card"}
-      showCooldown={props.settings?.showCooldown !== undefined ? props.settings.showCooldown : true}
-      cooldownMinutes={60}
-      onCheckIn={(result) => {
-        console.log('Check-in result:', result);
-      }}
-    />
-  </WPThemeProvider>
+  <QRCheckInButton 
+    businessId={business?.id || 'demo-business'}
+    businessName={business?.name || 'Blue Karma Loyalty'}
+    location={business?.location || 'Main Location'}
+    style={props.settings?.style || "card"}
+    showCooldown={props.settings?.showCooldown !== undefined ? props.settings.showCooldown : true}
+    cooldownMinutes={60}
+    onCheckIn={(result) => {
+      console.log('Check-in result:', result);
+    }}
+  />
 );
 
 const ReferralWidget = ({ referral_code, referrals_count, referral_bonus }: any) => (
@@ -441,8 +434,8 @@ export const SECTION_REGISTRY = {
   progressNextTier: ProgressNextTier,
   ProgressNextTier,
   howToEarn: HowToEarn_Component,
-  rewardsGrid: RewardsGrid,
-  RewardsGrid,
+  rewardsGrid: WPRewardsGrid,
+  RewardsGrid: WPRewardsGrid,
 
   // Membership components  
   membershipHeader: MembershipHeader,
@@ -465,10 +458,10 @@ export const SECTION_REGISTRY = {
   QrCheckInButton,
   referralWidget: ReferralWidget,
   ReferralWidget,
-  offersStrip: OffersStrip,
-  OffersStrip,
-  activityFeed: ActivityFeed,
-  ActivityFeed
+  offersStrip: WPOffersStrip,
+  OffersStrip: WPOffersStrip,
+  activityFeed: WPActivityFeed,
+  ActivityFeed: WPActivityFeed
 };
 
 export default SECTION_REGISTRY;
