@@ -1044,7 +1044,7 @@ export default function ProgramConfiguratorPage() {
                                 <select 
                                   className="w-full p-2 border border-slate-300 rounded-lg text-sm"
                                   value={getCurrentValue(field.key) || (field.options?.[0] || '')}
-                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig, field.key, e.target.value)}
+                                  onChange={(e) => updateSectionConfig(selectedSectionForConfig as any, `settings.${field.key}`, e.target.value)}
                                 >
                                   {field.options?.map((option) => (
                                     <option key={option} value={option}>
