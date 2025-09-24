@@ -30,6 +30,10 @@ export type ProgramSpec = {
   redemption?: any;
   stored_value?: any;
   // Content and UI
+  branding?: {
+    businessLogo?: string;
+    [key: string]: any;
+  };
   copy?: {
     program_name?: string;
     tagline?: string;

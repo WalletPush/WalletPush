@@ -1,0 +1,78 @@
+{
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatQR",
+      "altText": "TEST_MEMBERSHIP_123",
+      "message": "${MEMBER_ID}",
+      "messageEncoding": "iso-8859-1"
+    }
+  ],
+  "storeCard": {
+    "backFields": [
+      {
+        "id": "back_first_name",
+        "key": "First_Name",
+        "type": "backFields",
+        "label": "First Name",
+        "value": "${First_Name}"
+      },
+      {
+        "id": "back_last_name", 
+        "key": "Last_Name",
+        "type": "backFields",
+        "label": "Last Name",
+        "value": "${Last_Name}"
+      },
+      {
+        "id": "back_email",
+        "key": "Email",
+        "type": "backFields",
+        "label": "Email",
+        "value": "${Email}"
+      },
+      {
+        "id": "back_phone",
+        "key": "Phone",
+        "type": "backFields",
+        "label": "Phone",
+        "value": "${Phone}"
+      },
+      {
+        "id": "back_member_id",
+        "key": "Member_ID",
+        "type": "backFields",
+        "label": "Member ID",
+        "value": "${Member_ID}"
+      }
+    ],
+    "headerFields": [
+      {
+        "id": "header_points",
+        "key": "Points",
+        "type": "headerFields",
+        "label": "Points",
+        "value": "${Points}"
+      }
+    ],
+    "primaryFields": [],
+    "auxiliaryFields": [],
+    "secondaryFields": [
+      {
+        "id": "secondary_current_offer",
+        "key": "Current_Offer",
+        "type": "secondaryFields",
+        "label": "Current Offer",
+        "value": "${Current_Offer}"
+      }
+    ]
+  },
+  "labelColor": "#625C51",
+  "description": "Welcome to our Wellness Journey Passport - complete 4 out of 6 wellness destinations within 90 days to unlock exclusive rewards",
+  "formatVersion": 1,
+  "backgroundColor": "#FFFFFF",
+  "foregroundColor": "#625C51",
+  "organizationName": "Blue Karma Secrets",
+  "passTypeIdentifier": "pass.come.globalwalletpush",
+  "serialNumber": "wp-1758258865357-mle24lcqf",
+  "teamIdentifier": "NC4W34D5LD"
+}

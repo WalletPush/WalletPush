@@ -119,8 +119,8 @@ The middleware system will automatically inject all JavaScript functionality.`
 
       // Convert relative URLs to absolute URLs for the HTML generation
       // CRITICAL: Check for base64 data that would cause massive token costs
-      let logoFullUrl = null
-      let backgroundFullUrl = null
+      let logoFullUrl: string | null = null
+      let backgroundFullUrl: string | null = null
       
       // Resolve base URL from request for production correctness
       const origin = request.headers.get('x-forwarded-proto') && request.headers.get('x-forwarded-host')

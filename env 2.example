@@ -1,0 +1,14 @@
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Vercel Domains API (for automatic domain registration)
+VERCEL_TOKEN=your_vercel_api_token
+VERCEL_PROJECT_ID=your_vercel_project_id
+VERCEL_TEAM_ID=your_vercel_team_id
+VERCEL_DEPLOY_HOOK_URL=your_vercel_deploy_hook_url
+NEXT_PUBLIC_MEMBER_LOGIN_URL=https://app.walletpush.io/customer/auth/login

@@ -44,12 +44,22 @@ export async function GET(request: NextRequest) {
         .eq('domain', domain)
         .single()
       
-      branding = Array.isArray(domainData?.accounts) 
-        ? domainData.accounts[0]?.branding || null
-        : (domainData?.accounts as any)?.branding || null
+      // BEFORE using domainData, bail if it's nullish
+      if (!domainData) {
+        return NextResponse.json({ branding: null }, { status: 200 });
+      }
+
+      // Safely grab accounts
+      const accounts = (domainData as any)?.accounts;
+
+      if (Array.isArray(accounts)) {
+        branding = accounts?.[0]?.branding ?? null;
+      } else if (accounts && typeof accounts === 'object') {
+        branding = (accounts as any)?.branding ?? null;
+      }
       
       if (branding && domainData) {
-        const account = Array.isArray(domainData.accounts) ? domainData.accounts[0] : domainData.accounts
+        const account = Array.isArray(accounts) ? accounts[0] : accounts
         branding.account_name = account?.name
         branding.account_type = account?.type
       }

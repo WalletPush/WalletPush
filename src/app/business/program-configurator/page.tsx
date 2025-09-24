@@ -36,7 +36,7 @@ export default function ProgramConfiguratorPage() {
   // Template loading state
   const [templates, setTemplates] = useState<any[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(true)
-  const [mockData, setMockData] = useState<any>({})
+  const [mockData, setMockData] = useState<{ customer?: { profilePicture?: string; name?: string; [key: string]: any } }>({ customer: {} })
   const [configDrawerOpen, setConfigDrawerOpen] = useState(false)
   const [selectedSectionForConfig, setSelectedSectionForConfig] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
@@ -106,7 +106,7 @@ export default function ProgramConfiguratorPage() {
           updateProgramConfig({
             ...draftSpec,
             branding: { ...(draftSpec.branding || {}), businessLogo: result.logoUrl }
-          } as any)
+          })
         }
         
         alert('Logo uploaded successfully!')
@@ -143,9 +143,9 @@ export default function ProgramConfiguratorPage() {
         console.log('✅ Profile picture uploaded successfully:', result.profileUrl)
         
         // Update mock data with new profile
-        setMockData(prev => ({
+        setMockData((prev) => ({
           ...prev,
-          customer: { ...prev.customer, profilePicture: result.profileUrl }
+          customer: { ...(prev.customer || {}), profilePicture: result.profileUrl }
         }))
         
         alert('Profile picture uploaded successfully!')
@@ -817,8 +817,8 @@ export default function ProgramConfiguratorPage() {
             businessLogo={draftSpec.branding?.businessLogo}
             businessName={draftSpec.copy?.program_name || 'Your Business'}
             businessTagline={draftSpec.copy?.tagline || 'Customer loyalty made simple'}
-            profilePicture={mockData.customer?.profilePicture}
-            customerName={mockData.customer?.name || 'John Doe'}
+            profilePicture={mockData?.customer?.profilePicture}
+            customerName={mockData?.customer?.name || 'John Doe'}
             showProfile={true}
             theme={draftSpec.branding?.theme || 'dark-midnight'}
           />
