@@ -64,7 +64,7 @@ export default function ProgramConfiguratorPage() {
       if (data.templates) {
         setTemplates(data.templates)
         console.log('✅ Successfully loaded templates:', data.templates.length)
-        console.log('🎨 Template details:', data.templates.map(t => ({ id: t.id, name: t.programs?.name || t.name })))
+        console.log('🎨 Template details:', data.templates.map((t: any) => ({ id: t.id, name: t.programs?.name || t.name })))
       } else {
         console.log('❌ No templates found in response')
       }
@@ -104,8 +104,9 @@ export default function ProgramConfiguratorPage() {
         // Update draft spec with new logo
         if (draftSpec) {
           updateProgramConfig({
-            branding: { ...draftSpec.branding, businessLogo: result.logoUrl }
-          })
+            ...draftSpec,
+            branding: { ...(draftSpec.branding || {}), businessLogo: result.logoUrl }
+          } as any)
         }
         
         alert('Logo uploaded successfully!')
