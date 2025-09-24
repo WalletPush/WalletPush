@@ -1023,7 +1023,7 @@ export default function ProgramConfiguratorPage() {
                   } else if (fieldKey.startsWith('settings.')) {
                     const settingKey = fieldKey.replace('settings.', '')
                     const section = draftSpec.ui_contract.sections.find(s => s.type === selectedSectionForConfig)
-                    return section?.settings?.[settingKey]
+                    return (section as any)?.settings?.[settingKey]
                   }
                   return undefined
                 }
