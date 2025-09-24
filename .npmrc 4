@@ -1,4 +1,0 @@
-node-linker=hoisted
-public-hoist-pattern=*
-auto-install-peers=true
-strict-peer-dependencies=false
