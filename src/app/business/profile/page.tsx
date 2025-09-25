@@ -251,7 +251,9 @@ export default function BusinessProfilePage() {
                    profile.subscription_status === 'trial' ? 'Trial' : 'Inactive'}
                 </span>
                 <span className="text-indigo-100">
-                  {profile.subscription_plan?.charAt(0).toUpperCase() + profile.subscription_plan?.slice(1)} Plan
+                  {profile.subscription_plan ? 
+                    profile.subscription_plan.charAt(0).toUpperCase() + profile.subscription_plan.slice(1) : 
+                    'Unknown'} Plan
                 </span>
               </div>
             </div>
