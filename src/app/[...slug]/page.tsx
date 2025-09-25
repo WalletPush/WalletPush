@@ -31,6 +31,7 @@ export default function CatchAllLandingPage({ params }: Props) {
           .select('*')
           .eq('is_published', true)
           .like('custom_url', `%${fullPath}%`)
+          .order('updated_at', { ascending: false })
         
         console.log('🔍 Found landing pages:', landingPages)
         
