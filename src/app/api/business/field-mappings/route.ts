@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 // GET /api/business/field-mappings - Get field mappings for a business
 export async function GET(request: NextRequest) {
@@ -15,7 +16,11 @@ export async function GET(request: NextRequest) {
     const templateId = url.searchParams.get('templateId')
     
     // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
     
     console.log('🔍 Fetching field mappings for business:', businessId, 'templateId:', templateId)
 
@@ -86,7 +91,11 @@ export async function POST(request: NextRequest) {
     }
 
     // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
 
     console.log('💾 Creating field mapping:', {
       businessId,
@@ -173,7 +182,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
 
     let deleteQuery = supabase
       .from('field_mappings')

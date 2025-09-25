@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 // GET /api/business/custom-fields - Fetch custom fields for a business
 export async function GET(request: NextRequest) {
@@ -16,7 +17,11 @@ export async function GET(request: NextRequest) {
     const appliesTo = url.searchParams.get('applies_to') // customer, member, pass
     
     // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
     
     console.log('🔍 Fetching custom fields for business:', businessId, 'applies_to:', appliesTo)
 
@@ -125,7 +130,11 @@ export async function POST(request: NextRequest) {
     }
 
     // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
 
     console.log('📝 Creating custom field:', {
       businessId,
@@ -227,7 +236,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
 
     console.log('🔄 Updating sort order for', fields.length, 'custom fields')
 

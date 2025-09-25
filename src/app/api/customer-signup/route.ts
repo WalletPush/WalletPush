@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 import { ApplePassKitGenerator } from '@/lib/apple-passkit-generator'
 import { processTemplateForPassGeneration } from '@/lib/dynamic-template-processor'
 
@@ -227,7 +228,7 @@ export async function POST(request: NextRequest) {
           if (templateAccount?.account_id) {
             business_id = templateAccount.account_id
           } else {
-            business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191' // Fallback for development
+            business_id = await getCurrentBusinessId(request) || 'be023bdf-c668-4cec-ac51-65d3c02ea191' // Fallback for development
             console.warn('⚠️ Using fallback business_id, could not determine from landing page or template')
           }
         }

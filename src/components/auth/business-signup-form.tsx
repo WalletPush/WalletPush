@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useBranding } from '@/lib/branding'
 
@@ -13,10 +13,35 @@ export function BusinessSignUpForm() {
     password: '',
     confirmPassword: ''
   })
+  const [selectedPackage, setSelectedPackage] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { branding } = useBranding()
+
+  useEffect(() => {
+    const packageId = searchParams.get('package')
+    if (packageId) {
+      loadPackageInfo(packageId)
+    }
+  }, [searchParams])
+
+  const loadPackageInfo = async (packageId: string) => {
+    try {
+      const response = await fetch('/api/public/agency-packages')
+      const result = await response.json()
+      
+      if (result.success && result.packages) {
+        const pkg = result.packages.find((p: any) => p.id === packageId)
+        if (pkg) {
+          setSelectedPackage(pkg)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading package info:', error)
+    }
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -55,7 +80,15 @@ export function BusinessSignUpForm() {
           data: {
             full_name: formData.fullName,
             business_name: formData.businessName,
-            user_type: 'business'
+            user_type: 'business',
+            selected_package: selectedPackage ? {
+              package_id: selectedPackage.id,
+              package_name: selectedPackage.name,
+              package_price: selectedPackage.price,
+              pass_limit: selectedPackage.passLimit,
+              program_limit: selectedPackage.programLimit,
+              staff_limit: selectedPackage.staffLimit
+            } : null
           }
         }
       })
@@ -66,8 +99,34 @@ export function BusinessSignUpForm() {
       }
 
       if (data.user) {
-        // Redirect to success page
-        router.push('/business/auth/sign-up-success')
+        console.log('✅ User created successfully, now provisioning business account...')
+        
+        // Provision the business account
+        try {
+          const provisionResponse = await fetch('/api/business/provision', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+
+          const provisionResult = await provisionResponse.json()
+
+          if (!provisionResponse.ok) {
+            console.error('❌ Business provision failed:', provisionResult)
+            setError(`Account created but setup failed: ${provisionResult.error}`)
+            return
+          }
+
+          console.log('✅ Business account provisioned successfully:', provisionResult)
+          
+          // Redirect to login page with success message
+          router.push('/business/auth/login?message=Account created successfully! You can now sign in to access your dashboard.')
+          
+        } catch (provisionError) {
+          console.error('❌ Error during business provisioning:', provisionError)
+          setError('Account created but setup failed. Please contact support.')
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred')
@@ -94,12 +153,28 @@ export function BusinessSignUpForm() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">
-            Request Business Access
+            {selectedPackage ? 'Start Your Free Trial' : 'Request Business Access'}
           </h1>
           <p className="text-[#C6C8CC]">
-            Apply for a business dashboard account
+            {selectedPackage ? 'Create your account and get started today' : 'Apply for a business dashboard account'}
           </p>
         </div>
+
+        {/* Selected Package Display */}
+        {selectedPackage && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-400/30 rounded-lg">
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-white mb-2">{selectedPackage.name} Plan</h3>
+              <div className="text-2xl font-bold text-white mb-2">
+                ${selectedPackage.price}<span className="text-sm font-normal">/month</span>
+              </div>
+              <p className="text-blue-200 text-sm mb-3">{selectedPackage.description}</p>
+              <div className="text-xs text-blue-200">
+                ✓ 14-day free trial • ✓ No setup fees • ✓ Cancel anytime
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -195,7 +270,7 @@ export function BusinessSignUpForm() {
             disabled={isLoading}
             className="w-full py-3 px-4 bg-gradient-to-r from-white/20 to-white/10 hover:from-white/30 hover:to-white/20 border border-white/30 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Submitting Request...' : 'Request Access'}
+            {isLoading ? 'Creating Account...' : selectedPackage ? 'Start Free Trial' : 'Request Access'}
           </button>
         </form>
 

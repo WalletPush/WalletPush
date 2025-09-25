@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 export async function GET(request: NextRequest) {
   try {
@@ -79,7 +80,11 @@ export async function POST(request: NextRequest) {
     const { setting_key, setting_value } = body
     
     // For testing, we'll use the Blue Karma business ID
-    const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const business_id = await getCurrentBusinessId(request)
+    
+    if (!business_id) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
     
     console.log('POST business-settings:', { business_id, setting_key, setting_value })
     

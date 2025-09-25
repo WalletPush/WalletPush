@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useBranding } from '@/lib/branding'
 
@@ -10,8 +10,17 @@ export function BusinessLoginForm() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { branding } = useBranding()
+
+  useEffect(() => {
+    const message = searchParams.get('message')
+    if (message) {
+      setSuccessMessage(message)
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,6 +84,13 @@ export function BusinessLoginForm() {
             Sign in to manage your {branding?.companyName || 'business'}
           </p>
         </div>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+            <p className="text-green-200 text-sm">{successMessage}</p>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (

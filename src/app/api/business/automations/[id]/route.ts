@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 export async function GET(
   request: NextRequest,
@@ -15,7 +16,11 @@ export async function GET(
     }
 
     // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
 
     // Fetch the specific automation
     const { data: automation, error } = await supabase
@@ -55,7 +60,11 @@ export async function PUT(
     }
 
     // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
 
     const body = await request.json()
     const { name, description, trigger_type, trigger_config, conditions, actions, status, template_id } = body
@@ -120,7 +129,11 @@ export async function DELETE(
     }
 
     // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
 
     console.log('🔍 Deleting automation:', params.id)
 
