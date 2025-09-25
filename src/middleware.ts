@@ -439,6 +439,7 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
 
     // Look for landing pages for this business/account
     console.log(`🔍 Looking for landing page: business_id=${domain.business_id}, slug="${slug}"`)
+    console.log(`🌐 Full URL context: hostname=${hostname}, pathname=${pathname}`)
     
     // Fetch recent published pages and match by multiple URL variants
     const landingPageResponse = await fetch(
@@ -469,13 +470,31 @@ async function handleCustomDomainLandingPage(request: NextRequest, hostname: str
         `https://${hostname}${pathname}`,
       ])
 
+      console.log(`🔍 Found ${landingPages?.length || 0} landing pages for business`)
+      console.log(`🎯 Looking for slug variants:`, Array.from(variants))
+      
+      if (landingPages && landingPages.length > 0) {
+        console.log(`📋 Available landing pages:`, landingPages.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          custom_url: p.custom_url,
+          is_published: p.is_published
+        })))
+      }
+
       const match = (landingPages || []).find((p: any) => {
         const cuRaw = (p.custom_url || '').toString()
         const cuNormalized = cuRaw
           .replace(/^https?:\/\//, '')
           .replace(/^www\./, '')
           .replace(/^\//, '')
-        return variants.has(cuRaw) || variants.has(cuNormalized) || variants.has(`/${cuNormalized}`)
+        
+        console.log(`🔍 Checking landing page "${p.name}": custom_url="${cuRaw}" → normalized="${cuNormalized}"`)
+        
+        const matches = variants.has(cuRaw) || variants.has(cuNormalized) || variants.has(`/${cuNormalized}`)
+        console.log(`🎯 Match result for "${p.name}": ${matches}`)
+        
+        return matches
       })
 
       if (match) {
