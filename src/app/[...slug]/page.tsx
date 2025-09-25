@@ -80,80 +80,116 @@ export default function CatchAllLandingPage({ params }: Props) {
         const landingPage = landingPages[0]
         console.log('✅ Found landing page:', landingPage.name)
         
-        // Inject the WalletPush script (same as middleware)
+        // Use the raw HTML content (no script injection needed since we execute directly)
         let htmlContent = landingPage.generated_html || '<p>No content available</p>'
         
-        console.log('🔧 BEFORE script injection, HTML length:', htmlContent.length)
+        console.log('🔧 Landing page loaded, HTML length:', htmlContent.length)
         console.log('🔧 Landing page context:', {
           landing_page_id: landingPage.id,
           template_id: landingPage.template_id,
           hostname: window.location.hostname
         })
         
-        htmlContent = injectWalletPassScript(htmlContent, {
-          landing_page_id: landingPage.id,
-          template_id: landingPage.template_id,
-          hostname: window.location.hostname
-        })
-        
-        console.log('🔧 AFTER script injection, HTML length:', htmlContent.length)
-        console.log('🔧 Script injected:', htmlContent.includes('WalletPush'))
-        
-        // TEMP TEST: Add a SUPER SIMPLE test script + form handler
-        const testScript = `
-        <script>
-          alert("SIMPLE TEST: Script is running!");
-          
-          // Wait for page to load then attach form handler
-          document.addEventListener('DOMContentLoaded', function() {
-            console.log('🔥 DOM LOADED - Looking for forms...');
-            const forms = document.querySelectorAll('form');
-            console.log('🔥 Found forms:', forms.length);
-            
-            forms.forEach(function(form, index) {
-              console.log('🔥 Attaching handler to form', index);
-              form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                alert('FORM INTERCEPTED! This proves the handler works!');
-                
-                const button = form.querySelector('button');
-                if (button) {
-                  button.textContent = 'Creating Your Pass...';
-                  button.disabled = true;
-                }
-              });
-            });
-          });
-        </script>
-        `
-        htmlContent = htmlContent.replace('</body>', testScript + '</body>')
-        
         // Set the HTML content
         setHtmlContent(htmlContent)
         setLoading(false)
         
-        // EXECUTE THE SCRIPT DIRECTLY (React doesn't execute injected scripts)
+        // EXECUTE THE WALLETPUSH SCRIPT DIRECTLY (React doesn't execute injected scripts)
         setTimeout(() => {
-          console.log('🔥 EXECUTING SCRIPT DIRECTLY...')
+          console.log('🔥 EXECUTING WALLETPUSH SCRIPT DIRECTLY...')
           
-          // Test script
-          alert("DIRECT EXECUTION: Script is running!")
+          const LP_ID = landingPage.id
+          const TEMPLATE_ID = landingPage.template_id
+          const LOGIN_BASE = `https://${window.location.hostname}/customer/auth/login`
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
           
-          // Form handler
-          console.log('🔥 DOM LOADED - Looking for forms...')
+          console.log('🔥 WalletPush context:', { LP_ID, TEMPLATE_ID, LOGIN_BASE, isMobile })
+
+          function findEmailValue() {
+            const el = document.querySelector('input[name="email"], input[type="email"]')
+            return el ? el.value || '' : ''
+          }
+
+          async function submitToWalletPush(form) {
+            const button = form.querySelector('button')
+            const resetUI = () => {
+              try { 
+                if (button) { 
+                  button.textContent = 'Join Rewards Program Now'
+                  button.disabled = false
+                } 
+              } catch(_){}
+            }
+            
+            try {
+              if (button) { 
+                button.innerHTML = 'Creating Your Pass<span class="loading-dots"></span>'
+                button.disabled = true
+              }
+
+              const formData = new FormData(form)
+              const payload = {}
+              formData.forEach((v,k) => { payload[k] = v })
+              if (LP_ID) payload["landing_page_id"] = LP_ID
+              if (!payload["template_id"] && TEMPLATE_ID) payload["template_id"] = TEMPLATE_ID
+
+              console.log('🔄 Submitting to customer-signup:', payload)
+
+              const res = await fetch('/api/customer-signup', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+              })
+              
+              const data = await res.json()
+              console.log('✅ Customer signup response:', data)
+
+              if (!res.ok) {
+                const msg = (data && (data.error || data.message)) ? (data.error || data.message) : ('Signup failed (' + res.status + ')')
+                throw new Error(msg)
+              }
+              if (!data || !data.download_url) { 
+                throw new Error('No download URL returned') 
+              }
+
+              const email = findEmailValue()
+              const encodedEmail = encodeURIComponent(email || '')
+              const passUrl = (data.download_url || '').replace('?t=', '.pkpass?t=')
+
+              if (isMobile) {
+                console.log('📱 Mobile detected - redirecting to pass download')
+                window.location.href = passUrl
+                setTimeout(() => { 
+                  window.location.href = LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : '')
+                }, 8000)
+              } else {
+                console.log('💻 Desktop detected - opening pass in new tab')
+                try { window.open(data.download_url, '_blank') } catch(_){}
+                setTimeout(() => { 
+                  window.location.href = LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : '')
+                }, 3000)
+              }
+              
+              if (button) { button.textContent = 'Pass Created!' }
+            } catch (err) {
+              console.error('❌ WalletPush submit error:', err)
+              alert(err && err.message ? err.message : 'An error occurred. Please try again.')
+              resetUI()
+            }
+          }
+
+          // Attach form handlers
           const forms = document.querySelectorAll('form')
           console.log('🔥 Found forms:', forms.length)
           
           forms.forEach((form, index) => {
-            console.log('🔥 Attaching handler to form', index)
-            form.addEventListener('submit', (e) => {
-              e.preventDefault()
-              alert('FORM INTERCEPTED! This proves the handler works!')
-              
-              const button = form.querySelector('button')
-              if (button) {
-                button.textContent = 'Creating Your Pass...'
-                button.disabled = true
+            console.log('🔥 Attaching WalletPush handler to form', index)
+            form.addEventListener('submit', async (e) => {
+              try {
+                e.preventDefault()
+                await submitToWalletPush(form)
+              } catch(err) { 
+                console.error('WalletPush submit error', err) 
               }
             })
           })
