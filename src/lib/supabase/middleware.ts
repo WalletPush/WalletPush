@@ -110,6 +110,19 @@ const publicRoutes = [
   '/api/scanner/balance' // Staff scanner balance check
 ]
 
+  // Check if this is a potential landing page URL by checking database
+  let isLandingPage = false
+  const pathname = request.nextUrl.pathname
+  
+  // Simple check for landing page patterns (paths with multiple segments)
+  if (pathname !== '/' && !pathname.startsWith('/api/') && !pathname.startsWith('/_next/') && 
+      !pathname.startsWith('/auth/') && !pathname.startsWith('/business/') && 
+      !pathname.startsWith('/agency/') && !pathname.startsWith('/customer/') &&
+      !pathname.startsWith('/admin/') && pathname.split('/').length >= 2) {
+    isLandingPage = true
+    console.log('🌐 LANDING PAGE DETECTED:', pathname, '- treating as public')
+  }
+
   const isPublicRoute = publicRoutes.some(route => 
     request.nextUrl.pathname === route || 
     request.nextUrl.pathname.startsWith('/auth/') ||
@@ -125,10 +138,20 @@ const publicRoutes = [
     request.nextUrl.pathname.startsWith('/api/checkin/') ||
     request.nextUrl.pathname.startsWith('/api/ledger/') ||
     request.nextUrl.pathname.startsWith('/api/scanner/')
-  )
+  ) || isLandingPage
+
+  // Debug authentication decisions
+  console.log('🔐 AUTH CHECK:', {
+    pathname: request.nextUrl.pathname,
+    hasUser: !!user,
+    isPublicRoute,
+    isLandingPage,
+    willRedirect: !user && !isPublicRoute
+  })
 
   // Only redirect to login if it's not a public route and user is not authenticated
   if (!user && !isPublicRoute) {
+    console.log('🚫 REDIRECTING TO LOGIN:', request.nextUrl.pathname)
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
