@@ -74,7 +74,7 @@ export async function GET(request: Request) {
               .from('programs')
               .select('id, name')
               .in('id', programIds)
-              .eq('account_id', businessId) // Filter programs by business too
+              // Note: For unauthenticated users, we don't filter by business
             
             // Attach program names to templates
             enrichedTemplates = templates.map(template => ({
@@ -84,7 +84,7 @@ export async function GET(request: Request) {
           }
         }
         
-        console.log(`✅ Found ${enrichedTemplates?.length || 0} templates for business: ${businessId}`)
+        console.log(`✅ Found ${enrichedTemplates?.length || 0} templates for unauthenticated request`)
         
         return NextResponse.json({
           data: enrichedTemplates,
