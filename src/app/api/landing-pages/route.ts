@@ -52,7 +52,25 @@ export async function POST(request: NextRequest) {
     
     // Use the selected template_id (from Step 1) or null if not valid
     const selectedTemplateId = template_id || settings?.programTemplate || null
-    const selectedProgramId = program_id || null // Don't force a program_id
+    let selectedProgramId = program_id || null // Don't force a program_id
+    
+    // If we have a template_id but no program_id, get the program_id from the template
+    if (selectedTemplateId && !selectedProgramId) {
+      console.log('🔍 Getting program_id from template:', selectedTemplateId)
+      
+      const { data: templateData, error: templateError } = await supabase
+        .from('templates')
+        .select('program_id')
+        .eq('id', selectedTemplateId)
+        .single()
+      
+      if (templateData && !templateError) {
+        selectedProgramId = templateData.program_id
+        console.log('✅ Found program_id from template:', selectedProgramId)
+      } else {
+        console.warn('⚠️ Could not get program_id from template:', templateError)
+      }
+    }
     
     // For public landing pages, business_id comes from the selected template or explicit body parameter
     let business_id = body.business_id

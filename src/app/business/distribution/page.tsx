@@ -538,6 +538,7 @@ Make it modern, professional, and conversion-focused.`
             custom_url: wizardData.customUrl,
             html_content: wizardData.generatedHtml,
             template_id: wizardData.programTemplate,
+            program_id: null, // Will be set by the API based on template
             settings: wizardData,
             status: 'published'
           })
