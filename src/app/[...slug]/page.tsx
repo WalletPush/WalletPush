@@ -99,8 +99,34 @@ export default function CatchAllLandingPage({ params }: Props) {
         console.log('🔧 AFTER script injection, HTML length:', htmlContent.length)
         console.log('🔧 Script injected:', htmlContent.includes('WalletPush'))
         
-        // TEMP TEST: Add a visible alert to the HTML to prove injection works
-        htmlContent = htmlContent.replace('</body>', '<script>console.log("🚀 INJECTION SUCCESSFUL! Script is running!"); setTimeout(function() { alert("Script injection is working!"); }, 2000);</script></body>')
+        // TEMP TEST: Add a SUPER SIMPLE test script + form handler
+        const testScript = `
+        <script>
+          alert("SIMPLE TEST: Script is running!");
+          
+          // Wait for page to load then attach form handler
+          document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔥 DOM LOADED - Looking for forms...');
+            const forms = document.querySelectorAll('form');
+            console.log('🔥 Found forms:', forms.length);
+            
+            forms.forEach(function(form, index) {
+              console.log('🔥 Attaching handler to form', index);
+              form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('FORM INTERCEPTED! This proves the handler works!');
+                
+                const button = form.querySelector('button');
+                if (button) {
+                  button.textContent = 'Creating Your Pass...';
+                  button.disabled = true;
+                }
+              });
+            });
+          });
+        </script>
+        `
+        htmlContent = htmlContent.replace('</body>', testScript + '</body>')
         
         // Set the HTML content
         setHtmlContent(htmlContent)
