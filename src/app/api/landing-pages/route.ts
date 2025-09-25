@@ -6,10 +6,21 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     
-    // Get real landing pages from database
+    // Get current business ID for filtering
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      console.error('❌ No business ID found for landing pages')
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
+
+    console.log('🔍 Fetching landing pages for business:', businessId)
+    
+    // Get real landing pages from database filtered by business
     const { data: landingPages, error } = await supabase
       .from('landing_pages')
       .select('*')
+      .eq('business_id', businessId) // Filter by business
       .order('created_at', { ascending: false })
     
     if (error) {
@@ -19,6 +30,8 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       )
     }
+    
+    console.log(`✅ Found ${landingPages?.length || 0} landing pages for business: ${businessId}`)
     
     return NextResponse.json({ data: landingPages || [], error: null })
   } catch (error) {

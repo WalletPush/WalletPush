@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 function getSupabase() {
   const cookieStore = cookies()
@@ -15,12 +16,23 @@ function getSupabase() {
   )
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = getSupabase()
+
+  // Get current business ID for filtering
+  const businessId = await getCurrentBusinessId(request)
+  
+  if (!businessId) {
+    console.error('❌ No business ID found for templates with meta')
+    return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+  }
+
+  console.log('🔍 Fetching templates with meta for business:', businessId)
 
   const { data: templates, error: tplErr } = await supabase
     .from('templates')
     .select('id, program_id, template_json, previews, passkit_json, pass_type_identifier, capabilities, created_at, programs(name)')
+    .eq('account_id', businessId) // Filter by business
 
   if (tplErr) return NextResponse.json({ error: 'Failed to load templates' }, { status: 500 })
 
@@ -31,6 +43,7 @@ export async function GET() {
     const { data: versions } = await supabase
       .from('program_versions')
       .select('program_id, version')
+      // Note: program_versions doesn't have account_id, but we're already filtering by program_id from business templates
 
     for (const pid of programIds) {
       const rows = (versions || []).filter((v: any) => v.program_id === pid)
@@ -43,6 +56,8 @@ export async function GET() {
     ...t,
     meta: versionsByProgram[t.program_id] ?? { has_versions: false, latest_version: null }
   }))
+
+  console.log(`✅ Found ${withMeta?.length || 0} templates with meta for business: ${businessId}`)
 
   return NextResponse.json({ data: withMeta })
 }

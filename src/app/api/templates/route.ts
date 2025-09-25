@@ -74,6 +74,7 @@ export async function GET(request: Request) {
               .from('programs')
               .select('id, name')
               .in('id', programIds)
+              .eq('account_id', businessId) // Filter programs by business too
             
             // Attach program names to templates
             enrichedTemplates = templates.map(template => ({
@@ -83,7 +84,7 @@ export async function GET(request: Request) {
           }
         }
         
-        console.log(`✅ Found ${enrichedTemplates?.length || 0} templates for unauthenticated request`)
+        console.log(`✅ Found ${enrichedTemplates?.length || 0} templates for business: ${businessId}`)
         
         return NextResponse.json({
           data: enrichedTemplates,
@@ -99,10 +100,11 @@ export async function GET(request: Request) {
       const businessId = await getCurrentBusinessId(request as any)
       
       if (!businessId) {
+        console.error('❌ No business ID found for authenticated user')
         return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
       }
       
-      // PERFORMANCE CRITICAL: Ultra-fast query with minimal data
+      // PERFORMANCE CRITICAL: Ultra-fast query with minimal data filtered by business
       const { data: templates, error } = await supabase
         .from('templates')
         .select(`
@@ -115,8 +117,8 @@ export async function GET(request: Request) {
           created_at,
           pass_type_identifier
         `)
+        .eq('account_id', businessId) // Filter by business
         .order('created_at', { ascending: false })
-        .limit(3) // Minimal limit for maximum speed
 
       if (error) {
         console.error('❌ Supabase error:', error)
