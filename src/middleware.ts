@@ -148,28 +148,8 @@ async function handleBusinessCustomDomainRedirect(request: NextRequest, hostname
       }
     }
     
-    // Step 3: Final fallback - check if there's any business with custom domain
-    if (!businessId) {
-      console.log(`📝 No business context found, checking all custom domains`)
-      const allDomainsResponse = await fetch(
-        `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id&status=eq.active&limit=1`,
-        {
-          headers: {
-            'apikey': serviceRoleKey,
-            'Authorization': `Bearer ${serviceRoleKey}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-      
-      if (allDomainsResponse.ok) {
-        const allDomains = await allDomainsResponse.json()
-        if (allDomains && allDomains.length > 0) {
-          businessId = allDomains[0].business_id
-          console.log(`🔄 Using first available business with custom domain: ${businessId}`)
-        }
-      }
-    }
+    // Step 3: Don't use fallback to other businesses - this causes cross-account redirects
+    // Only redirect if we have explicit business context from the user's session
     
     if (!businessId) {
       console.log(`📝 No business context available for redirect`)
