@@ -336,7 +336,7 @@ function PassPreview({
                         <div className="text-xs opacity-75" style={{ color: passData.labelColor }}>
                           {field.label}
                         </div>
-                        <div className="text-2xl font-bold">
+                        <div className="text-2xl font-bold" style={{ color: passData.foregroundColor }}>
                           {field.value || `${field.label} Value`}
                         </div>
                       </div>
@@ -358,7 +358,7 @@ function PassPreview({
                       <div className="text-xs opacity-75" style={{ color: passData.labelColor }}>
                         {field.label}
                       </div>
-                      <div className="text-sm font-medium">
+                      <div className="text-sm font-medium" style={{ color: passData.foregroundColor }}>
                         {field.value || `${field.label} Value`}
                       </div>
                     </div>
@@ -800,8 +800,9 @@ export default function PassDesigner() {
         ...prev,
         barcodes: [{
           format: 'PKBarcodeFormatQR',
-          message: '${BARCODE_VALUE}',
-          messageEncoding: 'iso-8859-1'
+          message: '${ID}',
+          messageEncoding: 'iso-8859-1',
+          altText: '${ID}'
         }]
       }))
     } else {
@@ -844,7 +845,7 @@ export default function PassDesigner() {
       id: 'barcode',
       type: 'backFields',
       label: 'Barcode',
-      value: currentPass.barcodes[0]?.message || '${BARCODE_VALUE}',
+      value: currentPass.barcodes[0]?.message || '${ID}',
       key: 'barcode'
     } as PassField)
   }, [currentPass.barcodes])

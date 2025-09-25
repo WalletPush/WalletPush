@@ -284,7 +284,29 @@ export async function POST(request: Request) {
           previews: { generated_at: new Date().toISOString() },
           published_at: new Date().toISOString()
         }
-        if (programId) insertData.program_id = programId
+        // Ensure we always have a program_id to avoid null constraint error
+        if (programId) {
+          insertData.program_id = programId
+        } else {
+          // If we still don't have a program, create a minimal default one
+          console.log('🚨 Emergency: Creating minimal default program to avoid null constraint')
+          const { data: emergencyProgram, error: emergencyError } = await supabase
+            .from('programs')
+            .insert({
+              account_id: businessId,
+              name: `Default Program (${new Date().toLocaleDateString()})`
+            })
+            .select()
+            .single()
+          
+          if (!emergencyError && emergencyProgram) {
+            insertData.program_id = emergencyProgram.id
+            console.log(`✅ Emergency program created: ${emergencyProgram.id}`)
+          } else {
+            console.error('❌ Failed to create emergency program:', emergencyError)
+            throw new Error('Unable to create required program for template')
+          }
+        }
 
         const { data, error } = await supabase
           .from('templates')
