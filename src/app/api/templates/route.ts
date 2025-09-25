@@ -198,7 +198,7 @@ export async function POST(request: Request) {
     const { data: existingPrograms, error: programError } = await supabase
       .from('programs')
       .select('id, name')
-      .eq('account_id', businessId)
+      .eq('business_id', businessId)
       .limit(1)
 
     let programId = null
@@ -215,6 +215,7 @@ export async function POST(request: Request) {
       const { data: newProgram, error: createError } = await supabase
         .from('programs')
         .insert({
+          business_id: businessId,
           account_id: businessId,
           name: templateData.name || 'Untitled Template'
         })
@@ -293,6 +294,7 @@ export async function POST(request: Request) {
           const { data: emergencyProgram, error: emergencyError } = await supabase
             .from('programs')
             .insert({
+              business_id: businessId,
               account_id: businessId,
               name: `Default Program (${new Date().toLocaleDateString()})`
             })

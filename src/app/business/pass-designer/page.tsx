@@ -211,7 +211,7 @@ function PassPreview({
                     <div className="text-xs opacity-75" style={{ color: passData.labelColor }}>
                       {field.label}
                     </div>
-                    <div className="text-sm font-medium whitespace-pre-wrap">
+                    <div className="text-sm font-medium whitespace-pre-wrap" style={{ color: passData.foregroundColor }}>
                       {field.value || `${field.label} Value`}
                     </div>
                   </div>
