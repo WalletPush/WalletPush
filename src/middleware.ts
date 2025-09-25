@@ -6,6 +6,9 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || 'localhost:3000'
   const pathname = request.nextUrl.pathname
   
+  // AGGRESSIVE DEBUGGING: Log every request
+  console.log(`🚨 MIDDLEWARE HIT: ${hostname}${pathname}`)
+  
   // Skip middleware for API routes, static files, and internal Next.js routes
   if (
     pathname.startsWith('/api/') ||
@@ -13,6 +16,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/favicon.ico') ||
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js)$/)
   ) {
+    console.log(`⏭️ SKIPPING: ${hostname}${pathname} (static/API route)`)
     return await updateSession(request)
   }
 
