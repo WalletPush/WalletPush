@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 // Import pass store for cache invalidation
 import { getPassStoreSize, clearPassStore } from '@/lib/pass-store'
 
@@ -94,8 +95,12 @@ export async function GET(request: Request) {
       // For authenticated users, filter by business
       console.log('🔍 Fetching templates for authenticated business user:', user.email)
       
-      // Use the Blue Karma business ID for now (in production, get from user context)
-      const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+      // Get business ID dynamically
+      const businessId = await getCurrentBusinessId(request as any)
+      
+      if (!businessId) {
+        return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+      }
       
       // PERFORMANCE CRITICAL: Ultra-fast query with minimal data
       const { data: templates, error } = await supabase
@@ -176,6 +181,13 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
     
+    // Get business ID dynamically
+    const businessId = await getCurrentBusinessId(request as any)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
+    
     // Get template data early so we can use it for program creation
     const templateData = body
     const explicitId: string | undefined = (body.id || body.template_id)
@@ -184,7 +196,7 @@ export async function POST(request: Request) {
     const { data: existingPrograms, error: programError } = await supabase
       .from('programs')
       .select('id, name')
-      .eq('account_id', 'be023bdf-c668-4cec-ac51-65d3c02ea191')
+      .eq('account_id', businessId)
       .limit(1)
 
     let programId = null
@@ -201,7 +213,7 @@ export async function POST(request: Request) {
       const { data: newProgram, error: createError } = await supabase
         .from('programs')
         .insert({
-          account_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191',
+          account_id: businessId,
           name: templateData.name || 'Untitled Template'
         })
         .select()
@@ -242,7 +254,7 @@ export async function POST(request: Request) {
             template_json: templateData,
             passkit_json: body.passkit_json,
             pass_type_identifier: templateData.metadata?.pass_type_identifier,
-            account_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191',
+            account_id: businessId,
             previews: { generated_at: new Date().toISOString() },
             published_at: new Date().toISOString()
           })
@@ -266,7 +278,7 @@ export async function POST(request: Request) {
           template_json: templateData,
           passkit_json: body.passkit_json,
           pass_type_identifier: templateData.metadata?.pass_type_identifier,
-          account_id: 'be023bdf-c668-4cec-ac51-65d3c02ea191',
+          account_id: businessId,
           previews: { generated_at: new Date().toISOString() },
           published_at: new Date().toISOString()
         }

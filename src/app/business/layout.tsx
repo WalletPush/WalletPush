@@ -86,6 +86,12 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
                 </svg>
                 <span>Automations</span>
               </Link>
+              <Link href="#" className="sidebar-item">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                </svg>
+                <span>Send a Push</span>
+              </Link>
             </div>
             
             <div className="pt-6 mt-6 border-t border-slate-700">
@@ -107,6 +113,13 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <span>Settings</span>
+              </Link>
+              
+              <Link href="/business/profile" className={`sidebar-item ${pathname === '/business/profile' ? 'active' : ''}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+                <span>My Profile</span>
               </Link>
             </div>
           </nav>

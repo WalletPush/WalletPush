@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -16,8 +16,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // For now, use the Blue Karma business ID (in production, get from user context)
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    // Get business ID dynamically
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
     
     console.log('🔍 Fetching customers for business:', businessId)
 

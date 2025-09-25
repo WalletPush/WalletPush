@@ -4,6 +4,7 @@
  */
 
 import { createClient } from './supabase/server'
+import { getCurrentBusinessId } from './business-context'
 
 interface PassTypeID {
   id: string
@@ -32,7 +33,7 @@ export class PassTypeIDStore {
     try {
       const supabase = await createClient()
       // Use provided businessId or fallback to default
-      const targetBusinessId = businessId || 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+      const targetBusinessId = businessId || await getCurrentBusinessId() || 'be023bdf-c668-4cec-ac51-65d3c02ea191'
       
       // Get both business and global Pass Type IDs
       const { data: passTypeIds, error } = await supabase

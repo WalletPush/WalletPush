@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 export async function POST(request: NextRequest) {
   console.log('🚀 Chat-edit API called')
@@ -33,9 +34,12 @@ export async function POST(request: NextRequest) {
     // Get business account and OpenRouter settings
     console.log('🔍 Looking for business account and OpenRouter settings...')
     
-    // First get the business account ID from the current user
-    // For now, using the Blue Karma business ID - this should be dynamic based on the user
-    const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    // Get business ID dynamically
+    const businessId = await getCurrentBusinessId(request)
+    
+    if (!businessId) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
     
     // Get OpenRouter settings from business settings
     const { data: settings, error: settingsError } = await supabase

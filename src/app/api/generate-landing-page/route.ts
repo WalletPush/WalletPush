@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 import OpenAI from 'openai'
 import { put } from '@vercel/blob'
 
@@ -11,7 +12,11 @@ export async function POST(request: NextRequest) {
     // Debug info will be returned in response instead of console logs
     
     // For testing, we'll use the Blue Karma business ID
-    const business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+    const business_id = await getCurrentBusinessId(request)
+    
+    if (!business_id) {
+      return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+    }
     
     // Get OpenRouter settings for the business
     const { data: settings, error: settingsError } = await supabase

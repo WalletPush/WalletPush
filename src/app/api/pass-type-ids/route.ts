@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,8 +37,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (!accountId) {
-      // Fallback to hardcoded business ID for backward compatibility
-      accountId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+      // Get business ID dynamically
+      accountId = await getCurrentBusinessId(request)
+      
+      if (!accountId) {
+        return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+      }
     }
 
     // Get account type to determine what Pass Type IDs to show
@@ -216,8 +221,12 @@ export async function POST(request: NextRequest) {
     console.log('💾 Certificate uploaded to blob:', blob.url)
 
     if (!accountId) {
-      // Fallback for backward compatibility
-      accountId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+      // Get business ID dynamically for backward compatibility
+      accountId = await getCurrentBusinessId(request)
+      
+      if (!accountId) {
+        return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+      }
     }
     
     const newPassTypeId = {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,7 +84,11 @@ export async function POST(request: NextRequest) {
     
     // Fallback for development/testing (Blue Karma)
     if (!business_id) {
-      business_id = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
+      business_id = await getCurrentBusinessId(request)
+      
+      if (!business_id) {
+        return NextResponse.json({ error: 'No business found for current user' }, { status: 404 })
+      }
       console.warn('⚠️ Using Blue Karma fallback business_id for development')
     }
     

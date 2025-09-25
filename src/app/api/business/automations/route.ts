@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-// Helper function to get business ID from authenticated user
-async function getBusinessIdFromUser(supabase: any, user: any) {
-  // For now, use the hardcoded business ID that we know works
-  // TODO: Implement proper multi-tenant lookup once we understand the exact relationship
-  const businessId = 'be023bdf-c668-4cec-ac51-65d3c02ea191'
-  
-  console.log('🔍 Using business ID:', businessId, 'for user:', user.email)
-  return businessId
-}
+import { getCurrentBusinessId } from '@/lib/business-context'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const businessId = await getBusinessIdFromUser(supabase, user)
+    const businessId = await getCurrentBusinessId(request)
     if (!businessId) {
       return NextResponse.json({ error: 'Business not found for user' }, { status: 404 })
     }
@@ -59,7 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const businessId = await getBusinessIdFromUser(supabase, user)
+    const businessId = await getCurrentBusinessId(request)
     if (!businessId) {
       return NextResponse.json({ error: 'Business not found for user' }, { status: 404 })
     }
