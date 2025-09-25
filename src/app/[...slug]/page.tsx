@@ -132,6 +132,33 @@ export default function CatchAllLandingPage({ params }: Props) {
         setHtmlContent(htmlContent)
         setLoading(false)
         
+        // EXECUTE THE SCRIPT DIRECTLY (React doesn't execute injected scripts)
+        setTimeout(() => {
+          console.log('🔥 EXECUTING SCRIPT DIRECTLY...')
+          
+          // Test script
+          alert("DIRECT EXECUTION: Script is running!")
+          
+          // Form handler
+          console.log('🔥 DOM LOADED - Looking for forms...')
+          const forms = document.querySelectorAll('form')
+          console.log('🔥 Found forms:', forms.length)
+          
+          forms.forEach((form, index) => {
+            console.log('🔥 Attaching handler to form', index)
+            form.addEventListener('submit', (e) => {
+              e.preventDefault()
+              alert('FORM INTERCEPTED! This proves the handler works!')
+              
+              const button = form.querySelector('button')
+              if (button) {
+                button.textContent = 'Creating Your Pass...'
+                button.disabled = true
+              }
+            })
+          })
+        }, 100) // Small delay to ensure DOM is updated
+        
       } catch (err) {
         console.error('❌ Error loading landing page:', err)
         setError('Failed to load landing page')
