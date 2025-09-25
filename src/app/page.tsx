@@ -35,6 +35,13 @@ export default function HomePage() {
     loadPackages()
   }, [])
 
+  const scrollToPricing = () => {
+    const pricingSection = document.getElementById('pricing-section')
+    if (pricingSection) {
+      pricingSection.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   const loadPackages = async () => {
     try {
       const response = await fetch('/api/public/agency-packages')
@@ -76,11 +83,12 @@ export default function HomePage() {
             <Link href="/auth/login" className="text-white/80 hover:text-white transition-colors text-sm font-medium">
               Login
             </Link>
-            <Link href="/auth/sign-up">
-              <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-full text-sm font-semibold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-white/20">
-                Get Started Free
-              </Button>
-            </Link>
+            <Button 
+              onClick={scrollToPricing}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-full text-sm font-semibold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-white/20"
+            >
+              Get Started Free
+            </Button>
           </nav>
         </div>
       </header>
@@ -104,11 +112,12 @@ export default function HomePage() {
                 Acquiring a new customer costs 5× more than retaining existing ones. A 5% boost in retention can increase profits by 25-95%. WalletPush makes customer loyalty effortless.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/auth/sign-up">
-                  <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-10 py-4 rounded-full text-lg font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-white/20">
-                    Start Free Trial <ArrowRight className="ml-3 w-6 h-6" />
-                  </Button>
-                </Link>
+                <Button 
+                  onClick={scrollToPricing}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-10 py-4 rounded-full text-lg font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-white/20"
+                >
+                  Start Free Trial <ArrowRight className="ml-3 w-6 h-6" />
+                </Button>
                 <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 px-8 py-4 rounded-full text-lg font-semibold backdrop-blur-sm">
                   Watch Demo <Smartphone className="ml-3 w-5 h-5" />
                 </Button>
@@ -261,7 +270,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="relative z-10 py-32 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+      <section id="pricing-section" className="relative z-10 py-32 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-5xl font-bold text-white mb-6">Simple, Transparent Pricing</h2>
@@ -303,13 +312,15 @@ export default function HomePage() {
                       </div>
                     ))}
                     <div className="pt-6">
-                      <Button className={`w-full py-3 rounded-full font-semibold ${
-                        pkg.isPopular 
-                          ? 'bg-white text-blue-600 hover:bg-gray-100 font-bold' 
-                          : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                      }`}>
-                        {pkg.name === 'Enterprise' ? 'Contact Sales' : 'Start Free Trial'}
-                      </Button>
+                      <Link href={pkg.name === 'Enterprise' ? '/contact' : `/business/auth/sign-up?package=${pkg.id}`}>
+                        <Button className={`w-full py-3 rounded-full font-semibold ${
+                          pkg.isPopular 
+                            ? 'bg-white text-blue-600 hover:bg-gray-100 font-bold' 
+                            : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+                        }`}>
+                          {pkg.name === 'Enterprise' ? 'Contact Sales' : 'Start Free Trial'}
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -372,11 +383,12 @@ export default function HomePage() {
             No contracts, no setup fees - start your free trial today.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Link href="/auth/sign-up">
-              <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-12 py-5 rounded-full text-xl font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-white/20">
-                Start Free Trial <ArrowRight className="ml-3 w-6 h-6" />
-              </Button>
-            </Link>
+            <Button 
+              onClick={scrollToPricing}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-12 py-5 rounded-full text-xl font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-white/20"
+            >
+              Start Free Trial <ArrowRight className="ml-3 w-6 h-6" />
+            </Button>
             <div className="text-blue-200 text-sm">
               ✓ No credit card required  ✓ 14-day free trial  ✓ Cancel anytime
             </div>
