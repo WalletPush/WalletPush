@@ -44,17 +44,25 @@ export default function HomePage() {
 
   const loadPackages = async () => {
     try {
+      console.log('🔄 Starting to load packages...')
       const response = await fetch('/api/public/agency-packages')
+      console.log('📡 Package API response status:', response.status)
+      
       const result = await response.json()
+      console.log('📦 Package API result:', result)
       
       if (result.success && result.packages) {
+        console.log('✅ Setting packages:', result.packages.length, 'packages')
         setPackages(result.packages)
+      } else {
+        console.log('⚠️ No packages in result or success=false')
       }
     } catch (error) {
-      console.error('Error loading packages:', error)
+      console.error('❌ Error loading packages:', error)
       // Keep default behavior if API fails
     } finally {
       setLoadingPackages(false)
+      console.log('🏁 Package loading finished')
     }
   }
 

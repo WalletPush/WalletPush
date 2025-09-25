@@ -68,8 +68,34 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Fetching public agency packages for homepage')
 
-    // Use the specific agency account ID that has packages
-    const agencyId = 'a7d7baa2-0b71-453e-ab7f-0c19b9214be4'
+    // Get the current domain and find the agency that owns it
+    const hostname = request.headers.get('host') || 'localhost:3000'
+    console.log(`🌐 Detected hostname: ${hostname}`)
+    
+    let agencyId = 'a7d7baa2-0b71-453e-ab7f-0c19b9214be4' // fallback for localhost
+    
+    // For non-localhost domains, find agency by custom_domain
+    if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1')) {
+      console.log(`🌐 Looking up agency for domain: ${hostname}`)
+      
+      const { data: agencyAccount, error: agencyError } = await supabase
+        .from('agency_accounts')
+        .select('id')
+        .or(`custom_domain.eq.${hostname},website.eq.${hostname}`)
+        .single()
+      
+      if (agencyAccount && !agencyError) {
+        agencyId = agencyAccount.id
+        console.log(`✅ Found agency for domain ${hostname}: ${agencyId}`)
+      } else {
+        console.log(`⚠️ No agency found for domain ${hostname}, using fallback: ${agencyId}`)
+        console.log(`⚠️ Agency lookup error:`, agencyError)
+      }
+    } else {
+      console.log(`🏠 Using localhost fallback agency ID: ${agencyId}`)
+    }
+    
+    console.log(`📦 Using agency ID: ${agencyId}`)
 
     // Fetch packages from database
     const { data: packages, error: packagesError } = await supabase
@@ -81,8 +107,16 @@ export async function GET(request: NextRequest) {
 
     if (packagesError) {
       console.error('❌ Error fetching packages:', packagesError)
+      console.error('❌ Packages error details:', {
+        code: packagesError.code,
+        message: packagesError.message,
+        details: packagesError.details,
+        hint: packagesError.hint
+      })
       return getDefaultPackages()
     }
+
+    console.log(`🔍 Raw packages query result:`, packages)
 
     if (!packages || packages.length === 0) {
       console.log('📦 No packages found, using defaults')
@@ -112,10 +146,17 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Found ${formattedPackages.length} packages`)
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       packages: formattedPackages
     })
+    
+    // Add CORS headers for production domains
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+    
+    return response
 
   } catch (error) {
     console.error('❌ Error fetching packages:', error)
@@ -125,7 +166,7 @@ export async function GET(request: NextRequest) {
 
 function getDefaultPackages() {
   console.log('📦 Returning default packages')
-  return NextResponse.json({
+  const response = NextResponse.json({
     success: true,
     packages: [
       {
@@ -184,4 +225,11 @@ function getDefaultPackages() {
       }
     ]
   })
+  
+  // Add CORS headers for production domains
+  response.headers.set('Access-Control-Allow-Origin', '*')
+  response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+  
+  return response
 }
