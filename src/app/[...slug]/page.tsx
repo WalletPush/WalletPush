@@ -173,7 +173,7 @@ export default function CatchAllLandingPage({ params }: Props) {
               if (button) { button.textContent = 'Pass Created!' }
             } catch (err) {
               console.error('❌ WalletPush submit error:', err)
-              alert(err && err.message ? err.message : 'An error occurred. Please try again.')
+              alert(err && (err as Error).message ? (err as Error).message : 'An error occurred. Please try again.')
               resetUI()
             }
           }
