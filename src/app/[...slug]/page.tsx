@@ -106,12 +106,12 @@ export default function CatchAllLandingPage({ params }: Props) {
           console.log('🔥 WalletPush context:', { LP_ID, TEMPLATE_ID, LOGIN_BASE, isMobile })
 
           function findEmailValue() {
-            const el = document.querySelector('input[name="email"], input[type="email"]')
+            const el = document.querySelector('input[name="email"], input[type="email"]') as HTMLInputElement
             return el ? el.value || '' : ''
           }
 
-          async function submitToWalletPush(form) {
-            const button = form.querySelector('button')
+          async function submitToWalletPush(form: HTMLFormElement) {
+            const button = form.querySelector('button') as HTMLButtonElement
             const resetUI = () => {
               try { 
                 if (button) { 
@@ -187,7 +187,7 @@ export default function CatchAllLandingPage({ params }: Props) {
             form.addEventListener('submit', async (e) => {
               try {
                 e.preventDefault()
-                await submitToWalletPush(form)
+                await submitToWalletPush(form as HTMLFormElement)
               } catch(err) { 
                 console.error('WalletPush submit error', err) 
               }
