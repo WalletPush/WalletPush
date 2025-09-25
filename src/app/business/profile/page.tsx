@@ -377,7 +377,9 @@ export default function BusinessProfilePage() {
                     <span className="text-sm text-slate-600">Plan</span>
                   </div>
                   <span className="font-medium text-slate-900">
-                    {profile.subscription_plan?.charAt(0).toUpperCase() + profile.subscription_plan?.slice(1)}
+                    {profile.subscription_plan ? 
+                      profile.subscription_plan.charAt(0).toUpperCase() + profile.subscription_plan.slice(1) : 
+                      'Unknown'}
                   </span>
                 </div>
 
