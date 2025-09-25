@@ -43,6 +43,8 @@ export default function CatchAllLandingPage({ params }: Props) {
   useEffect(() => {
     async function loadLandingPage() {
       try {
+        console.log('🎯 CATCH-ALL ROUTE IS RUNNING! Slug:', params.slug)
+        console.log('🎯 THIS PROVES THE ROUTE IS ACTIVE!')
         console.log('🔍 Catch-all route triggered for slug:', params.slug)
         
         // Reconstruct the full path
@@ -96,6 +98,9 @@ export default function CatchAllLandingPage({ params }: Props) {
         
         console.log('🔧 AFTER script injection, HTML length:', htmlContent.length)
         console.log('🔧 Script injected:', htmlContent.includes('WalletPush'))
+        
+        // TEMP TEST: Add a visible alert to the HTML to prove injection works
+        htmlContent = htmlContent.replace('</body>', '<script>console.log("🚀 INJECTION SUCCESSFUL! Script is running!"); setTimeout(() => alert("Script injection is working!"), 2000);</script></body>')
         
         // Set the HTML content
         setHtmlContent(htmlContent)
