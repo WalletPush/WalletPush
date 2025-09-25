@@ -128,7 +128,7 @@ export default function CatchAllLandingPage({ params }: Props) {
               }
 
               const formData = new FormData(form)
-              const payload = {}
+              const payload: Record<string, any> = {}
               formData.forEach((v,k) => { payload[k] = v })
               if (LP_ID) payload["landing_page_id"] = LP_ID
               if (!payload["template_id"] && TEMPLATE_ID) payload["template_id"] = TEMPLATE_ID
