@@ -25,18 +25,8 @@ export function CompleteAccountForm() {
     if (firstName || lastName) setCustomerName(`${firstName} ${lastName}`.trim())
   }, [searchParams])
 
-  // Already-signed-in guard -> go straight to dashboard
-  useEffect(() => {
-    const run = async () => {
-      const supabase = createClient()
-      const { data } = await supabase.auth.getSession()
-      if (data.session) {
-        redirectToDashboard()
-      }
-    }
-    run()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Note: Removed auto-redirect guard to ensure users can set their password
+  // even if they have an active session from the signup process
 
   const redirectToDashboard = () => {
     const businessId = searchParams?.get('businessId')
