@@ -54,18 +54,31 @@ export function CompleteAccountForm() {
 
       const supabase = createClient()
 
-      // 1) Try sign-up
+      // Check if user already has a session (from customer signup)
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      
+      if (currentUser && currentUser.email === email) {
+        // User already exists and has active session - just update their password
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: password
+        })
+        
+        if (updateError) {
+          setError(`Failed to set password: ${updateError.message}`)
+          return
+        }
+        
+        // Password successfully set, redirect to dashboard
+        redirectToDashboard()
+        return
+      }
+
+      // If no existing session, try sign-up (new user flow)
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password })
 
       if (!signUpErr) {
-        // If email confirmations are OFF, you’ll get a live session here
+        // If email confirmations are OFF, you'll get a live session here
         if (signUpData.session) {
-          redirectToDashboard()
-          return
-        }
-        // Safety fallback: try to sign in anyway
-        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
-        if (!signInErr && signInData.session) {
           redirectToDashboard()
           return
         }
@@ -74,7 +87,7 @@ export function CompleteAccountForm() {
         return
       }
 
-      // 2) If user already exists, attempt sign-in
+      // If user already exists, attempt sign-in
       const msg = (signUpErr?.message || '').toLowerCase()
       if (msg.includes('already') || msg.includes('registered') || msg.includes('user exists')) {
         const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
