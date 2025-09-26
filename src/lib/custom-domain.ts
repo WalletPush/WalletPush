@@ -50,7 +50,7 @@ export async function getBusinessCustomerLoginUrl(businessId: string, email?: st
     baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
   }
   
-  let loginUrl = `${baseUrl}/customer/auth/login`
+  let loginUrl = `${baseUrl}/customer/auth/complete-account`
   
   if (email) {
     loginUrl += `?email=${encodeURIComponent(email)}`

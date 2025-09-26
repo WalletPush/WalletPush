@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         exists: false,
         hasPassword: false,
-        redirectTo: '/customer/auth/login', // Default fallback
+        redirectTo: '/customer/auth/complete-account', // Default fallback
         customerName: null
       })
     }
@@ -58,10 +58,8 @@ export async function GET(request: NextRequest) {
 
     const customerName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
     
-    // Determine redirect URL
-    const redirectTo = hasPassword 
-      ? '/customer/auth/login'
-      : `/customer/auth/complete-account?email=${encodeURIComponent(email)}&firstName=${encodeURIComponent(customer.first_name || '')}&lastName=${encodeURIComponent(customer.last_name || '')}`
+    // Always redirect to complete-account for consistent signup flow
+    const redirectTo = `/customer/auth/complete-account?email=${encodeURIComponent(email)}&firstName=${encodeURIComponent(customer.first_name || '')}&lastName=${encodeURIComponent(customer.last_name || '')}`
 
     return NextResponse.json({
       exists: true,

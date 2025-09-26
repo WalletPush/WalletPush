@@ -41,8 +41,8 @@ export async function POST(req: Request) {
     const domain = await activeCustomDomain(business_id)
     const slug = await slugOf(business_id)
     const loginUrl = domain
-      ? `https://${domain}/customer/auth/login?email=${encodeURIComponent(email)}`
-      : `https://${ROOT}${slug ? `/customer/${slug}` : ''}/customer/auth/login?email=${encodeURIComponent(email)}`
+      ? `https://${domain}/customer/auth/complete-account?email=${encodeURIComponent(email)}`
+      : `https://${ROOT}${slug ? `/customer/${slug}` : ''}/customer/auth/complete-account?email=${encodeURIComponent(email)}`
 
     const res = NextResponse.json({ ok: true, next: loginUrl }, { status: 201 })
     res.cookies.set('wp_bid', business_id, { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 600 })
