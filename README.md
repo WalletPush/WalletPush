@@ -275,3 +275,5 @@ Required environment variables:
 ---
 
 **Built with ❤️ for enterprise-grade Apple Wallet pass management**
+
+*Deployment test - 2025.09.26*
