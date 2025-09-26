@@ -168,10 +168,8 @@ export default function CustomerDashboard() {
         businessLogo={(programSpec.spec as any)?.branding?.businessLogo || branding?.logoUrl}
         businessName={programSpec.spec.copy?.program_name || branding?.companyName}
         businessTagline={programSpec.spec.copy?.tagline}
-        profilePicture={customerSummary?.profile_photo_url}
-        customerName={customerSummary?.first_name && customerSummary?.last_name 
-          ? `${customerSummary.first_name} ${customerSummary.last_name}`
-          : user?.email?.split('@')[0] || 'Member'}
+        profilePicture={user?.user_metadata?.avatar_url || '/default-avatar.png'}
+        customerName={user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Member'}
         showProfile={true}
         theme={(programSpec.spec as any)?.branding?.theme || "dark-midnight"}
       />
