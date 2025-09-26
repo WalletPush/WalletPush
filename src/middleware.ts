@@ -79,26 +79,18 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
         const encodedEmail = encodeURIComponent(email || '');
         const passUrl = (data.download_url || '').replace('?t=', '.pkpass?t=');
 
-        // Override redirect - force complete-account instead of LOGIN_BASE
-        async function getRedirectUrl() {
-          // FORCE: Always go to complete-account for landing page signups, ignore LOGIN_BASE
-          const completeAccountUrl = '/customer/auth/complete-account';
-          console.log('🔍 OVERRIDE REDIRECT: Forcing complete-account instead of LOGIN_BASE:', completeAccountUrl);
-          return completeAccountUrl;
-        }
+        // Direct redirect to complete-account (no function needed)
 
         if (isMobile) {
           window.location.href = passUrl;
-          setTimeout(async function(){ 
-            const redirectUrl = await getRedirectUrl();
-            window.location.href = redirectUrl;
+          setTimeout(function(){ 
+            window.location.href = '/customer/auth/complete-account';
           }, 8000);
         } else {
           try { window.open(data.download_url, '_blank'); } catch(_){}
           if (note) { note.textContent = "Please wait... We're setting up your account!"; note.style.display = 'block'; }
-          setTimeout(async function(){ 
-            const redirectUrl = await getRedirectUrl();
-            window.location.href = redirectUrl;
+          setTimeout(function(){ 
+            window.location.href = '/customer/auth/complete-account';
           }, 3000);
         }
         if (note) { note.style.display = 'none'; }
