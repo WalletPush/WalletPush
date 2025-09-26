@@ -51,91 +51,60 @@ export async function GET(request: NextRequest) {
 
     console.log('🏢 Agency account:', agencyAccountId)
 
-    // TODO: Replace with actual database queries once schema is applied
-    // For now, return mock data
-    
-    const mockPassTypeIDs = [
-      {
-        id: '1',
-        label: 'Agency Master Certificate',
-        passTypeIdentifier: 'pass.com.myagency.master',
-        teamId: 'ABC123DEF4',
-        isValidated: true,
-        isGlobal: false,
-        source: 'owned',
-        createdAt: '2024-01-10',
-        assignedTo: {
-          businessId: '1',
-          businessName: 'Coffee Shop Pro',
-          assignedAt: '2024-01-15'
-        },
-        certificateInfo: {
-          fileName: 'agency_master.p12',
-          expiresAt: '2025-01-10',
-          uploadedAt: '2024-01-10'
-        }
-      },
-      {
-        id: '2',
-        label: 'Premium Business Certificate',
-        passTypeIdentifier: 'pass.com.myagency.premium',
-        teamId: 'ABC123DEF4',
-        isValidated: true,
-        isGlobal: false,
-        source: 'owned',
-        createdAt: '2024-01-15',
-        certificateInfo: {
-          fileName: 'premium_cert.p12',
-          expiresAt: '2025-01-15',
-          uploadedAt: '2024-01-15'
-        }
-      },
-      {
-        id: '3',
-        label: 'Loyalty Program Certificate',
-        passTypeIdentifier: 'pass.com.myagency.loyalty',
-        teamId: 'ABC123DEF4',
-        isValidated: false,
-        isGlobal: false,
-        source: 'owned',
-        createdAt: '2024-01-20',
-        assignedTo: {
-          businessId: '3',
-          businessName: 'Restaurant Deluxe',
-          assignedAt: '2024-01-22'
-        },
-        certificateInfo: {
-          fileName: 'loyalty_cert.p12',
-          expiresAt: '2025-01-20',
-          uploadedAt: '2024-01-20'
-        }
-      },
-      {
-        id: 'global-1',
-        label: 'Global Certificate',
-        passTypeIdentifier: 'pass.com.walletpush.global',
-        teamId: 'PLATFORM1',
-        isValidated: true,
-        isGlobal: true,
-        source: 'global',
-        createdAt: '2024-01-01',
-        certificateInfo: {
-          fileName: 'global_cert.p12',
-          expiresAt: '2025-12-31',
-          uploadedAt: '2024-01-01'
-        }
-      }
-    ]
+    // Query Pass Type IDs from database
+    // Only return Pass Type IDs associated with this specific agency account
+    // Exclude global certificates (is_global = false OR is_global IS NULL)
+    const { data: passTypeIds, error: passTypeIdsError } = await supabase
+      .from('pass_type_ids')
+      .select(`
+        id,
+        label,
+        pass_type_identifier,
+        team_id,
+        is_validated,
+        is_global,
+        created_at,
+        p12_blob_url,
+        p12_path,
+        cert_password,
+        account_id
+      `)
+      .eq('account_id', agencyAccountId)
+      .or('is_global.is.null,is_global.eq.false')
+      .order('created_at', { ascending: false })
 
-    console.log(`✅ Returning ${mockPassTypeIDs.length} Pass Type IDs`)
+    if (passTypeIdsError) {
+      console.error('❌ Error fetching Pass Type IDs:', passTypeIdsError)
+      return NextResponse.json({ error: 'Failed to fetch Pass Type IDs' }, { status: 500 })
+    }
+
+    // Transform the data to match the expected format
+    const formattedPassTypeIds = passTypeIds?.map(pt => ({
+      id: pt.id.toString(),
+      label: pt.label,
+      passTypeIdentifier: pt.pass_type_identifier,
+      teamId: pt.team_id,
+      isValidated: pt.is_validated || false,
+      isGlobal: pt.is_global || false,
+      source: 'owned',
+      createdAt: pt.created_at?.split('T')[0] || '',
+      certificateInfo: {
+        fileName: pt.p12_path ? pt.p12_path.split('/').pop() || 'unknown.p12' : null,
+        blobUrl: pt.p12_blob_url,
+        hasPassword: !!pt.cert_password,
+        uploadedAt: pt.created_at?.split('T')[0] || ''
+      }
+    })) || []
+
+    console.log(`✅ Returning ${formattedPassTypeIds.length} Pass Type IDs for agency ${agencyAccountId}`)
 
     return NextResponse.json({
-      passTypeIds: mockPassTypeIDs,
+      passTypeIds: formattedPassTypeIds,
       agencyInfo: {
         id: agencyAccountId,
-        totalPassTypes: mockPassTypeIDs.length,
-        validatedPassTypes: mockPassTypeIDs.filter(pt => pt.isValidated).length,
-        assignedPassTypes: mockPassTypeIDs.filter(pt => pt.assignedTo).length
+        totalPassTypes: formattedPassTypeIds.length,
+        validatedPassTypes: formattedPassTypeIds.filter(pt => pt.isValidated).length,
+        assignedPassTypes: 0 // TODO: Count actual assignments when that feature is implemented
       }
     })
 
