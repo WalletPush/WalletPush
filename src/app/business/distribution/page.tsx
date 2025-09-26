@@ -503,10 +503,29 @@ Make it modern, professional, and conversion-focused.`
     try {
       let response
       let landingPageId = currentLandingPageId
+      let templateId = null
 
       console.log('🔍 DEBUG - currentLandingPageId:', currentLandingPageId)
       console.log('🔍 DEBUG - wizardData:', wizardData)
-      console.log('🔍 DEBUG - template_id being sent:', wizardData.programTemplate)
+      console.log('🔍 DEBUG - program_id being sent:', wizardData.programTemplate)
+
+      // Fetch the template_id dynamically based on program_id
+      if (wizardData.programTemplate) {
+        try {
+          const templateRes = await fetch(`/api/templates?program_id=${wizardData.programTemplate}`)
+          if (templateRes.ok) {
+            const templateData = await templateRes.json()
+            if (templateData.templates && templateData.templates.length > 0) {
+              templateId = templateData.templates[0].id
+              console.log('✅ Found template_id for program:', templateId)
+            } else {
+              console.warn('⚠️ No template found for program_id:', wizardData.programTemplate)
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error fetching template:', error)
+        }
+      }
 
       if (currentLandingPageId) {
         // Update existing landing page
@@ -522,7 +541,7 @@ Make it modern, professional, and conversion-focused.`
             description: wizardData.pageDescription,
             custom_url: wizardData.customUrl,
             html_content: wizardData.generatedHtml,
-            template_id: null, // TEMP: Set to null to test foreign key issue
+            template_id: templateId, // Dynamically fetched based on program_id
             settings: wizardData,
             status: 'published'
           })
@@ -541,7 +560,7 @@ Make it modern, professional, and conversion-focused.`
             description: wizardData.pageDescription,
             custom_url: wizardData.customUrl,
             html_content: wizardData.generatedHtml,
-            template_id: wizardData.programTemplate,
+            template_id: templateId, // Dynamically fetched based on program_id
             program_id: null, // Will be set by the API based on template
             settings: wizardData,
             status: 'published'
