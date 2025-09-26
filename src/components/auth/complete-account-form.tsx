@@ -54,24 +54,26 @@ export function CompleteAccountForm() {
 
       const supabase = createClient()
 
-      // Check if user already has a session (from customer signup)
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
-      
-      if (currentUser && currentUser.email === email) {
-        // User already exists and has active session - just update their password
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: password
-        })
-        
-        if (updateError) {
-          setError(`Failed to set password: ${updateError.message}`)
-          return
-        }
-        
-        // Password successfully set, redirect to dashboard
-        redirectToDashboard()
-        return
-      }
+      // TEMPORARILY DISABLED: Check if user already has a session (from customer signup)
+      // This logic was causing immediate redirects before users could set passwords
+      // TODO: Re-enable this with proper validation that password is actually set
+      // const { data: { user: currentUser } } = await supabase.auth.getUser()
+      // 
+      // if (currentUser && currentUser.email === email) {
+      //   // User already exists and has active session - just update their password
+      //   const { error: updateError } = await supabase.auth.updateUser({
+      //     password: password
+      //   })
+      //   
+      //   if (updateError) {
+      //     setError(`Failed to set password: ${updateError.message}`)
+      //     return
+      //   }
+      //   
+      //   // Password successfully set, redirect to dashboard
+      //   redirectToDashboard()
+      //   return
+      // }
 
       // If no existing session, try sign-up (new user flow)
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password })
