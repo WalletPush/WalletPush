@@ -116,6 +116,23 @@ export async function PUT(
       has_settings: !!settings
     })
     
+    // Validate template_id exists if provided to avoid foreign key constraint violation
+    let validatedTemplateId = template_id
+    if (template_id) {
+      const { data: templateExists } = await supabase
+        .from('templates')
+        .select('id')
+        .eq('id', template_id)
+        .single()
+      
+      if (!templateExists) {
+        console.warn(`⚠️ Template ${template_id} does not exist, setting to null`)
+        validatedTemplateId = null
+      } else {
+        console.log(`✅ Template ${template_id} exists`)
+      }
+    }
+    
     // Update the landing page in database
     const updateData = {
       name: name || title,
@@ -125,7 +142,7 @@ export async function PUT(
       ai_prompt: `Updated landing page for: ${title || name || 'Untitled Page'}. Description: ${description || 'No description provided'}`,
       generated_html: html_content,
       is_published: status === 'published',
-      template_id: template_id || null,
+      template_id: validatedTemplateId || null,
       program_id: program_id || null,
       updated_at: new Date().toISOString()
     }
