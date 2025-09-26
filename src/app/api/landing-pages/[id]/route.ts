@@ -113,7 +113,8 @@ export async function PUT(
       template_id,
       program_id,
       has_html_content: !!html_content,
-      has_settings: !!settings
+      has_settings: !!settings,
+      will_be_published: status === 'published'
     })
     
     // DEBUG: Check if template_id exists and is accessible via API context

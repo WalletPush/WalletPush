@@ -50,9 +50,18 @@ export async function POST(request: NextRequest) {
     
     const { name, title, description, custom_url, html_content, settings, status, template_id, program_id } = body
     
-    // Use the selected template_id (from Step 1) or null if not valid
-    const selectedTemplateId = template_id || settings?.programTemplate || null
-    let selectedProgramId = program_id || null // Don't force a program_id
+    console.log('🔍 DEBUG - Landing page POST request body:', {
+      has_template_id: !!template_id,
+      has_program_id: !!program_id,
+      status,
+      template_id,
+      program_id,
+      settings_programTemplate: settings?.programTemplate
+    })
+    
+    // Use the selected template_id directly (no fallback to programTemplate which is a program ID)
+    const selectedTemplateId = template_id || null
+    let selectedProgramId = program_id || null
     
     // If we have a template_id but no program_id, get the program_id from the template
     if (selectedTemplateId && !selectedProgramId) {

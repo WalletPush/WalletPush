@@ -508,6 +508,7 @@ Make it modern, professional, and conversion-focused.`
       console.log('🔍 DEBUG - currentLandingPageId:', currentLandingPageId)
       console.log('🔍 DEBUG - wizardData:', wizardData)
       console.log('🔍 DEBUG - program_id being sent:', wizardData.programTemplate)
+      console.log('🔍 DEBUG - wizardData.programTemplate (should not be empty):', wizardData.programTemplate || 'EMPTY!')
 
       // Fetch the template_id dynamically based on program_id
       if (wizardData.programTemplate) {
@@ -521,11 +522,21 @@ Make it modern, professional, and conversion-focused.`
             } else {
               console.warn('⚠️ No template found for program_id:', wizardData.programTemplate)
             }
+          } else {
+            console.error('❌ Failed to fetch templates, status:', templateRes.status)
           }
         } catch (error) {
           console.error('❌ Error fetching template:', error)
         }
+      } else {
+        console.warn('⚠️ No program ID available to fetch template')
       }
+
+      console.log('🔍 DEBUG - Final values before sending to API:', {
+        templateId,
+        programId: wizardData.programTemplate,
+        status: 'published'
+      })
 
       if (currentLandingPageId) {
         // Update existing landing page
@@ -542,6 +553,7 @@ Make it modern, professional, and conversion-focused.`
             custom_url: wizardData.customUrl,
             html_content: wizardData.generatedHtml,
             template_id: templateId, // Dynamically fetched based on program_id
+            program_id: wizardData.programTemplate, // Send the actual program ID
             settings: wizardData,
             status: 'published'
           })
@@ -561,7 +573,7 @@ Make it modern, professional, and conversion-focused.`
             custom_url: wizardData.customUrl,
             html_content: wizardData.generatedHtml,
             template_id: templateId, // Dynamically fetched based on program_id
-            program_id: null, // Will be set by the API based on template
+            program_id: wizardData.programTemplate, // Send the actual program ID
             settings: wizardData,
             status: 'published'
           })
