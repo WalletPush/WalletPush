@@ -116,20 +116,21 @@ export async function PUT(
       has_settings: !!settings
     })
     
-    // Validate template_id exists if provided to avoid foreign key constraint violation
-    let validatedTemplateId = template_id
+    // DEBUG: Check if template_id exists and is accessible via API context
     if (template_id) {
-      const { data: templateExists } = await supabase
+      console.log(`🔍 DEBUG - Checking template existence: ${template_id}`)
+      const { data: templateCheck, error: templateError } = await supabase
         .from('templates')
-        .select('id')
+        .select('id, account_id, program_id')
         .eq('id', template_id)
         .single()
       
-      if (!templateExists) {
-        console.warn(`⚠️ Template ${template_id} does not exist, setting to null`)
-        validatedTemplateId = null
+      if (templateError) {
+        console.error(`❌ Template check error:`, templateError)
+      } else if (templateCheck) {
+        console.log(`✅ Template found:`, templateCheck)
       } else {
-        console.log(`✅ Template ${template_id} exists`)
+        console.warn(`⚠️ Template ${template_id} not found via API`)
       }
     }
     
@@ -142,7 +143,7 @@ export async function PUT(
       ai_prompt: `Updated landing page for: ${title || name || 'Untitled Page'}. Description: ${description || 'No description provided'}`,
       generated_html: html_content,
       is_published: status === 'published',
-      template_id: validatedTemplateId || null,
+      template_id: template_id || null,
       program_id: program_id || null,
       updated_at: new Date().toISOString()
     }
