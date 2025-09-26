@@ -1,13 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useBranding } from '@/lib/branding'
 import { SECTION_REGISTRY } from '@/lib/member-dashboard/registry'
 import { bindProps, ProgramSpecResponse, CustomerSummary } from '@/lib/member-dashboard/utils'
+import { BrandedHeader } from '@/components/branding/BrandedHeader'
 import '@/components/member-dashboard/wp-themes.css'
 
 export default function CustomerDashboard() {
+  const searchParams = useSearchParams()
+  const businessId = searchParams.get('businessId')
+  
   const [user, setUser] = useState<any>(null)
   const [programSpec, setProgramSpec] = useState<ProgramSpecResponse | null>(null)
   const [customerSummary, setCustomerSummary] = useState<CustomerSummary | null>(null)
@@ -28,20 +33,22 @@ export default function CustomerDashboard() {
           return
         }
 
-        // Let the API resolve businessId from domain (no hardcoding needed)
-        console.log('Loading dashboard for user:', user.email)
+        // Get businessId from URL parameter or let API resolve from domain
+        console.log('Loading dashboard for user:', user.email, 'businessId:', businessId)
         
-        // Load program spec (API will resolve businessId from domain)
-        const specResponse = await fetch(`/api/program/spec`)
+        // Load program spec (pass businessId if available)
+        const specUrl = businessId ? `/api/program/spec?businessId=${businessId}` : `/api/program/spec`
+        const specResponse = await fetch(specUrl)
         if (specResponse.ok) {
           const specData = await specResponse.json()
           console.log('Program spec loaded:', specData.program_type)
           setProgramSpec(specData)
           
-          // Load customer summary (API will resolve businessId from domain)
-          const summaryResponse = await fetch(
-            `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}`
-          )
+          // Load customer summary (pass businessId if available)
+          const summaryUrl = businessId 
+            ? `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}&businessId=${businessId}`
+            : `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}`
+          const summaryResponse = await fetch(summaryUrl)
           if (summaryResponse.ok) {
             const summaryData = await summaryResponse.json()
             console.log('Customer summary loaded:', summaryData)
@@ -50,10 +57,11 @@ export default function CustomerDashboard() {
             console.error('Failed to load customer summary')
           }
           
-          // Load offers (API will resolve businessId from domain)
-          const offersResponse = await fetch(
-            `/api/program/offers?programId=${specData.program_id}`
-          )
+          // Load offers (pass businessId if available)
+          const offersUrl = businessId
+            ? `/api/program/offers?programId=${specData.program_id}&businessId=${businessId}`
+            : `/api/program/offers?programId=${specData.program_id}`
+          const offersResponse = await fetch(offersUrl)
           if (offersResponse.ok) {
             const offersData = await offersResponse.json()
             console.log('Offers loaded:', offersData)
@@ -74,7 +82,7 @@ export default function CustomerDashboard() {
     }
 
     loadDashboard()
-  }, [])
+  }, [businessId])
 
   if (loading) {
     return (
@@ -154,28 +162,24 @@ export default function CustomerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a1f2e] via-[#2E3748] to-[#1a1f2e]">
+    <div className="wp-root min-h-screen" data-wp-theme={programSpec.spec.branding?.theme || "dark-midnight"}>
+      {/* Use proper three-column branded header component */}
+      <BrandedHeader 
+        businessLogo={programSpec.spec.branding?.businessLogo || branding?.logoUrl}
+        businessName={programSpec.spec.copy?.program_name || branding?.companyName}
+        businessTagline={programSpec.spec.copy?.tagline}
+        profilePicture={customerSummary?.profile_photo_url}
+        customerName={customerSummary?.first_name && customerSummary?.last_name 
+          ? `${customerSummary.first_name} ${customerSummary.last_name}`
+          : user?.email?.split('@')[0] || 'Member'}
+        showProfile={true}
+        theme={programSpec.spec.branding?.theme || "dark-midnight"}
+      />
+      
       <div className="container mx-auto px-4 py-8">
-        {/* Header with branding */}
-        <div className="mb-8 text-center">
-          {branding?.logoUrl && (
-            <img 
-              src={branding.logoUrl} 
-              alt={branding.companyName || 'Logo'} 
-              className="h-16 w-auto mx-auto mb-4"
-            />
-          )}
-          <h1 className="text-2xl font-bold text-white">
-            {programSpec.spec.copy?.program_name || branding?.companyName || 'Your Dashboard'}
-          </h1>
-          {programSpec.spec.copy?.tagline && (
-            <p className="text-[#C6C8CC] mt-2">{programSpec.spec.copy.tagline}</p>
-          )}
-          <p className="text-[#C6C8CC] text-sm mt-1">{user?.email}</p>
-        </div>
 
         {/* JSON-Driven Dashboard Sections */}
-        <main className="wp-root space-y-6" data-wp-theme="dark-midnight">
+        <main className="space-y-6">
           {programSpec.spec.ui_contract.sections.map((section, index) => {
             const Component = SECTION_REGISTRY[section.type as keyof typeof SECTION_REGISTRY]
             
