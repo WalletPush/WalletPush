@@ -25,6 +25,35 @@ export async function GET(request: NextRequest) {
           .maybeSingle()
         businessId = bizByDomain?.id ?? null
         console.log('🌐 Resolved businessId from domain:', host, '→', businessId)
+      } else {
+        // For localhost development, prefer Sambor's business or fallback to first active business
+        console.log('🏠 Localhost detected, using development fallback')
+        const supabase = await createClient()
+        // First try to find Sambor's business (from your logs)
+        const samborBusinessId = '75c3013b-36bd-4d87-a684-61a72cda7e02'
+        const { data: samborBusiness } = await supabase
+          .from('programs')
+          .select('business_id, businesses!inner(name)')
+          .eq('business_id', samborBusinessId)
+          .eq('status', 'active')
+          .not('current_version_id', 'is', null)
+          .maybeSingle()
+        
+        if (samborBusiness) {
+          businessId = samborBusinessId
+          console.log('🔧 Development using Sambor business:', businessId, '(', samborBusiness?.businesses?.name, ')')
+        } else {
+          // Fallback to any active business
+          const { data: devBusiness } = await supabase
+            .from('programs')
+            .select('business_id, businesses!inner(name)')
+            .eq('status', 'active')
+            .not('current_version_id', 'is', null)
+            .limit(1)
+            .maybeSingle()
+          businessId = devBusiness?.business_id ?? null
+          console.log('🔧 Development fallback business:', businessId, '(', devBusiness?.businesses?.name, ')')
+        }
       }
     }
     
@@ -64,6 +93,7 @@ export async function GET(request: NextRequest) {
 
     const response = {
       program_id: program.id,
+      business_id: businessId,
       program_type: programVersion.spec_json?.program_type || 'loyalty',
       spec: programVersion.spec_json
     }

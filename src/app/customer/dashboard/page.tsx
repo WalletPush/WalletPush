@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useBranding } from '@/lib/branding'
+import { BrandedHeader } from '@/components/branding/BrandedHeader'
 import { SECTION_REGISTRY } from '@/lib/member-dashboard/registry'
 import { bindProps, ProgramSpecResponse, CustomerSummary } from '@/lib/member-dashboard/utils'
 import '@/components/member-dashboard/wp-themes.css'
@@ -12,6 +13,7 @@ export default function CustomerDashboard() {
   const [programSpec, setProgramSpec] = useState<ProgramSpecResponse | null>(null)
   const [customerSummary, setCustomerSummary] = useState<CustomerSummary | null>(null)
   const [offers, setOffers] = useState<any>(null)
+  const [businessId, setBusinessId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { branding } = useBranding()
@@ -37,6 +39,9 @@ export default function CustomerDashboard() {
           const specData = await specResponse.json()
           console.log('Program spec loaded:', specData.program_type)
           setProgramSpec(specData)
+          if (specData.business_id) {
+            setBusinessId(specData.business_id)
+          }
           
           // Load customer summary (API will resolve businessId from domain)
           const summaryResponse = await fetch(
@@ -50,9 +55,9 @@ export default function CustomerDashboard() {
             console.error('Failed to load customer summary')
           }
           
-          // Load offers (API will resolve businessId from domain)
+          // Load offers
           const offersResponse = await fetch(
-            `/api/program/offers?programId=${specData.program_id}`
+            `/api/program/offers?programId=${specData.program_id}&businessId=${specData.business_id}`
           )
           if (offersResponse.ok) {
             const offersData = await offersResponse.json()
@@ -149,30 +154,31 @@ export default function CustomerDashboard() {
     program: programSpec.spec,
     member: customerSummary,
     offers: offers || { active: [] },
-    business: { check_in_endpoint: `/api/checkin/demo-business-123` },
+    business: { check_in_endpoint: `/api/checkin/${businessId || 'unknown'}` },
     copy: programSpec.spec.copy || {}
   }
 
+  // Get customer display name
+  const customerDisplayName = user?.user_metadata?.full_name || 
+    `${user?.user_metadata?.first_name || ''} ${user?.user_metadata?.last_name || ''}`.trim() ||
+    user?.email?.split('@')[0] || 'Customer'
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a1f2e] via-[#2E3748] to-[#1a1f2e]">
+      {/* 3-Column Header */}
+      <div className="wp-root" data-wp-theme={(programSpec.spec as any).branding?.theme || 'dark-midnight'}>
+        <BrandedHeader
+          businessLogo={(programSpec.spec as any).branding?.businessLogo || branding?.logoUrl}
+          businessName={programSpec.spec.copy?.program_name || branding?.companyName || 'Your Business'}
+          businessTagline={programSpec.spec.copy?.tagline || 'Your rewards await!'}
+          profilePicture={(customerSummary as any)?.profile_photo_url}
+          customerName={customerDisplayName}
+          showProfile={true}
+          theme={(programSpec.spec as any).branding?.theme || 'dark-midnight'}
+        />
+      </div>
+      
       <div className="container mx-auto px-4 py-8">
-        {/* Header with branding */}
-        <div className="mb-8 text-center">
-          {branding?.logoUrl && (
-            <img 
-              src={branding.logoUrl} 
-              alt={branding.companyName || 'Logo'} 
-              className="h-16 w-auto mx-auto mb-4"
-            />
-          )}
-          <h1 className="text-2xl font-bold text-white">
-            {programSpec.spec.copy?.program_name || branding?.companyName || 'Your Dashboard'}
-          </h1>
-          {programSpec.spec.copy?.tagline && (
-            <p className="text-[#C6C8CC] mt-2">{programSpec.spec.copy.tagline}</p>
-          )}
-          <p className="text-[#C6C8CC] text-sm mt-1">{user?.email}</p>
-        </div>
 
         {/* JSON-Driven Dashboard Sections */}
         <main className="wp-root space-y-6" data-wp-theme="dark-midnight">
