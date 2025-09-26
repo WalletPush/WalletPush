@@ -5,8 +5,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email')
+    const businessId = searchParams.get('businessId')
 
-    console.log('🔍 Check account status API called with email:', email)
+    console.log('🔍 Check account status API called with email:', email, 'businessId:', businessId)
 
     if (!email) {
       return NextResponse.json(
@@ -33,10 +34,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (!customer) {
+      // For new signups, redirect to complete-account with businessId
+      const completeAccountUrl = businessId 
+        ? `/customer/auth/complete-account?email=${encodeURIComponent(email)}&businessId=${businessId}`
+        : `/customer/auth/complete-account?email=${encodeURIComponent(email)}`
+      
       return NextResponse.json({
         exists: false,
         hasPassword: false,
-        redirectTo: '/customer/auth/login', // Default fallback
+        redirectTo: completeAccountUrl,
         customerName: null
       })
     }
@@ -60,8 +66,8 @@ export async function GET(request: NextRequest) {
     
     // Determine redirect URL
     const redirectTo = hasPassword 
-      ? '/customer/auth/login'
-      : `/customer/auth/complete-account?email=${encodeURIComponent(email)}&firstName=${encodeURIComponent(customer.first_name || '')}&lastName=${encodeURIComponent(customer.last_name || '')}`
+      ? `/customer/auth/login?email=${encodeURIComponent(email)}${businessId ? `&businessId=${businessId}` : ''}`
+      : `/customer/auth/complete-account?email=${encodeURIComponent(email)}&firstName=${encodeURIComponent(customer.first_name || '')}&lastName=${encodeURIComponent(customer.last_name || '')}${businessId ? `&businessId=${businessId}` : ''}`
 
     return NextResponse.json({
       exists: true,
