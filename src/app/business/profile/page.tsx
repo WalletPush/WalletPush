@@ -229,47 +229,42 @@ export default function BusinessProfilePage() {
 
   return (
     <>
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center space-x-6">
-            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <BuildingOfficeIcon className="w-12 h-12 text-white" />
+      <header className="dashboard-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
+            <p className="text-slate-600">Manage your business information and settings</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-4">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                profile.subscription_status === 'active' 
+                  ? 'bg-green-100 text-green-800 border border-green-200'
+                  : profile.subscription_status === 'trial'
+                  ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                  : 'bg-red-100 text-red-800 border border-red-200'
+              }`}>
+                {profile.subscription_status === 'active' ? 'Active' : 
+                 profile.subscription_status === 'trial' ? 'Trial' : 'Inactive'}
+              </span>
+              <span className="text-slate-600 text-sm">
+                {profile.subscription_plan ? 
+                  profile.subscription_plan.charAt(0).toUpperCase() + profile.subscription_plan.slice(1) : 
+                  'Unknown'} Plan
+              </span>
             </div>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold">{profile.name}</h1>
-              <p className="text-indigo-100 mt-1">Business Profile</p>
-              <div className="flex items-center space-x-4 mt-3">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  profile.subscription_status === 'active' 
-                    ? 'bg-green-500/20 text-green-100 border border-green-400/30'
-                    : profile.subscription_status === 'trial'
-                    ? 'bg-yellow-500/20 text-yellow-100 border border-yellow-400/30'
-                    : 'bg-red-500/20 text-red-100 border border-red-400/30'
-                }`}>
-                  {profile.subscription_status === 'active' ? 'Active' : 
-                   profile.subscription_status === 'trial' ? 'Trial' : 'Inactive'}
-                </span>
-                <span className="text-indigo-100">
-                  {profile.subscription_plan ? 
-                    profile.subscription_plan.charAt(0).toUpperCase() + profile.subscription_plan.slice(1) : 
-                    'Unknown'} Plan
-                </span>
-              </div>
-            </div>
-
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/20 transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg transition-all duration-200"
             >
-              <ArrowRightOnRectangleIcon className="w-5 h-5" />
-              <span>Logout</span>
+              <ArrowRightOnRectangleIcon className="w-4 h-4 text-white" />
+              <span className="text-white">Logout</span>
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="dashboard-content">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Profile Information */}

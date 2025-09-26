@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 Fetching customers for business:', businessId)
 
-    // Fetch customers for this business with all business intelligence columns
+    // Fetch customers for this business - optimized query without large JSON fields
     const { data: customers, error: customersError } = await supabase
       .from('customers')
       .select(`
@@ -74,7 +74,6 @@ export async function GET(request: NextRequest) {
         template_id,
         templates (
           id,
-          template_json,
           programs (
             name
           )
@@ -83,6 +82,7 @@ export async function GET(request: NextRequest) {
       .eq('business_id', businessId)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
+      .limit(1000)
 
     if (customersError) {
       console.error('❌ Error fetching customers:', customersError)
@@ -181,9 +181,20 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('❌ Business customers API error:', error)
+    console.error('❌ Error fetching customers:', {
+      message: error.message,
+      details: error.stack,
+      hint: error.hint || '',
+      code: error.code || ''
+    })
+    
+    // Return specific error information for debugging
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Failed to fetch customers',
+        message: error.message,
+        code: error.code || 'UNKNOWN_ERROR'
+      },
       { status: 500 }
     )
   }
