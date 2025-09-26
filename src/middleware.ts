@@ -77,22 +77,11 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
         const encodedEmail = encodeURIComponent(email || '');
         const passUrl = (data.download_url || '').replace('?t=', '.pkpass?t=');
 
-        // Always redirect to complete-account for landing page signups
+        // Always redirect to complete-account for landing page signups - NO EXCEPTIONS
         async function getRedirectUrl() {
-          console.log('🔍 DEBUG - getRedirectUrl called');
-          console.log('🔍 DEBUG - email value:', email);
-          console.log('🔍 DEBUG - encodedEmail value:', encodedEmail);
-          console.log('🔍 DEBUG - LOGIN_BASE value:', LOGIN_BASE);
-          
-          if (!email) {
-            console.log('🔍 No email found, using default LOGIN_BASE:', LOGIN_BASE);
-            return LOGIN_BASE;
-          }
-          
-          // For landing page signups, always go to complete-account
-          const completeAccountUrl = '/customer/auth/complete-account?email=' + encodedEmail;
-          console.log('🔍 FORCED REDIRECT to complete account:', completeAccountUrl);
-          console.log('🔍 This should ALWAYS happen for landing page signups');
+          // SIMPLE: Every landing page signup goes to complete-account
+          const completeAccountUrl = '/customer/auth/complete-account';
+          console.log('🔍 SIMPLE REDIRECT: Always sending landing page signups to:', completeAccountUrl);
           return completeAccountUrl;
         }
 
