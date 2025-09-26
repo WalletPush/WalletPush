@@ -79,17 +79,29 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
 
         // Get intelligent redirect URL based on customer account status
         async function getRedirectUrl() {
-          if (!email) return LOGIN_BASE;
+          if (!email) {
+            console.log('🔍 No email found, using default LOGIN_BASE:', LOGIN_BASE);
+            return LOGIN_BASE;
+          }
           try {
+            console.log('🔍 Checking account status for email:', email);
             const statusRes = await fetch('/api/customer/check-account-status?email=' + encodedEmail);
+            console.log('🔍 Account status API response status:', statusRes.status);
             if (statusRes.ok) {
               const statusData = await statusRes.json();
-              return statusData.redirectTo || LOGIN_BASE;
+              console.log('🔍 Account status API response data:', statusData);
+              const redirectUrl = statusData.redirectTo || LOGIN_BASE;
+              console.log('🔍 Final redirect URL:', redirectUrl);
+              return redirectUrl;
+            } else {
+              console.warn('🔍 Account status API failed with status:', statusRes.status);
             }
           } catch (e) {
             console.warn('Failed to check account status, using default redirect:', e);
           }
-          return LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : '');
+          const fallbackUrl = LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : '');
+          console.log('🔍 Using fallback redirect URL:', fallbackUrl);
+          return fallbackUrl;
         }
 
         if (isMobile) {
