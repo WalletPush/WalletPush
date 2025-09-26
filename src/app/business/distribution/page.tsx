@@ -506,6 +506,7 @@ Make it modern, professional, and conversion-focused.`
 
       console.log('🔍 DEBUG - currentLandingPageId:', currentLandingPageId)
       console.log('🔍 DEBUG - wizardData:', wizardData)
+      console.log('🔍 DEBUG - template_id being sent:', wizardData.programTemplate)
 
       if (currentLandingPageId) {
         // Update existing landing page
@@ -521,7 +522,7 @@ Make it modern, professional, and conversion-focused.`
             description: wizardData.pageDescription,
             custom_url: wizardData.customUrl,
             html_content: wizardData.generatedHtml,
-            template_id: wizardData.programTemplate,
+            template_id: null, // TEMP: Set to null to test foreign key issue
             settings: wizardData,
             status: 'published'
           })
