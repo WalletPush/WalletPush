@@ -100,7 +100,7 @@ export default function CatchAllLandingPage({ params }: Props) {
           
           const LP_ID = landingPage.id
           const TEMPLATE_ID = landingPage.template_id
-          const LOGIN_BASE = `https://${window.location.hostname}/customer/auth/login`
+          const LOGIN_BASE = `https://${window.location.hostname}/customer/auth/complete-account`
           const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
           
           console.log('🔥 WalletPush context:', { LP_ID, TEMPLATE_ID, LOGIN_BASE, isMobile })
