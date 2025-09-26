@@ -28,22 +28,19 @@ export default function CustomerDashboard() {
           return
         }
 
-        // For MVP testing, use a mock businessId
-        // In production, this would be resolved from custom domain or user context
-        const businessId = 'demo-business-123'
+        // Let the API resolve businessId from domain (no hardcoding needed)
+        console.log('Loading dashboard for user:', user.email)
         
-        console.log('Loading dashboard for user:', user.email, 'business:', businessId)
-        
-        // Load program spec
-        const specResponse = await fetch(`/api/program/spec?businessId=${businessId}`)
+        // Load program spec (API will resolve businessId from domain)
+        const specResponse = await fetch(`/api/program/spec`)
         if (specResponse.ok) {
           const specData = await specResponse.json()
           console.log('Program spec loaded:', specData.program_type)
           setProgramSpec(specData)
           
-          // Load customer summary  
+          // Load customer summary (API will resolve businessId from domain)
           const summaryResponse = await fetch(
-            `/api/customer/summary?businessId=${businessId}&programId=${specData.program_id}&customerId=${user.id}`
+            `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}`
           )
           if (summaryResponse.ok) {
             const summaryData = await summaryResponse.json()
@@ -53,9 +50,9 @@ export default function CustomerDashboard() {
             console.error('Failed to load customer summary')
           }
           
-          // Load offers
+          // Load offers (API will resolve businessId from domain)
           const offersResponse = await fetch(
-            `/api/program/offers?businessId=${businessId}&programId=${specData.program_id}`
+            `/api/program/offers?programId=${specData.program_id}`
           )
           if (offersResponse.ok) {
             const offersData = await offersResponse.json()

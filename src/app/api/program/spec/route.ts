@@ -8,13 +8,30 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const businessId = searchParams.get('businessId')
+    let businessId = searchParams.get('businessId')
     
     console.log('🧪 Program spec API called')
+    
+    // If no businessId provided, resolve from domain (like customer/summary does)
+    if (!businessId) {
+      const host = (request.headers.get('host') || '').split(':')[0]
+      if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+        const supabase = await createClient()
+        const { data: bizByDomain } = await supabase
+          .from('businesses')
+          .select('id, custom_domain, slug')
+          .or(`custom_domain.eq.${host},slug.eq.${host.split('.')[0]}`)
+          .limit(1)
+          .maybeSingle()
+        businessId = bizByDomain?.id ?? null
+        console.log('🌐 Resolved businessId from domain:', host, '→', businessId)
+      }
+    }
+    
     console.log('🔍 Fetching program spec for business:', businessId)
     
     if (!businessId) {
-      return NextResponse.json({ error: 'businessId is required' }, { status: 400 })
+      return NextResponse.json({ error: 'businessId could not be resolved from domain' }, { status: 400 })
     }
 
     const supabase = await createClient()
