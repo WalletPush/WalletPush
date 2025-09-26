@@ -194,6 +194,12 @@ export async function POST(request: Request) {
     const templateData = body
     const explicitId: string | undefined = (body.id || body.template_id)
     
+    // DEBUG: Log what we received to understand the ID issue
+    console.log('🔍 DEBUG - Request body keys:', Object.keys(body))
+    console.log('🔍 DEBUG - body.id:', body.id)
+    console.log('🔍 DEBUG - body.template_id:', body.template_id)
+    console.log('🔍 DEBUG - explicitId:', explicitId)
+    
     // Try to get existing programs, but don't fail if none exist
     const { data: existingPrograms, error: programError } = await supabase
       .from('programs')
@@ -247,33 +253,54 @@ export async function POST(request: Request) {
 
     // Check if template already exists and UPDATE instead of INSERT
     let template
+    let shouldInsert = true
+    
     try {
       if (explicitId) {
         // UPDATE by explicit template id (correct behavior)
-        console.log(`🔄 Updating template by explicit id: ${explicitId}`)
-        const { data, error } = await supabase
+        console.log(`🔄 Attempting to update template by explicit id: ${explicitId}`)
+        
+        // First, check if the template exists
+        const { data: existingTemplate, error: checkError } = await supabase
           .from('templates')
-          .update({
-            template_json: templateData,
-            passkit_json: body.passkit_json,
-            pass_type_identifier: templateData.metadata?.pass_type_identifier,
-            account_id: businessId,
-            previews: { generated_at: new Date().toISOString() },
-            published_at: new Date().toISOString()
-          })
+          .select('id, program_id, version')
           .eq('id', explicitId)
-          .select()
           .single()
+        
+        if (checkError || !existingTemplate) {
+          console.warn(`⚠️ Template ${explicitId} not found, will create new one instead`)
+          // Template doesn't exist, will fall through to INSERT logic
+        } else {
+          console.log(`✅ Found existing template: ${existingTemplate.id} (program: ${existingTemplate.program_id}, version: ${existingTemplate.version})`)
+          
+          const { data, error } = await supabase
+            .from('templates')
+            .update({
+              template_json: templateData,
+              passkit_json: body.passkit_json,
+              pass_type_identifier: templateData.metadata?.pass_type_identifier,
+              account_id: businessId,
+              previews: { generated_at: new Date().toISOString() },
+              published_at: new Date().toISOString()
+              // Note: NOT updating program_id or version to avoid constraint violations
+            })
+            .eq('id', explicitId)
+            .select()
+            .single()
 
-        if (error) {
-          console.error('❌ Supabase update error:', error)
-          throw error
+          if (error) {
+            console.error('❌ Supabase update error:', error)
+            throw error
+          }
+          template = data
+          shouldInsert = false
+          console.log('✅ Template updated in Supabase:', template.id)
+          console.log(`🧹 Clearing pass store cache (${getPassStoreSize()} passes) due to template update`)
+          clearPassStore()
         }
-        template = data
-        console.log('✅ Template updated in Supabase:', template.id)
-        console.log(`🧹 Clearing pass store cache (${getPassStoreSize()} passes) due to template update`)
-        clearPassStore()
-      } else {
+      }
+      
+      if (shouldInsert) {
         // INSERT new template (no id provided)
         console.log(`➕ Creating new template`)
         const insertData: any = {

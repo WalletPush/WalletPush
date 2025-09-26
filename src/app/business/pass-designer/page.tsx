@@ -1019,6 +1019,8 @@ export default function PassDesigner() {
 
       console.log('💾 Saving complete template data:', templateData)
       console.log('🎯 PassKit JSON with placeholders:', passkitJson)
+      console.log('🔍 DEBUG - currentPass.id:', currentPass.id)
+      console.log('🔍 DEBUG - currentPass object:', currentPass)
 
       const res = await fetch('/api/templates', {
         method: 'POST',
@@ -1423,8 +1425,9 @@ export default function PassDesigner() {
   }, [])
 
   // Load pass
-  const handleLoadPass = useCallback((templateJson: any) => {
+  const handleLoadPass = useCallback((templateJson: any, templateId?: string) => {
     console.log('🔄 Loading template:', templateJson)
+    console.log('🔍 Template ID:', templateId)
     
     // NEW: Validate tenant access
     if (currentTenant && templateJson.metadata?.tenant_id && templateJson.metadata.tenant_id !== currentTenant.id) {
@@ -1476,7 +1479,7 @@ export default function PassDesigner() {
       }
       
       loadedPass = {
-        id: templateJson.id,
+        id: templateId || templateJson.id,
         templateName: templateJson.templateName || templateJson.name || 'AI Template',
         description: templateJson.description || 'AI-generated template',
         style: 'storeCard',
@@ -1520,7 +1523,7 @@ export default function PassDesigner() {
     } else {
       // Original template format
       loadedPass = {
-        id: templateJson.id,
+        id: templateId || templateJson.id,
         templateName: templateJson.name || 'WalletPush',
         description: templateJson.description || 'Digital wallet pass template',
         style: templateJson.passStyle || templateJson.style || 'storeCard',
@@ -1728,7 +1731,7 @@ export default function PassDesigner() {
                           <Button 
                             size="sm" 
                             className="w-full"
-                            onClick={() => handleLoadPass(t.template_json)}
+                            onClick={() => handleLoadPass(t.template_json, t.id)}
                           >
                             Load Template
                           </Button>

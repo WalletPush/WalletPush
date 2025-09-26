@@ -281,10 +281,47 @@ export async function POST(request: NextRequest) {
 
     console.log('🎯 Template placeholders from Pass Designer:', templatePlaceholders)
 
-    // 4. Prepare form data for pass generation starting with Pass Designer defaults
+    // 4. Create intelligent new member defaults instead of using template sample data
+    const newMemberDefaults: { [key: string]: string } = {}
+    
+    // Generate intelligent defaults for common business placeholders
+    for (const placeholder of templatePlaceholders) {
+      const lower = placeholder.toLowerCase()
+      
+      // Points should start at 0 for new members (not sample data)
+      if (lower.includes('points') || lower.includes('point')) {
+        newMemberDefaults[placeholder] = '0'
+      }
+      // Balance should start at 0.00 for new members
+      else if (lower.includes('balance') || lower.includes('credit')) {
+        newMemberDefaults[placeholder] = '0.00'
+      }
+      // Tier should be starter/basic for new members
+      else if (lower.includes('tier') || lower.includes('level') || lower.includes('status')) {
+        newMemberDefaults[placeholder] = 'Standard'
+      }
+      // Current offer should be welcome bonus for new members
+      else if (lower.includes('offer') || lower.includes('promotion') || lower.includes('deal')) {
+        newMemberDefaults[placeholder] = 'Welcome to our rewards program!'
+      }
+      // Expiry dates should be reasonable future dates
+      else if (lower.includes('expiry') || lower.includes('expires')) {
+        const futureDate = new Date()
+        futureDate.setFullYear(futureDate.getFullYear() + 1)
+        newMemberDefaults[placeholder] = futureDate.toLocaleDateString()
+      }
+      // Use template defaults for other placeholders that weren't intelligently mapped
+      else {
+        newMemberDefaults[placeholder] = templateDefaults[placeholder] || ''
+      }
+    }
+    
+    console.log('🎯 Intelligent new member defaults:', newMemberDefaults)
+
+    // 5. Prepare form data for pass generation starting with intelligent new member defaults
     const formData: { [key: string]: string } = {
-      ...templateDefaults, // Start with Pass Designer defaults
-      // Customer-provided data (from form)
+      ...newMemberDefaults, // Start with intelligent new member defaults
+      // Customer-provided data (from form) - these override any defaults
       firstName: actualFirstName,
       lastName: actualLastName,
       email: email || '',
@@ -297,7 +334,7 @@ export async function POST(request: NextRequest) {
       ...additional_data
     }
 
-    // SMART MAPPING: Map form data to template placeholders
+    // 6. SMART MAPPING: Map form data to template placeholders
     
     // Map customer data to ALL possible placeholder variations in the template
     for (const placeholder of templatePlaceholders) {
