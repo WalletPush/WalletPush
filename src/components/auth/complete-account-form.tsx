@@ -39,11 +39,14 @@ export function CompleteAccountForm() {
   }, [])
 
   const redirectToDashboard = () => {
+    const businessId = searchParams?.get('businessId')
+    const dashboardUrl = businessId ? `/customer/dashboard?businessId=${businessId}` : '/customer/dashboard'
+    
     const host = window.location.hostname
     if (host !== 'localhost' && host !== '127.0.0.1' && !host.includes('walletpush.io')) {
-      window.location.href = '/customer/dashboard'
+      window.location.href = dashboardUrl
     } else {
-      router.replace('/customer/dashboard')
+      router.replace(dashboardUrl)
       router.refresh()
     }
   }
