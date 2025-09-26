@@ -314,15 +314,7 @@ const DashboardHeader = ({ member_name, member_since, profile_image }: any) => (
 
 const QrCheckInButton = ({ business, ...props }: any) => (
   <QRCheckInButton 
-    businessId={business?.id || 'demo-business'}
-    businessName={business?.name || 'Blue Karma Loyalty'}
-    location={business?.location || 'Main Location'}
-    style={props.settings?.style || "card"}
-    showCooldown={props.settings?.showCooldown !== undefined ? props.settings.showCooldown : true}
-    cooldownMinutes={60}
-    onCheckIn={(result) => {
-      console.log('Check-in result:', result);
-    }}
+    check_in_endpoint={business?.check_in_endpoint}
   />
 );
 
