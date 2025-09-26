@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
           program_id,
           templates (
             id,
+            program_id,
             template_json,
             passkit_json,
             pass_type_identifier,
