@@ -504,6 +504,9 @@ Make it modern, professional, and conversion-focused.`
       let response
       let landingPageId = currentLandingPageId
 
+      console.log('🔍 DEBUG - currentLandingPageId:', currentLandingPageId)
+      console.log('🔍 DEBUG - wizardData:', wizardData)
+
       if (currentLandingPageId) {
         // Update existing landing page
         console.log('🔄 Updating existing landing page:', currentLandingPageId)
@@ -547,8 +550,17 @@ Make it modern, professional, and conversion-focused.`
 
       const result = await response.json()
       
+      console.log('🔍 DEBUG - API response status:', response.status)
+      console.log('🔍 DEBUG - API response result:', result)
+      
       if (result.error) {
+        console.error('❌ API error:', result.error)
         throw new Error(result.error)
+      }
+      
+      if (!response.ok) {
+        console.error('❌ HTTP error:', response.status, response.statusText)
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
       // Set the landing page ID if it's a new one
