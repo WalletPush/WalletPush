@@ -337,6 +337,11 @@ function extractTokenFromCookies(cookies: any): string | null {
 // Handle custom domain business routing (dashboard, login, etc.)
 async function handleCustomDomainBusinessRouting(request: NextRequest, hostname: string, pathname: string) {
   try {
+    // Skip custom domain routing for main platform domain
+    if (hostname === 'walletpush.io' || hostname === 'www.walletpush.io') {
+      return null // Main platform domain, use normal routing
+    }
+    
     // Check if this is a business or customer route
     const isBusinessRoute = pathname.startsWith('/business/') || pathname.startsWith('/customer/')
     
