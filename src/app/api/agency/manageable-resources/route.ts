@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         subscription_status,
         subscription_plan,
         created_at,
-        agency_id,
+        agency_account_id,
         contact_email,
         max_passes,
         total_passes_created,
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     // If not platform, only show businesses under this agency
     if (isPlatform?.type !== 'platform') {
-      businessesQuery = businessesQuery.eq('agency_id', agencyAccountId)
+      businessesQuery = businessesQuery.eq('agency_account_id', agencyAccountId)
     }
 
     const { data: businesses, error: businessesError } = await businessesQuery

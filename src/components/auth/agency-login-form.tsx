@@ -45,8 +45,7 @@ export function AgencyLoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl">
+    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl">
         {/* Logo */}
         {branding?.logoUrl && (
           <div className="flex justify-center mb-6">
@@ -134,7 +133,6 @@ export function AgencyLoginForm() {
             </a>
           </div>
         </div>
-      </div>
     </div>
   )
 }

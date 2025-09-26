@@ -77,6 +77,8 @@ export default function AgencyDashboard() {
     totalMembers: 0,
     totalPasses: 0
   })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
   const [showAddBusinessModal, setShowAddBusinessModal] = useState(false)
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null)
@@ -146,8 +148,6 @@ export default function AgencyDashboard() {
     if (score >= 100) return { tier: 'growing', color: 'green', icon: RocketLaunchIcon }
     return { tier: 'starter', color: 'gray', icon: ClockIcon }
   }
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
 
   // Generate slug from business name
   const generateSlug = (name: string) => {
@@ -272,23 +272,16 @@ export default function AgencyDashboard() {
         setError(`Failed to load: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
       
-      // Set mock data for development/demo
-      setBusinesses([
-        { id: '1', name: 'Coffee Shop Pro', status: 'active', created_at: '2024-01-15', member_count: 245, pass_count: 1200, revenue: 2400 },
-        { id: '2', name: 'Fitness First', status: 'active', created_at: '2024-02-01', member_count: 189, pass_count: 890, revenue: 1800 },
-        { id: '3', name: 'Restaurant Deluxe', status: 'pending', created_at: '2024-03-10', member_count: 67, pass_count: 340, revenue: 680 }
-      ])
-      setPassTypeIDs([
-        { id: '1', label: 'Agency Master Certificate', pass_type_identifier: 'pass.com.agency.master', team_id: 'ABC123', is_validated: true, created_at: '2024-01-01' },
-        { id: '2', label: 'Premium Business Certificate', pass_type_identifier: 'pass.com.agency.premium', team_id: 'ABC123', is_validated: true, created_at: '2024-01-15' }
-      ])
+      // Show empty state instead of dummy data
+      setBusinesses([])
+      setPassTypeIDs([])
       setStats({
-        totalBusinesses: 3,
-        activeBusinesses: 2,
-        totalRevenue: 4880,
-        monthlyRevenue: 1627,
-        totalMembers: 501,
-        totalPasses: 2430
+        totalBusinesses: 0,
+        activeBusinesses: 0,
+        totalRevenue: 0,
+        monthlyRevenue: 0,
+        totalMembers: 0,
+        totalPasses: 0
       })
     } finally {
       setIsLoading(false)

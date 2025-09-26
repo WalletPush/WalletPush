@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 // GET - Fetch agency's businesses
 export async function GET(request: NextRequest) {
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
         subscription_plan,
         created_at,
         updated_at,
-        agency_id,
+        agency_account_id,
         contact_email,
         contact_phone,
         max_passes,
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
         monthly_cost,
         trial_ends_at
       `)
-      .eq('agency_id', agencyAccountId)
+      .eq('agency_account_id', agencyAccountId)
     
     if (businessError) {
       return NextResponse.json({ 
@@ -54,18 +55,19 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // If no businesses found, debug what's in the businesses table
+    // If no businesses found, return empty array (this is a valid state)
     if (!businessAccounts || businessAccounts.length === 0) {
-      const { data: allBusinesses, error: allError } = await supabase
-        .from('businesses')
-        .select('id, name, agency_id')
-        .limit(10)
+      console.log(`📋 No businesses found for agency: ${agencyAccountId} (this is normal for new agencies)`)
       
-      return NextResponse.json({ 
-        error: `No businesses found for agency ${agencyAccountId}`,
-        debug: `Found ${allBusinesses?.length || 0} total businesses. Sample: ${JSON.stringify(allBusinesses?.slice(0,3) || [])}`,
-        agencyId: agencyAccountId
-      }, { status: 404 })
+      return NextResponse.json({
+        businesses: [],
+        agencyInfo: {
+          id: agencyAccountId,
+          totalBusinesses: 0,
+          activeBusinesses: 0,
+          totalRevenue: 0
+        }
+      })
     }
 
     // Transform the data to match the expected format
@@ -119,6 +121,18 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     
+    // Create service client with full permissions to bypass RLS for business creation
+    const serviceSupabase = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+    
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
@@ -141,7 +155,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields (name, contact_email, subscription_plan)' }, { status: 400 })
     }
 
-    // Get or create agency account using our helper function
+    // Get or create agency account using our helper function with regular client (needs session)
     const { data: agencyAccountId, error: agencyError } = await supabase
       .rpc('get_or_create_agency_account')
 
@@ -161,11 +175,11 @@ export async function POST(request: NextRequest) {
     
     const pricing = pricingMap[subscription_plan as keyof typeof pricingMap] || pricingMap.starter
 
-    // Create business in database
-    const { data: newBusiness, error: businessError } = await supabase
+    // First, create the business record using service client (following successful pattern)
+    const { data: newBusiness, error: businessError } = await serviceSupabase
       .from('businesses')
       .insert({
-        agency_id: agencyAccountId,
+        agency_account_id: agencyAccountId,
         name,
         slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         contact_email,
@@ -187,14 +201,60 @@ export async function POST(request: NextRequest) {
       console.error('❌ Failed to create business:', businessError)
       return NextResponse.json({ 
         error: `Failed to create business: ${businessError.message}`,
-        debug: `Database Error: ${businessError.message} | Code: ${businessError.code} | Details: ${businessError.details}`
+        debug: `Business Error: ${businessError.message} | Code: ${businessError.code} | Details: ${businessError.details}`
       }, { status: 500 })
     }
 
+    console.log('✅ Created business:', newBusiness.id)
+
+    // Now create the account record using the same ID as business (this pattern works)
+    const { data: newAccount, error: accountError } = await serviceSupabase
+      .from('accounts')
+      .insert({
+        id: newBusiness.id, // Use same ID as business for simplicity
+        name: name,
+        type: 'business',
+        status: 'trial'
+      })
+      .select()
+      .single()
+
+    if (accountError) {
+      console.error('❌ Failed to create account:', accountError)
+      // If account creation fails, clean up business record
+      await serviceSupabase.from('businesses').delete().eq('id', newBusiness.id)
+      return NextResponse.json({ 
+        error: `Failed to create account: ${accountError.message}`,
+        debug: `Account Error: ${accountError.message} | Code: ${accountError.code} | Details: ${accountError.details}`
+      }, { status: 500 })
+    }
+
+    console.log('✅ Created account:', newAccount.id)
+
+    // Update business to link to the account
+    const { error: updateError } = await serviceSupabase
+      .from('businesses')
+      .update({ account_id: newAccount.id })
+      .eq('id', newBusiness.id)
+
+    if (updateError) {
+      console.error('❌ Failed to link business to account:', updateError)
+      // Clean up both records if linking fails
+      await serviceSupabase.from('accounts').delete().eq('id', newAccount.id)
+      await serviceSupabase.from('businesses').delete().eq('id', newBusiness.id)
+      return NextResponse.json({ 
+        error: `Failed to link business to account: ${updateError.message}`,
+        debug: `Update Error: ${updateError.message}`
+      }, { status: 500 })
+    }
+
+    console.log('✅ Linked business to account successfully')
+
     return NextResponse.json({
       success: true,
-      message: 'Business created successfully',
-      business: newBusiness
+      message: 'Business and account created successfully',
+      business: { ...newBusiness, account_id: newAccount.id },
+      account: newAccount
     })
 
   } catch (error) {

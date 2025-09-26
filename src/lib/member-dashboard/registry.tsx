@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { QRCheckInButton } from '@/components/member-dashboard/universal/QRCheckInButton';
+import { QrCheckInButton as QRCheckInButton } from '@/components/member-dashboard/shared/QrCheckInButton';
 import { BalanceSpeedo } from '@/components/member-dashboard/loyalty/BalanceSpeedo';
 import { HowToEarn as HowToEarnWidget } from '@/components/member-dashboard/universal/HowToEarn';
 // import { WPThemeProvider } from '@/components/member-dashboard/WPThemeProvider';
