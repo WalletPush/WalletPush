@@ -78,19 +78,22 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
         const email = findEmailValue();
         const encodedEmail = encodeURIComponent(email || '');
         const passUrl = (data.download_url || '').replace('?t=', '.pkpass?t=');
-
-        // Direct redirect to complete-account (no function needed)
+        
+        // Since email confirmation is disabled, redirect directly to customer dashboard
+        const businessSlug = window.location.pathname.split('/')[1]; // Extract business slug from URL
+        const businessId = data.debug_info?.templateDebugInfo?.business_id || data.business_id || businessSlug;
+        const customerDashboardUrl = '/customer/dashboard?businessId=' + businessId;
 
         if (isMobile) {
           window.location.href = passUrl;
           setTimeout(function(){ 
-            window.location.href = '/customer/auth/complete-account';
+            window.location.href = customerDashboardUrl;
           }, 8000);
         } else {
           try { window.open(data.download_url, '_blank'); } catch(_){}
-          if (note) { note.textContent = "Please wait... We're setting up your account!"; note.style.display = 'block'; }
+          if (note) { note.textContent = "Please wait... Redirecting to your dashboard!"; note.style.display = 'block'; }
           setTimeout(function(){ 
-            window.location.href = '/customer/auth/complete-account';
+            window.location.href = customerDashboardUrl;
           }, 3000);
         }
         if (note) { note.style.display = 'none'; }
@@ -98,9 +101,11 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
       } catch (err) {
         console.error('WalletPush submit error', err);
         try { alert(err && err.message ? err.message : 'An error occurred. Please try again.'); } catch(_){}
-        // Redirect to complete-account even on errors (don't call resetUI which goes to login)
+        // Redirect to customer dashboard even on errors (since email confirmation is disabled)
+        const businessSlug = window.location.pathname.split('/')[1]; // Extract business slug from URL
+        const customerDashboardUrl = '/customer/dashboard?businessId=' + businessSlug;
         setTimeout(function(){ 
-          window.location.href = '/customer/auth/complete-account';
+          window.location.href = customerDashboardUrl;
         }, 2000);
       }
     }\n\n    function attachHandlers(){\n      const forms = Array.from(document.querySelectorAll('form'));\n      forms.forEach(form=>{\n        if ((form).dataset.__wpBound === '1') return;\n        (form).dataset.__wpBound = '1';\n        form.addEventListener('submit', async function(e){\n          try {\n            console.log('🔍 DEBUG - Form submit intercepted, preventing default');\n            e.preventDefault();\n            await submitToWalletPush(form);\n          } catch(err) { console.error('WalletPush submit error', err); }\n        }, { capture: true });\n      });\n    }\n\n    if (document.readyState === 'loading') {\n      document.addEventListener('DOMContentLoaded', function(){ attachHandlers(); injectDeviceHelpers(); });\n    } else {\n      attachHandlers(); injectDeviceHelpers();\n    }\n\n    // Also observe dynamic content changes\n    const observer = new MutationObserver(()=>attachHandlers());\n    observer.observe(document.documentElement, { childList: true, subtree: true });\n  } catch(e) { console.error('WalletPush inject error', e); }\n})();</script>\n`;
