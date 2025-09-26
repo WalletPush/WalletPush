@@ -64,9 +64,9 @@ export async function GET(request: NextRequest) {
 
     const customerName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
     
-    // Determine redirect URL
+    // Determine redirect URL - for existing customers with passwords, go directly to dashboard
     const redirectTo = hasPassword 
-      ? `/customer/auth/login?email=${encodeURIComponent(email)}${businessId ? `&businessId=${businessId}` : ''}`
+      ? `/customer/dashboard${businessId ? `?businessId=${businessId}` : ''}`
       : `/customer/auth/complete-account?email=${encodeURIComponent(email)}&firstName=${encodeURIComponent(customer.first_name || '')}&lastName=${encodeURIComponent(customer.last_name || '')}${businessId ? `&businessId=${businessId}` : ''}`
 
     return NextResponse.json({
