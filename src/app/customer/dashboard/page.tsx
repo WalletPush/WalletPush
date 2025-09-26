@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useBranding } from '@/lib/branding'
@@ -9,7 +9,7 @@ import { bindProps, ProgramSpecResponse, CustomerSummary } from '@/lib/member-da
 import { BrandedHeader } from '@/components/branding/BrandedHeader'
 import '@/components/member-dashboard/wp-themes.css'
 
-export default function CustomerDashboard() {
+function CustomerDashboardContent() {
   const searchParams = useSearchParams()
   const businessId = searchParams.get('businessId')
   
@@ -207,5 +207,19 @@ export default function CustomerDashboard() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CustomerDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="wp-root min-h-screen" data-wp-theme="dark-midnight">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-white">Loading dashboard...</div>
+        </div>
+      </div>
+    }>
+      <CustomerDashboardContent />
+    </Suspense>
   )
 }
