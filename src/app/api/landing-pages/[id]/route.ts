@@ -93,8 +93,11 @@ export async function PUT(
     const { id } = params
     const body = await request.json()
 
+    console.log('🔍 DEBUG - Landing page UPDATE request:', { id, bodyKeys: Object.keys(body) })
+
     // Validate that ID is provided
     if (!id) {
+      console.error('❌ No landing page ID provided')
       return NextResponse.json(
         { error: 'Landing page ID is required' },
         { status: 400 }
@@ -103,32 +106,54 @@ export async function PUT(
 
     const { name, title, description, custom_url, html_content, settings, status, template_id, program_id } = body
     
+    console.log('🔍 DEBUG - Extracted fields:', {
+      name: name || title,
+      custom_url,
+      status,
+      template_id,
+      program_id,
+      has_html_content: !!html_content,
+      has_settings: !!settings
+    })
+    
     // Update the landing page in database
+    const updateData = {
+      name: name || title,
+      custom_url,
+      logo_url: settings?.logo || null,
+      background_image_url: settings?.backgroundImage || null,
+      ai_prompt: `Updated landing page for: ${title || name || 'Untitled Page'}. Description: ${description || 'No description provided'}`,
+      generated_html: html_content,
+      is_published: status === 'published',
+      template_id: template_id || null,
+      program_id: program_id || null,
+      updated_at: new Date().toISOString()
+    }
+    
+    console.log('🔍 DEBUG - Update data:', updateData)
+    console.log('🔍 DEBUG - Updating landing page ID:', id)
+    
     const { data, error } = await supabase
       .from('landing_pages')
-      .update({
-        name: name || title,
-        custom_url,
-        logo_url: settings?.logo || null,
-        background_image_url: settings?.backgroundImage || null,
-        ai_prompt: `Updated landing page for: ${title || name || 'Untitled Page'}. Description: ${description || 'No description provided'}`,
-        generated_html: html_content,
-        is_published: status === 'published',
-        template_id: template_id || null,
-        program_id: program_id || null,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single()
     
     if (error) {
-      console.error('Supabase error:', error)
+      console.error('❌ Supabase error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
       return NextResponse.json(
-        { error: 'Failed to update landing page' },
+        { error: 'Failed to update landing page', details: error.message },
         { status: 500 }
       )
     }
+    
+    console.log('✅ Landing page updated successfully:', data?.id)
     
     return NextResponse.json({ data })
   } catch (error) {
