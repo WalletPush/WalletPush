@@ -81,7 +81,7 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
         
         // Redirect to complete-account so users can set their password
         const businessSlug = window.location.pathname.split('/')[1]; // Extract business slug from URL
-        const businessId = data.debug_info?.templateDebugInfo?.business_id || data.business_id || businessSlug;
+        const businessId = data.business_id || businessSlug; // Use actual business ID from API response
         const completeAccountUrl = '/customer/auth/complete-account?email=' + encodedEmail + '&businessId=' + businessId;
 
         if (isMobile) {
@@ -105,7 +105,7 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
         const email = findEmailValue();
         const encodedEmail = encodeURIComponent(email || '');
         const businessSlug = window.location.pathname.split('/')[1]; // Extract business slug from URL
-        const completeAccountUrl = '/customer/auth/complete-account?email=' + encodedEmail + '&businessId=' + businessSlug;
+        const completeAccountUrl = '/customer/auth/complete-account?email=' + encodedEmail + '&businessId=' + businessSlug; // In error case, use slug as fallback
         setTimeout(function(){ 
           window.location.href = completeAccountUrl;
         }, 2000);

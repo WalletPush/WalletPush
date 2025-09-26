@@ -697,6 +697,7 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Welcome! Your pass has been created successfully.',
         customer_id: customer.id,
+        business_id: business_id, // 🎯 ADD: Business ID for redirect logic
         pass_serial_number: passResult.response.serialNumber,
         pass_type_identifier: passResult.response.passTypeIdentifier,
         pass_url: passResult.response.downloadUrl,

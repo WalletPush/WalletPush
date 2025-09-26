@@ -157,9 +157,7 @@ export default function CatchAllLandingPage({ params }: Props) {
               const passUrl = (data.download_url || '').replace('?t=', '.pkpass?t=')
 
               // Extract businessId from the debug info or URL
-              const businessId = (data.debug_info && data.debug_info.templateDebugInfo && data.debug_info.templateDebugInfo.business_id) || 
-                                (data.business_id) || 
-                                window.location.pathname.split('/')[1] // fallback to URL slug
+              const businessId = data.business_id || window.location.pathname.split('/')[1] // Use actual business ID from API response
               
               // Get redirect URL with businessId
               const getRedirectUrl = async () => {
