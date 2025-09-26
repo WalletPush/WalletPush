@@ -77,31 +77,17 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
         const encodedEmail = encodeURIComponent(email || '');
         const passUrl = (data.download_url || '').replace('?t=', '.pkpass?t=');
 
-        // Get intelligent redirect URL based on customer account status
+        // Always redirect to complete-account for landing page signups
         async function getRedirectUrl() {
           if (!email) {
             console.log('🔍 No email found, using default LOGIN_BASE:', LOGIN_BASE);
             return LOGIN_BASE;
           }
-          try {
-            console.log('🔍 Checking account status for email:', email);
-            const statusRes = await fetch('/api/customer/check-account-status?email=' + encodedEmail);
-            console.log('🔍 Account status API response status:', statusRes.status);
-            if (statusRes.ok) {
-              const statusData = await statusRes.json();
-              console.log('🔍 Account status API response data:', statusData);
-              const redirectUrl = statusData.redirectTo || LOGIN_BASE;
-              console.log('🔍 Final redirect URL:', redirectUrl);
-              return redirectUrl;
-            } else {
-              console.warn('🔍 Account status API failed with status:', statusRes.status);
-            }
-          } catch (e) {
-            console.warn('Failed to check account status, using default redirect:', e);
-          }
-          const fallbackUrl = LOGIN_BASE + (encodedEmail ? ('?email=' + encodedEmail) : '');
-          console.log('🔍 Using fallback redirect URL:', fallbackUrl);
-          return fallbackUrl;
+          
+          // For landing page signups, always go to complete-account
+          const completeAccountUrl = '/customer/auth/complete-account?email=' + encodedEmail;
+          console.log('🔍 Landing page signup - redirecting to complete account:', completeAccountUrl);
+          return completeAccountUrl;
         }
 
         if (isMobile) {
