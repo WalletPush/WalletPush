@@ -162,10 +162,10 @@ export default function CustomerDashboard() {
   }
 
   return (
-    <div className="wp-root min-h-screen" data-wp-theme={programSpec.spec.branding?.theme || "dark-midnight"}>
+    <div className="wp-root min-h-screen" data-wp-theme={(programSpec.spec as any)?.branding?.theme || "dark-midnight"}>
       {/* Use proper three-column branded header component */}
       <BrandedHeader 
-        businessLogo={programSpec.spec.branding?.businessLogo || branding?.logoUrl}
+        businessLogo={(programSpec.spec as any)?.branding?.businessLogo || branding?.logoUrl}
         businessName={programSpec.spec.copy?.program_name || branding?.companyName}
         businessTagline={programSpec.spec.copy?.tagline}
         profilePicture={customerSummary?.profile_photo_url}
@@ -173,7 +173,7 @@ export default function CustomerDashboard() {
           ? `${customerSummary.first_name} ${customerSummary.last_name}`
           : user?.email?.split('@')[0] || 'Member'}
         showProfile={true}
-        theme={programSpec.spec.branding?.theme || "dark-midnight"}
+        theme={(programSpec.spec as any)?.branding?.theme || "dark-midnight"}
       />
       
       <div className="container mx-auto px-4 py-8">
