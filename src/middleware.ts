@@ -1,6 +1,6 @@
 import { updateSession } from '@/lib/supabase/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { type NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || 'localhost:3000'
@@ -386,17 +386,13 @@ async function handleCustomDomainBusinessRouting(request: NextRequest, hostname:
     requestHeaders.set('x-business-id', domain.business_id)
     requestHeaders.set('x-custom-domain', hostname)
     
-    // Rewrite to the business route with business context, but also handle authentication
-    const url = request.nextUrl.clone()
-    url.pathname = pathname // Keep the same path
+    // Add business context to the original request headers
+    const originalHeaders = request.headers
+    originalHeaders.set('x-business-id', domain.business_id)
+    originalHeaders.set('x-custom-domain', hostname)
     
-    // Create a new request with the business headers
-    const newRequest = new NextRequest(url, {
-      headers: requestHeaders,
-    })
-    
-    // Run authentication middleware on the rewritten request
-    const authResponse = await updateSession(newRequest)
+    // Run authentication middleware first with the business context
+    const authResponse = await updateSession(request)
     
     // If auth middleware redirected (e.g., to login), respect that
     if (authResponse.status === 302 || authResponse.status === 307) {
@@ -404,7 +400,10 @@ async function handleCustomDomainBusinessRouting(request: NextRequest, hostname:
       return authResponse
     }
     
-    // Otherwise, proceed with the rewrite but preserve auth cookies
+    // Otherwise, proceed with the rewrite and preserve auth cookies
+    const url = request.nextUrl.clone()
+    url.pathname = pathname // Keep the same path
+    
     const response = NextResponse.rewrite(url, {
       request: {
         headers: requestHeaders,
