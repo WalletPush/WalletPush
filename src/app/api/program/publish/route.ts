@@ -79,12 +79,20 @@ export async function POST(request: NextRequest) {
     // 3. Create new program version
     const version = Math.floor(Date.now() / 1000); // Unix timestamp as version
     
+    // Update the version number inside the spec
+    const updatedSpec = {
+      ...draftSpec,
+      version: version.toString()
+    }
+    
+    console.log(`🔄 Publishing version ${version} with updated spec version`)
+    
     const { data: newVersion, error: versionError } = await supabase
       .from('program_versions')
       .insert({
         program_id: programId,
         version: version,
-        spec_json: draftSpec, // This contains rules + ui_contract
+        spec_json: updatedSpec, // This contains rules + ui_contract with updated version
         created_by: user.id,
         created_at: new Date().toISOString()
       })
