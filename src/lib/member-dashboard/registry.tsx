@@ -316,11 +316,16 @@ const DashboardHeader = ({ member_name, member_since, profile_image }: any) => (
   </Card>
 );
 
-const QrCheckInButton = ({ business, ...props }: any) => (
-  <QRCheckInButton 
-    check_in_endpoint={business?.check_in_endpoint}
-  />
-);
+const QrCheckInButton = ({ business, ...props }: any) => {
+  console.log('🔍 QrCheckInButton wrapper called with:', { business, props });
+  console.log('🔍 Check-in endpoint:', business?.check_in_endpoint);
+  
+  return (
+    <QRCheckInButton 
+      check_in_endpoint={business?.check_in_endpoint}
+    />
+  );
+};
 
 const ReferralWidget = ({ referral_code, referrals_count, referral_bonus }: any) => (
   <Card>

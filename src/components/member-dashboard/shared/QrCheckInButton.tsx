@@ -8,6 +8,8 @@ interface QrCheckInButtonProps {
 }
 
 export function QrCheckInButton({ check_in_endpoint }: QrCheckInButtonProps) {
+  console.log('🔍 QrCheckInButton component rendered with endpoint:', check_in_endpoint);
+  
   const [isScanning, setIsScanning] = useState(false);
   const [message, setMessage] = useState('');
 
