@@ -86,6 +86,12 @@ export async function POST(request: NextRequest) {
     }
     
     console.log(`🔄 Publishing version ${version} with updated spec version`)
+    console.log('📋 Updated spec preview:', {
+      version: updatedSpec.version,
+      program_type: updatedSpec.program_type,
+      ui_contract_sections: updatedSpec.ui_contract?.sections?.length || 0,
+      sections: updatedSpec.ui_contract?.sections?.map(s => s.type) || []
+    })
     
     const { data: newVersion, error: versionError } = await supabase
       .from('program_versions')
@@ -140,7 +146,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      version: newVersion,
+      version: newVersion.version,
+      versionId: newVersion.id,
       message: `Dashboard configuration published successfully for "${program.name}"`,
       currentVersionId: updatedProgram?.current_version_id
     });
