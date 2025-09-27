@@ -241,7 +241,7 @@ export default function ProgramConfiguratorPage() {
 
     try {
       setPublishing(true)
-      const res = await fetch('/api/programs/publish', {
+      const res = await fetch('/api/program/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
