@@ -90,6 +90,9 @@ export function CompleteAccountForm() {
       // Test basic Supabase connectivity
       try {
         console.log('🔍 Testing Supabase connectivity...')
+        console.log('🔍 User agent:', navigator.userAgent)
+        console.log('🔍 Is mobile:', /iPhone|iPad|iPod|Android/i.test(navigator.userAgent))
+        
         const { data: testData, error: testError } = await supabase.auth.getSession()
         console.log('🔍 Supabase connection test:', { 
           hasSession: !!testData.session, 
@@ -101,18 +104,52 @@ export function CompleteAccountForm() {
         return
       }
       
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password,
-        options: {
-          data: {
-            first_name: result.customer?.first_name,
-            last_name: result.customer?.last_name,
-            role: 'customer',
-            customer_id: result.customer?.id
+      // Mobile-specific retry logic for auth operations
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      const maxRetries = isMobile ? 3 : 1
+      let signUpData, signUpError
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        console.log(`🔄 Auth signup attempt ${attempt}/${maxRetries}`)
+        
+        try {
+          const authResult = await supabase.auth.signUp({
+            email: email.trim(),
+            password: password,
+            options: {
+              data: {
+                first_name: result.customer?.first_name,
+                last_name: result.customer?.last_name,
+                role: 'customer',
+                customer_id: result.customer?.id
+              }
+            }
+          })
+          
+          signUpData = authResult.data
+          signUpError = authResult.error
+          
+          if (!signUpError) {
+            console.log(`✅ Auth signup succeeded on attempt ${attempt}`)
+            break
+          }
+          
+          console.log(`⚠️ Auth signup failed on attempt ${attempt}:`, signUpError?.message)
+          
+          if (attempt < maxRetries) {
+            console.log(`🔄 Retrying in ${attempt * 1000}ms...`)
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000))
+          }
+        } catch (networkError) {
+          console.error(`❌ Network error on attempt ${attempt}:`, networkError)
+          signUpError = networkError as any
+          
+          if (attempt < maxRetries) {
+            console.log(`🔄 Retrying after network error in ${attempt * 1000}ms...`)
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000))
           }
         }
-      })
+      }
 
       if (signUpError) {
         console.error('❌ Client-side auth signup failed:', signUpError)
