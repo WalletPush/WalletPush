@@ -50,6 +50,8 @@ function CustomerDashboardContent() {
         if (specResponse.ok) {
           const specData = await specResponse.json()
           console.log('Program spec loaded:', specData.program_type)
+          console.log('🔍 FULL SPEC DATA:', JSON.stringify(specData, null, 2))
+          console.log('🔍 UI CONTRACT SECTIONS:', specData.spec?.ui_contract?.sections)
           setProgramSpec(specData)
           
           // Load customer summary (pass businessId if available)

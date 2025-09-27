@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Update program to point to the new current version
+    console.log('🔄 Updating program current_version_id to:', newVersion.id)
     const { error: updateError } = await supabase
       .from('programs')
       .update({ 
@@ -118,11 +119,22 @@ export async function POST(request: NextRequest) {
     console.log(`📊 Program: ${program.name}`);
     console.log(`🔢 Version: ${version}`);
     console.log(`🆔 Version ID: ${newVersion.id}`);
+    console.log('🔄 Program current_version_id updated to:', newVersion.id);
+
+    // Verify the update worked
+    const { data: updatedProgram } = await supabase
+      .from('programs')
+      .select('current_version_id')
+      .eq('id', programId)
+      .single();
+    
+    console.log('✅ Verified program current_version_id is now:', updatedProgram?.current_version_id);
 
     return NextResponse.json({
       success: true,
       version: newVersion,
-      message: `Dashboard configuration published successfully for "${program.name}"`
+      message: `Dashboard configuration published successfully for "${program.name}"`,
+      currentVersionId: updatedProgram?.current_version_id
     });
 
   } catch (error) {
