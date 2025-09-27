@@ -52,64 +52,52 @@ export function CompleteAccountForm() {
       if (password.length < 6) return setError('Password must be at least 6 characters')
       if (password !== confirmPassword) return setError('Passwords do not match')
 
-      const supabase = createClient()
+      // Use our dedicated server-side API for account completion
+      console.log('🔄 Calling complete-account API for:', email)
+      
+      const response = await fetch('/api/customer/complete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password
+        }),
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      })
 
-      // TEMPORARILY DISABLED: Check if user already has a session (from customer signup)
-      // This logic was causing immediate redirects before users could set passwords
-      // TODO: Re-enable this with proper validation that password is actually set
-      // const { data: { user: currentUser } } = await supabase.auth.getUser()
-      // 
-      // if (currentUser && currentUser.email === email) {
-      //   // User already exists and has active session - just update their password
-      //   const { error: updateError } = await supabase.auth.updateUser({
-      //     password: password
-      //   })
-      //   
-      //   if (updateError) {
-      //     setError(`Failed to set password: ${updateError.message}`)
-      //     return
-      //   }
-      //   
-      //   // Password successfully set, redirect to dashboard
-      //   redirectToDashboard()
-      //   return
-      // }
-
-      // If no existing session, try sign-up (new user flow)
-      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password })
-
-      if (!signUpErr) {
-        // If email confirmations are OFF, you'll get a live session here
-        if (signUpData.session) {
-          redirectToDashboard()
-          return
-        }
-        // If still no session, confirmation is probably ON
-        setError('Account created. Please check your email to verify before signing in.')
+      const result = await response.json()
+      
+      if (!response.ok) {
+        console.error('❌ Complete account API error:', result)
+        setError(result.error || 'Failed to complete account setup')
         return
       }
 
-      // If user already exists, attempt sign-in
-      const msg = (signUpErr?.message || '').toLowerCase()
-      if (msg.includes('already') || msg.includes('registered') || msg.includes('user exists')) {
-        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
-        if (signInErr) {
-          const em = (signInErr.message || '').toLowerCase()
-          if (em.includes('email not confirmed') || em.includes('email_confirm')) {
-            setError('Please verify your email before signing in.')
-            return
-          }
-          setError('This email already has an account. Try signing in or reset your password.')
-          return
-        }
-        if (signInData.session) {
-          redirectToDashboard()
-          return
-        }
+      console.log('✅ Account completed successfully:', result)
+      
+      // Account created successfully, now sign in to get a session
+      const supabase = createClient()
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password
+      })
+
+      if (signInError) {
+        console.error('❌ Sign in after account creation failed:', signInError)
+        setError('Account created but sign in failed. Please try signing in manually.')
+        return
       }
 
-      // 3) Any other failure
-      setError(signUpErr.message || 'Unable to complete account setup.')
+      if (signInData.session) {
+        console.log('✅ Signed in successfully after account creation')
+        redirectToDashboard()
+        return
+      }
+
+      setError('Account created but session not established. Please try signing in manually.')
     } catch (err: any) {
       console.error('Complete account error:', err)
       setError(err?.message ?? 'An unexpected error occurred')
