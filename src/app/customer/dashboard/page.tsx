@@ -172,7 +172,7 @@ function CustomerDashboardContent() {
     program: programSpec.spec,
     member: customerSummary,
     offers: offers || { active: [] },
-    business: { check_in_endpoint: `/api/checkin/demo-business-123` },
+    business: { check_in_endpoint: `/api/checkin/${businessId || 'demo-business-123'}` },
     copy: programSpec.spec.copy || {}
   }
 
@@ -209,9 +209,12 @@ function CustomerDashboardContent() {
               ...(section as any).settings
             }
             
-            // Debug logging for balanceHeader
+            // Debug logging for components
             if (section.type === 'balanceHeader') {
               console.log('🔍 BalanceHeader props:', componentProps)
+            }
+            if (section.type === 'qrCheckInButton') {
+              console.log('🔍 QrCheckInButton props:', componentProps)
             }
             
             return <Component key={index} {...componentProps} />
