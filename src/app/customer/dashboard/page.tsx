@@ -41,6 +41,8 @@ function CustomerDashboardContent() {
         const specUrl = businessId 
           ? `/api/program/spec?businessId=${businessId}&t=${timestamp}` 
           : `/api/program/spec?t=${timestamp}`
+        
+        console.log('🔍 CALLING PROGRAM SPEC API:', specUrl)
         const specResponse = await fetch(specUrl, {
           cache: 'no-store',
           headers: {
