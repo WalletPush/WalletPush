@@ -64,9 +64,9 @@ export async function GET(request: NextRequest) {
 
     const customerName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
     
-    // Determine redirect URL - for existing customers with passwords, go directly to dashboard
+    // SECURITY: All existing customers MUST login properly - NO direct dashboard redirects
     const redirectTo = hasPassword 
-      ? `/customer/dashboard${businessId ? `?businessId=${businessId}` : ''}`
+      ? `/customer/auth/login?email=${encodeURIComponent(email)}${businessId ? `&businessId=${businessId}` : ''}`
       : `/customer/auth/complete-account?email=${encodeURIComponent(email)}&firstName=${encodeURIComponent(customer.first_name || '')}&lastName=${encodeURIComponent(customer.last_name || '')}${businessId ? `&businessId=${businessId}` : ''}`
 
     return NextResponse.json({
