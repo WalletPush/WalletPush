@@ -81,6 +81,25 @@ export function CompleteAccountForm() {
       // Customer verified, now create auth user with client-side auth
       const supabase = createClient()
       console.log('🔄 Creating auth user with client-side Supabase auth')
+      console.log('🔍 Supabase client config:', {
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        anonKeyLength: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length
+      })
+      
+      // Test basic Supabase connectivity
+      try {
+        console.log('🔍 Testing Supabase connectivity...')
+        const { data: testData, error: testError } = await supabase.auth.getSession()
+        console.log('🔍 Supabase connection test:', { 
+          hasSession: !!testData.session, 
+          error: testError?.message 
+        })
+      } catch (connectError) {
+        console.error('❌ Supabase connection test failed:', connectError)
+        setError('Cannot connect to authentication service. Please check your internet connection.')
+        return
+      }
       
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
