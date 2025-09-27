@@ -50,9 +50,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get the current program version spec
+    console.log('🔍 Looking for program version with ID:', program.current_version_id)
     const { data: programVersion, error: versionError } = await supabase
       .from('program_versions')
-      .select('spec_json')
+      .select('id, spec_json, version, created_at')
       .eq('id', program.current_version_id)
       .limit(1)
       .single()
@@ -69,8 +70,20 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Found program spec:', response.program_type, 'version:', programVersion.spec_json?.version)
+    console.log('🔍 Program version details:', {
+      id: programVersion.id,
+      version: programVersion.version,
+      created_at: programVersion.created_at,
+      spec_version: programVersion.spec_json?.version
+    })
 
-    return NextResponse.json(response)
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
 
   } catch (error) {
     console.error('❌ Error in program spec API:', error)

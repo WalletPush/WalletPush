@@ -36,9 +36,17 @@ function CustomerDashboardContent() {
         // Get businessId from URL parameter or let API resolve from domain
         console.log('Loading dashboard for user:', user.email, 'businessId:', businessId)
         
-        // Load program spec (pass businessId if available)
-        const specUrl = businessId ? `/api/program/spec?businessId=${businessId}` : `/api/program/spec`
-        const specResponse = await fetch(specUrl)
+        // Load program spec (pass businessId if available) - add cache busting
+        const timestamp = Date.now()
+        const specUrl = businessId 
+          ? `/api/program/spec?businessId=${businessId}&t=${timestamp}` 
+          : `/api/program/spec?t=${timestamp}`
+        const specResponse = await fetch(specUrl, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
         if (specResponse.ok) {
           const specData = await specResponse.json()
           console.log('Program spec loaded:', specData.program_type)
