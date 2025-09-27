@@ -145,9 +145,14 @@ const publicRoutes = [
   console.log('🔐 AUTH CHECK:', {
     pathname: request.nextUrl.pathname,
     hasUser: !!user,
+    userEmail: user?.email || 'none',
     isPublicRoute,
     isLandingPage,
-    willRedirect: !user && !isPublicRoute
+    willRedirect: !user && !isPublicRoute,
+    matchedPublicRoutes: publicRoutes.filter(route => 
+      request.nextUrl.pathname === route || 
+      request.nextUrl.pathname.startsWith(route + '/')
+    )
   })
 
   // Only redirect to login if it's not a public route and user is not authenticated

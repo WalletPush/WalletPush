@@ -5,9 +5,19 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || 'localhost:3000'
   const pathname = request.nextUrl.pathname
+  const searchParams = request.nextUrl.searchParams.toString()
+  const fullUrl = `${hostname}${pathname}${searchParams ? '?' + searchParams : ''}`
   
-  // AGGRESSIVE DEBUGGING: Log every request
-  console.log(`🚨 MIDDLEWARE HIT: ${hostname}${pathname}`)
+  // COMPREHENSIVE DEBUGGING: Log every request with full context
+  console.log(`🚨 MIDDLEWARE START: ${fullUrl}`)
+  console.log(`🔍 Request details:`, {
+    hostname,
+    pathname,
+    searchParams: searchParams || 'none',
+    method: request.method,
+    userAgent: request.headers.get('user-agent')?.substring(0, 100),
+    referer: request.headers.get('referer')
+  })
   
   // Skip middleware for API routes, static files, and internal Next.js routes
   if (
@@ -20,19 +30,20 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request)
   }
 
-  // FOR TESTING: Skip complex domain logic for localhost
-  if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-    return await updateSession(request)
-  }
+  // REMOVED: localhost logic since you never test locally
+  console.log(`🌐 Processing production domain: ${hostname}`)
 
   // Handle custom domain routing for production domains
   console.log(`🌐 Middleware processing: ${hostname}${pathname}`)
   
   // Step 1: Check for custom domain business routing (dashboard, login, etc.)
+  console.log(`🏢 Checking custom domain business routing for: ${pathname}`)
   const businessRouteResult = await handleCustomDomainBusinessRouting(request, hostname, pathname)
   if (businessRouteResult) {
+    console.log(`✅ Business route handled, returning response with status: ${businessRouteResult.status}`)
     return businessRouteResult
   }
+  console.log(`📝 No business route match for: ${pathname}`)
   
   // Step 2: Check for custom domain landing pages
   const landingPageResult = await handleCustomDomainLandingPage(request, hostname, pathname)
@@ -53,7 +64,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Default: just handle session updates
-  return await updateSession(request)
+  console.log(`🔄 Running default updateSession for: ${pathname}`)
+  const finalResponse = await updateSession(request)
+  console.log(`🏁 MIDDLEWARE END: ${fullUrl} - Status: ${finalResponse.status}`)
+  return finalResponse
 }
 
 /**
