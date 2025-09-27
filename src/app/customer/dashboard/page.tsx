@@ -203,7 +203,18 @@ function CustomerDashboardContent() {
             
             const boundProps = bindProps(section.props, dataContext)
             
-            return <Component key={index} {...boundProps} />
+            // Merge bound props with section settings (e.g., variant, showTier, etc.)
+            const componentProps = {
+              ...boundProps,
+              ...section.settings
+            }
+            
+            // Debug logging for balanceHeader
+            if (section.type === 'balanceHeader') {
+              console.log('🔍 BalanceHeader props:', componentProps)
+            }
+            
+            return <Component key={index} {...componentProps} />
           })}
         </main>
 

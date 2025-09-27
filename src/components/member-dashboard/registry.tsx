@@ -4,6 +4,7 @@ import React from 'react';
 
 // Import dashboard section components
 import { BalanceHeader } from '@/components/member-dashboard/loyalty/BalanceHeader';
+import { BalanceSpeedo } from '@/components/member-dashboard/loyalty/BalanceSpeedo';
 import { ProgressNextTier } from '@/components/member-dashboard/loyalty/ProgressNextTier';
 import { RewardsGrid } from '@/components/member-dashboard/loyalty/RewardsGrid';
 import { HowToEarn } from '@/components/member-dashboard/loyalty/HowToEarn';
@@ -25,7 +26,7 @@ import { ActivityFeed } from '@/components/member-dashboard/shared/ActivityFeed'
 
 export const SECTION_REGISTRY = {
   // Loyalty components
-  balanceHeader: BalanceHeader,
+  balanceHeader: BalanceSpeedo,
   progressNextTier: ProgressNextTier,
   rewardsGrid: RewardsGrid,
   howToEarn: HowToEarn,
