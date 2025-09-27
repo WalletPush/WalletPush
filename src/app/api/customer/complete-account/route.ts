@@ -60,29 +60,6 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    if (!authUser.user) {
-      return NextResponse.json(
-        { error: 'Failed to create account' },
-        { status: 500 }
-      )
-    }
-
-    console.log('✅ Auth user created successfully:', authUser.user.id)
-
-    // Note: We're not storing auth_user_id in the customer record for now
-    // The relationship is managed through email matching
-    console.log('✅ Auth user created and linked via email to customer:', existingCustomer.id)
-
-    return NextResponse.json({
-      success: true,
-      message: 'Account completed successfully',
-      user: {
-        id: authUser.user.id,
-        email: authUser.user.email,
-        customer_id: existingCustomer.id
-      }
-    })
-
   } catch (error) {
     console.error('❌ Complete account API error:', error)
     return NextResponse.json(
