@@ -386,14 +386,34 @@ async function handleCustomDomainBusinessRouting(request: NextRequest, hostname:
     requestHeaders.set('x-business-id', domain.business_id)
     requestHeaders.set('x-custom-domain', hostname)
     
-    // Rewrite to the business route with business context
+    // Rewrite to the business route with business context, but also handle authentication
     const url = request.nextUrl.clone()
     url.pathname = pathname // Keep the same path
     
+    // Create a new request with the business headers
+    const newRequest = new NextRequest(url, {
+      headers: requestHeaders,
+    })
+    
+    // Run authentication middleware on the rewritten request
+    const authResponse = await updateSession(newRequest)
+    
+    // If auth middleware redirected (e.g., to login), respect that
+    if (authResponse.status === 302 || authResponse.status === 307) {
+      console.log(`🔒 Auth redirect for custom domain: ${hostname}${pathname}`)
+      return authResponse
+    }
+    
+    // Otherwise, proceed with the rewrite but preserve auth cookies
     const response = NextResponse.rewrite(url, {
       request: {
         headers: requestHeaders,
       },
+    })
+    
+    // Copy auth cookies from the auth response
+    authResponse.cookies.getAll().forEach(cookie => {
+      response.cookies.set(cookie.name, cookie.value, cookie)
     })
     
     console.log(`✅ Routed business page: ${hostname}${pathname} → ${pathname} (business: ${domain.business_id})`)

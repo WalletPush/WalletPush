@@ -62,6 +62,7 @@ const publicRoutes = [
   // Portal-specific auth routes
   '/customer/auth/login',
   '/customer/auth/sign-up',
+  '/customer/auth/complete-account',
   '/customer/auth/forgot-password',
   '/customer/dashboard',
   // Testing APIs for JSON-driven dashboard
