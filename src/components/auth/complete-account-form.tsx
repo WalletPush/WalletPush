@@ -11,6 +11,7 @@ export function CompleteAccountForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
   const [customerName, setCustomerName] = useState('')
   const router = useRouter()
   const { branding } = useBranding()
@@ -90,8 +91,18 @@ export function CompleteAccountForm() {
       // Test basic Supabase connectivity
       try {
         console.log('🔍 Testing Supabase connectivity...')
-        console.log('🔍 User agent:', navigator.userAgent)
-        console.log('🔍 Is mobile:', /iPhone|iPad|iPod|Android/i.test(navigator.userAgent))
+      const userAgent = navigator.userAgent
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(userAgent)
+      
+      console.log('🔍 User agent:', userAgent)
+      console.log('🔍 Is mobile:', isMobileDevice)
+      
+      // Add to visible debug logs for mobile
+      setDebugLogs(prev => [...prev, 
+        `User Agent: ${userAgent.substring(0, 50)}...`,
+        `Mobile: ${isMobileDevice}`,
+        `Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`
+      ])
         
         const { data: testData, error: testError } = await supabase.auth.getSession()
         console.log('🔍 Supabase connection test:', { 
@@ -236,6 +247,16 @@ export function CompleteAccountForm() {
         {error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
             <p className="text-red-200 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Mobile Debug Logs */}
+        {debugLogs.length > 0 && (
+          <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+            <p className="text-blue-200 text-xs font-mono mb-2">Debug Info:</p>
+            {debugLogs.map((log, index) => (
+              <p key={index} className="text-blue-300 text-xs font-mono break-all">{log}</p>
+            ))}
           </div>
         )}
 
