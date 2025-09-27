@@ -137,6 +137,12 @@ function injectWalletPassScript(html: string, context: { landing_page_id?: strin
 // Handle redirects from walletpush.io to business custom domains
 async function handleBusinessCustomDomainRedirect(request: NextRequest, hostname: string, pathname: string) {
   try {
+    // SKIP redirects for main platform domains (including www)
+    if (hostname === 'walletpush.io' || hostname === 'www.walletpush.io') {
+      console.log(`📝 Skipping custom domain redirect for main platform domain: ${hostname}`)
+      return null // Main platform domain, don't redirect
+    }
+    
     // Check if this is a business or customer route that should be redirected
     const isBusinessRoute = pathname.startsWith('/business/') || pathname.startsWith('/customer/')
     
