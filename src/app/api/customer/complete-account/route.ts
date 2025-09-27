@@ -44,50 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Found existing customer:', existingCustomer.email)
-
-    // Check if this email already has a Supabase auth user
-    const { data: listResponse, error: listError } = await supabase.auth.admin.listUsers()
-    const existingUser = listResponse?.users?.find((user: any) => user.email === email)
-    
-    if (existingUser) {
-      console.log('⚠️ Auth user already exists for:', email, '- attempting to verify password')
-      
-      // If auth user exists, try to verify the password they provided
-      // This handles the case where account creation succeeded but the frontend got an error
-      try {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        })
-        
-        if (!signInError && signInData.user) {
-          console.log('✅ Password verified for existing auth user:', email)
-          return NextResponse.json({
-            success: true,
-            message: 'Account already exists and password verified',
-            user: {
-              id: signInData.user.id,
-              email: signInData.user.email,
-              customer_id: existingCustomer.id
-            }
-          })
-        } else {
-          console.log('❌ Password verification failed for existing auth user:', signInError?.message)
-          return NextResponse.json(
-            { error: 'This email already has an account with a different password. Please sign in or reset your password.' },
-            { status: 409 }
-          )
-        }
-      } catch (verifyError) {
-        console.error('❌ Error verifying existing auth user:', verifyError)
-        return NextResponse.json(
-          { error: 'This email is already associated with your pass. Please sign in instead.' },
-          { status: 409 }
-        )
-      }
-    }
-
-    console.log('✅ No auth user found, proceeding to create auth user for existing customer:', email)
+    console.log('🔄 Proceeding to create auth user for customer (password setup):', email)
 
     console.log('🔄 Creating Supabase auth user for customer:', email)
 
@@ -106,6 +63,44 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error('❌ Error creating auth user:', authError)
+      
+      // If user already exists, try to sign them in with the provided password
+      if (authError.message?.includes('already') || authError.message?.includes('exists')) {
+        console.log('🔄 Auth user already exists, attempting sign in with provided password')
+        
+        try {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          })
+          
+          if (!signInError && signInData.user) {
+            console.log('✅ Successfully signed in existing auth user:', email)
+            return NextResponse.json({
+              success: true,
+              message: 'Account completed successfully',
+              user: {
+                id: signInData.user.id,
+                email: signInData.user.email,
+                customer_id: existingCustomer.id
+              }
+            })
+          } else {
+            console.log('❌ Sign in failed for existing auth user:', signInError?.message)
+            return NextResponse.json(
+              { error: 'Account exists but password is incorrect. Please try again or reset your password.' },
+              { status: 401 }
+            )
+          }
+        } catch (signInAttemptError) {
+          console.error('❌ Error attempting sign in for existing user:', signInAttemptError)
+          return NextResponse.json(
+            { error: 'Account may already exist. Please try signing in instead.' },
+            { status: 409 }
+          )
+        }
+      }
+      
       return NextResponse.json(
         { error: 'Failed to create account. Please try again.' },
         { status: 500 }
