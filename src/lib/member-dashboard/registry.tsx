@@ -26,19 +26,23 @@ import {
 } from 'lucide-react';
 
 // WP-Themed Components with proper theming
-const BalanceHeader = ({ member, ...props }: any) => (
-  <BalanceSpeedo 
-    pointsBalance={member?.points_balance || 0}
-    pointsToNextTier={member?.points_to_next_tier}
-    tier={member?.tier}
-    tiers={props.settings?.tiers}
-    variant={props.settings?.variant || "ring"}
-    size={props.settings?.size || "md"}
-    showTier={props.settings?.showTier !== undefined ? props.settings.showTier : true}
-    showProgress={props.settings?.showProgress !== undefined ? props.settings.showProgress : true}
-    accent="primary"
-  />
-);
+const BalanceHeader = ({ member, variant, showTier, showProgress, size, ...props }: any) => {
+  console.log('🔍 BalanceHeader wrapper props:', { member, variant, showTier, showProgress, size, props });
+  
+  return (
+    <BalanceSpeedo 
+      pointsBalance={member?.points_balance || 0}
+      pointsToNextTier={member?.points_to_next_tier}
+      tier={member?.tier}
+      tiers={props.tiers}
+      variant={variant || "ring"}
+      size={size || "md"}
+      showTier={showTier !== undefined ? showTier : true}
+      showProgress={showProgress !== undefined ? showProgress : true}
+      accent="primary"
+    />
+  );
+};
 
 // Alternative Balance Speedo variants for the configurator
 const BalanceSpeedo_Ring = ({ member, ...props }: any) => (
