@@ -66,7 +66,13 @@ export async function GET(request: NextRequest) {
     const response = {
       program_id: program.id,
       program_type: programVersion.spec_json?.program_type || 'loyalty',
-      spec: programVersion.spec_json
+      spec: programVersion.spec_json,
+      _debug: {
+        version_id: programVersion.id,
+        version_number: programVersion.version,
+        spec_version: programVersion.spec_json?.version,
+        timestamp: new Date().toISOString()
+      }
     }
 
     console.log('✅ Found program spec:', response.program_type, 'version:', programVersion.spec_json?.version)
@@ -79,9 +85,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
         'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
       }
     })
 

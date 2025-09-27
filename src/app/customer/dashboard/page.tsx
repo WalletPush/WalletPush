@@ -36,17 +36,20 @@ function CustomerDashboardContent() {
         // Get businessId from URL parameter or let API resolve from domain
         console.log('Loading dashboard for user:', user.email, 'businessId:', businessId)
         
-        // Load program spec (pass businessId if available) - add cache busting
+        // Load program spec (pass businessId if available) - add aggressive cache busting
         const timestamp = Date.now()
+        const random = Math.random().toString(36).substring(7)
         const specUrl = businessId 
-          ? `/api/program/spec?businessId=${businessId}&t=${timestamp}` 
-          : `/api/program/spec?t=${timestamp}`
+          ? `/api/program/spec?businessId=${businessId}&t=${timestamp}&r=${random}` 
+          : `/api/program/spec?t=${timestamp}&r=${random}`
         
         console.log('🔍 CALLING PROGRAM SPEC API:', specUrl)
         const specResponse = await fetch(specUrl, {
           cache: 'no-store',
           headers: {
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         })
         if (specResponse.ok) {
