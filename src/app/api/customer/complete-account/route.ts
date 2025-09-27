@@ -44,11 +44,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Found existing customer:', existingCustomer.email)
-    console.log('🔄 Proceeding to create auth user for customer (password setup):', email)
-
     console.log('🔄 Creating Supabase auth user for customer:', email)
 
-    // Create the Supabase auth user
+    // Create the Supabase auth user - SIMPLE AND DIRECT
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -63,46 +61,9 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       console.error('❌ Error creating auth user:', authError)
-      
-      // If user already exists, try to sign them in with the provided password
-      if (authError.message?.includes('already') || authError.message?.includes('exists')) {
-        console.log('🔄 Auth user already exists, attempting sign in with provided password')
-        
-        try {
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password
-          })
-          
-          if (!signInError && signInData.user) {
-            console.log('✅ Successfully signed in existing auth user:', email)
-            return NextResponse.json({
-              success: true,
-              message: 'Account completed successfully',
-              user: {
-                id: signInData.user.id,
-                email: signInData.user.email,
-                customer_id: existingCustomer.id
-              }
-            })
-          } else {
-            console.log('❌ Sign in failed for existing auth user:', signInError?.message)
-            return NextResponse.json(
-              { error: 'Account exists but password is incorrect. Please try again or reset your password.' },
-              { status: 401 }
-            )
-          }
-        } catch (signInAttemptError) {
-          console.error('❌ Error attempting sign in for existing user:', signInAttemptError)
-          return NextResponse.json(
-            { error: 'Account may already exist. Please try signing in instead.' },
-            { status: 409 }
-          )
-        }
-      }
-      
+      console.error('❌ Full auth error details:', JSON.stringify(authError, null, 2))
       return NextResponse.json(
-        { error: 'Failed to create account. Please try again.' },
+        { error: `Failed to create account: ${authError.message}` },
         { status: 500 }
       )
     }
