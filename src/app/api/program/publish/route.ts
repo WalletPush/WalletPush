@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       version: updatedSpec.version,
       program_type: updatedSpec.program_type,
       ui_contract_sections: updatedSpec.ui_contract?.sections?.length || 0,
-      sections: updatedSpec.ui_contract?.sections?.map(s => s.type) || []
+      sections: updatedSpec.ui_contract?.sections?.map((s: any) => s.type) || []
     })
     
     const { data: newVersion, error: versionError } = await supabase
