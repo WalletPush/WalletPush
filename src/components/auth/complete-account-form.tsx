@@ -76,23 +76,74 @@ export function CompleteAccountForm() {
         return
       }
 
-      console.log('✅ Account completed successfully:', result)
+      console.log('✅ Customer verified:', result)
       
-      // Account created successfully, now sign in to get a session
+      // Customer verified, now create auth user with client-side auth
       const supabase = createClient()
+      console.log('🔄 Creating auth user with client-side Supabase auth')
+      
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
+        options: {
+          data: {
+            first_name: result.customer?.first_name,
+            last_name: result.customer?.last_name,
+            role: 'customer',
+            customer_id: result.customer?.id
+          }
+        }
+      })
+
+      if (signUpError) {
+        console.error('❌ Client-side auth signup failed:', signUpError)
+        console.error('❌ Full signup error:', JSON.stringify(signUpError, null, 2))
+        
+        // If user already exists, try to sign in
+        if (signUpError.message?.includes('already') || signUpError.message?.includes('exists')) {
+          console.log('🔄 User exists, trying sign in instead')
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password: password
+          })
+          
+          if (signInError) {
+            console.error('❌ Sign in failed:', signInError)
+            setError(`Sign in failed: ${signInError.message}`)
+            return
+          }
+          
+          if (signInData.session) {
+            console.log('✅ Signed in successfully')
+            redirectToDashboard()
+            return
+          }
+        }
+        
+        setError(`Auth creation failed: ${signUpError.message}`)
+        return
+      }
+
+      if (signUpData.session) {
+        console.log('✅ Auth user created and signed in successfully')
+        redirectToDashboard()
+        return
+      }
+
+      console.log('⚠️ Auth user created but no session - trying sign in')
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password
       })
 
       if (signInError) {
-        console.error('❌ Sign in after account creation failed:', signInError)
+        console.error('❌ Sign in after signup failed:', signInError)
         setError('Account created but sign in failed. Please try signing in manually.')
         return
       }
 
       if (signInData.session) {
-        console.log('✅ Signed in successfully after account creation')
+        console.log('✅ Signed in successfully after signup')
         redirectToDashboard()
         return
       }

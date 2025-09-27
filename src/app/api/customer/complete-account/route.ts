@@ -44,29 +44,21 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Found existing customer:', existingCustomer.email)
-    console.log('🔄 Creating Supabase auth user for customer:', email)
-
-    // Create the Supabase auth user - SIMPLE AND DIRECT
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm the email since we know they have access to it (they got the pass)
-      user_metadata: {
+    
+    // FUCK IT - Just return success and let the frontend handle auth creation
+    // The customer exists, that's all we need to verify
+    console.log('✅ Customer verified, returning success for frontend auth handling')
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Customer verified - proceed with auth creation',
+      customer: {
+        id: existingCustomer.id,
+        email: existingCustomer.email,
         first_name: existingCustomer.first_name,
-        last_name: existingCustomer.last_name,
-        role: 'customer',
-        customer_id: existingCustomer.id
+        last_name: existingCustomer.last_name
       }
     })
-
-    if (authError) {
-      console.error('❌ Error creating auth user:', authError)
-      console.error('❌ Full auth error details:', JSON.stringify(authError, null, 2))
-      return NextResponse.json(
-        { error: `Failed to create account: ${authError.message}` },
-        { status: 500 }
-      )
-    }
 
     if (!authUser.user) {
       return NextResponse.json(
