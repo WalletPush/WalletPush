@@ -206,7 +206,7 @@ function CustomerDashboardContent() {
             // Merge bound props with section settings (e.g., variant, showTier, etc.)
             const componentProps = {
               ...boundProps,
-              ...section.settings
+              ...(section as any).settings
             }
             
             // Debug logging for balanceHeader
