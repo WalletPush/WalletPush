@@ -363,6 +363,9 @@ function mapActionTypeToEventType(actionType: string): string {
 
 function buildAmountsJson(type: string, payload: any) {
   switch (type) {
+    case 'check_in':
+      return { points_delta: payload.points || 0 };
+      
     case 'earn_points':
       return { points_delta: payload.points || 0 };
     
