@@ -19,6 +19,7 @@ function CustomerDashboardContent() {
   const [offers, setOffers] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [resolvedBusinessId, setResolvedBusinessId] = useState<string | null>(null)
   const { branding } = useBranding()
 
   useEffect(() => {
@@ -37,15 +38,15 @@ function CustomerDashboardContent() {
         console.log('Loading dashboard for user:', user.email, 'businessId:', businessId)
         
         // If no businessId in URL, resolve it from customer record
-        let resolvedBusinessId = businessId;
-        if (!resolvedBusinessId && user?.email) {
+        let currentBusinessId = businessId;
+        if (!currentBusinessId && user?.email) {
           console.log('🔍 No businessId in URL, resolving from customer email...');
           try {
             const customerLookupResponse = await fetch(`/api/customer/lookup?email=${encodeURIComponent(user.email)}`);
             if (customerLookupResponse.ok) {
               const customerData = await customerLookupResponse.json();
-              resolvedBusinessId = customerData.business_id;
-              console.log('✅ Resolved businessId from customer:', resolvedBusinessId);
+              currentBusinessId = customerData.business_id;
+              console.log('✅ Resolved businessId from customer:', currentBusinessId);
             } else {
               console.error('❌ Failed to resolve businessId from customer email');
             }
@@ -54,11 +55,14 @@ function CustomerDashboardContent() {
           }
         }
         
+        // Set the resolved business ID in state
+        setResolvedBusinessId(currentBusinessId)
+        
         // Load program spec (pass businessId if available) - add aggressive cache busting
         const timestamp = Date.now()
         const random = Math.random().toString(36).substring(7)
-        const specUrl = resolvedBusinessId 
-          ? `/api/program/spec?businessId=${resolvedBusinessId}&t=${timestamp}&r=${random}` 
+        const specUrl = currentBusinessId 
+          ? `/api/program/spec?businessId=${currentBusinessId}&t=${timestamp}&r=${random}` 
           : `/api/program/spec?t=${timestamp}&r=${random}`
         
         console.log('🔍 CALLING PROGRAM SPEC API:', specUrl)
@@ -78,8 +82,8 @@ function CustomerDashboardContent() {
           setProgramSpec(specData)
           
           // Load customer summary (pass businessId if available)
-          const summaryUrl = resolvedBusinessId 
-            ? `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}&businessId=${resolvedBusinessId}`
+          const summaryUrl = currentBusinessId 
+            ? `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}&businessId=${currentBusinessId}`
             : `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}`
           const summaryResponse = await fetch(summaryUrl)
           if (summaryResponse.ok) {
@@ -91,8 +95,8 @@ function CustomerDashboardContent() {
           }
           
           // Load offers (pass businessId if available)
-          const offersUrl = resolvedBusinessId
-            ? `/api/program/offers?programId=${specData.program_id}&businessId=${resolvedBusinessId}`
+          const offersUrl = currentBusinessId
+            ? `/api/program/offers?programId=${specData.program_id}&businessId=${currentBusinessId}`
             : `/api/program/offers?programId=${specData.program_id}`
           const offersResponse = await fetch(offersUrl)
           if (offersResponse.ok) {
