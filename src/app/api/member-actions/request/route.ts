@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
       errorMessage = error;
       errorDetails = { message: error };
     } else if (error && typeof error === 'object') {
-      errorMessage = error.message || error.toString() || 'Object error';
+      errorMessage = (error as any).message || error.toString() || 'Object error';
       errorDetails = { ...error };
     }
     
