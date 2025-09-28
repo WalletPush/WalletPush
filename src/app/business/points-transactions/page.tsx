@@ -342,58 +342,107 @@ export default function PointsTransactionsPage() {
               <CardTitle>Transaction Ledger</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {filteredEvents.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500">
-                    No transactions found
-                  </div>
-                ) : (
-                  filteredEvents.map((event) => (
-                    <div key={event.id} className="border border-slate-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Badge variant="outline">
-                              {event.type.replace('_', ' ').toUpperCase()}
-                            </Badge>
-                            <span className="text-sm text-slate-500">
-                              {formatDistanceToNow(new Date(event.recorded_at), { addSuffix: true })}
-                            </span>
-                          </div>
-                          
-                          <div className="text-sm text-slate-600">
-                            <span className="font-medium">
-                              {event.customers ? `${event.customers.first_name} ${event.customers.last_name}` : 'Unknown Customer'}
-                            </span>
-                            <span className="mx-2">•</span>
-                            <span>{event.customers?.email}</span>
-                            <span className="mx-2">•</span>
-                            <span>Source: {event.source.replace('_', ' ')}</span>
-                          </div>
-                          
-                          {event.amounts_json && (
-                            <div className="mt-2 text-sm">
-                              <strong>Amounts:</strong>
-                              <pre className="text-xs text-slate-500 mt-1">
-                                {JSON.stringify(event.amounts_json, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                          
-                          {event.meta_json && Object.keys(event.meta_json).length > 0 && (
-                            <div className="mt-2 text-sm">
-                              <strong>Metadata:</strong>
-                              <pre className="text-xs text-slate-500 mt-1">
-                                {JSON.stringify(event.meta_json, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+              {filteredEvents.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  No transactions found
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left py-3 px-4 font-medium text-slate-700">Date & Time</th>
+                        <th className="text-left py-3 px-4 font-medium text-slate-700">Customer</th>
+                        <th className="text-left py-3 px-4 font-medium text-slate-700">Action</th>
+                        <th className="text-right py-3 px-4 font-medium text-slate-700">Points</th>
+                        <th className="text-right py-3 px-4 font-medium text-slate-700">Balance</th>
+                        <th className="text-left py-3 px-4 font-medium text-slate-700">Source</th>
+                        <th className="text-left py-3 px-4 font-medium text-slate-700">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEvents.map((event) => {
+                        const pointsDelta = event.amounts_json?.points_delta || 0;
+                        const isPositive = pointsDelta > 0;
+                        const isNegative = pointsDelta < 0;
+                        
+                        return (
+                          <tr key={event.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 text-sm text-slate-600">
+                              <div>{new Date(event.recorded_at).toLocaleDateString()}</div>
+                              <div className="text-xs text-slate-400">
+                                {new Date(event.recorded_at).toLocaleTimeString()}
+                              </div>
+                            </td>
+                            
+                            <td className="py-3 px-4">
+                              <div className="text-sm font-medium text-slate-900">
+                                {event.customers ? `${event.customers.first_name} ${event.customers.last_name}` : 'Unknown Customer'}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {event.customers?.email}
+                              </div>
+                            </td>
+                            
+                            <td className="py-3 px-4">
+                              <Badge 
+                                variant="outline" 
+                                className={`
+                                  ${event.type === 'check_in' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''}
+                                  ${event.type === 'earn' ? 'bg-green-50 text-green-700 border-green-200' : ''}
+                                  ${event.type === 'redeem' ? 'bg-orange-50 text-orange-700 border-orange-200' : ''}
+                                  ${event.type === 'adjust' ? 'bg-purple-50 text-purple-700 border-purple-200' : ''}
+                                `}
+                              >
+                                {event.type.replace('_', ' ').toUpperCase()}
+                              </Badge>
+                            </td>
+                            
+                            <td className="py-3 px-4 text-right">
+                              <span className={`text-sm font-medium ${
+                                isPositive ? 'text-green-600' : 
+                                isNegative ? 'text-red-600' : 
+                                'text-slate-600'
+                              }`}>
+                                {isPositive ? '+' : ''}{pointsDelta}
+                              </span>
+                            </td>
+                            
+                            <td className="py-3 px-4 text-right text-sm text-slate-600">
+                              {event.amounts_json?.balance_after || '—'}
+                            </td>
+                            
+                            <td className="py-3 px-4">
+                              <Badge variant="secondary" className="text-xs">
+                                {event.source.replace('_', ' ')}
+                              </Badge>
+                            </td>
+                            
+                            <td className="py-3 px-4 text-sm text-slate-600">
+                              {event.meta_json?.auto_approved && (
+                                <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Auto-approved
+                                </span>
+                              )}
+                              {event.meta_json?.action_request_id && !event.meta_json?.auto_approved && (
+                                <span className="text-xs text-blue-600">
+                                  Staff approved
+                                </span>
+                              )}
+                              {event.meta_json?.points && (
+                                <div className="text-xs text-slate-500 mt-1">
+                                  Earned: {event.meta_json.points} pts
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
