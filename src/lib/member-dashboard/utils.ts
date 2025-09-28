@@ -28,6 +28,7 @@ export interface CustomerSummary {
   
   // Loyalty-specific fields
   points?: number;
+  points_balance?: number; // Add points_balance for API compatibility
   tier?: string;
   current_points?: number;
   next_tier_points?: number;
