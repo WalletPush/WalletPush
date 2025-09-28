@@ -165,6 +165,15 @@ export function MemberActions({
     setMessage('');
 
     try {
+      console.log('🚀 Submitting action request:', {
+        business_id,
+        program_id,
+        customer_id,
+        type: selectedAction,
+        payload: actionData,
+        idempotency_key: `${selectedAction}_${customer_id}_${Date.now()}`,
+      });
+
       const response = await fetch('/api/member-actions/request', {
         method: 'POST',
         headers: {
@@ -180,7 +189,17 @@ export function MemberActions({
         })
       });
 
-      const result = await response.json();
+      console.log('📡 API Response status:', response.status);
+      
+      let result;
+      try {
+        result = await response.json();
+        console.log('📋 API Response data:', result);
+      } catch (parseError) {
+        console.error('❌ Failed to parse response JSON:', parseError);
+        setMessage('❌ Invalid response from server');
+        return;
+      }
 
       if (response.ok) {
         if (result.status === 'auto_approved') {
@@ -196,9 +215,11 @@ export function MemberActions({
           setMessage('');
         }, 2000);
       } else {
-        setMessage(`❌ ${result.error || 'Request failed'}`);
+        console.error('❌ API Error:', result);
+        setMessage(`❌ ${result.error || result.message || 'Request failed'}`);
       }
     } catch (error) {
+      console.error('❌ Network error:', error);
       setMessage('❌ Network error. Please try again.');
     } finally {
       setIsSubmitting(false);

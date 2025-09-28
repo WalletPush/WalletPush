@@ -37,7 +37,26 @@ export async function POST(request: NextRequest) {
     }
 
     const actionsConfig = programVersion.actions_config || {};
-    const actionConfig = actionsConfig[type];
+    
+    // Handle both old and new config structures
+    let actionConfig;
+    if (actionsConfig[type]) {
+      // Old structure: actions_config.check_in.enabled
+      actionConfig = actionsConfig[type];
+    } else {
+      // New structure: actions_config.enableCheckIn
+      const enabledKey = getEnabledKey(type);
+      const autoApproveKey = getAutoApproveKey(type);
+      
+      actionConfig = {
+        enabled: actionsConfig[enabledKey],
+        auto_approve: actionsConfig[autoApproveKey],
+        cooldown: actionsConfig[getCooldownKey(type)],
+        points: actionsConfig[getPointsKey(type)]
+      };
+    }
+
+    console.log('🔍 Action config for', type, ':', actionConfig);
 
     if (!actionConfig?.enabled) {
       return NextResponse.json({ error: 'Action not enabled' }, { status: 403 });
@@ -277,6 +296,45 @@ function buildAmountsJson(type: string, payload: any) {
     
     default:
       return {};
+  }
+}
+
+// Helper functions to map action types to config keys
+function getEnabledKey(actionType: string): string {
+  switch (actionType) {
+    case 'check_in': return 'enableCheckIn';
+    case 'earn_points': return 'enableEarnPoints';
+    case 'redeem_offer': return 'enableRedeemOffer';
+    case 'receipt_credit': return 'enableReceiptCredit';
+    default: return `enable${actionType}`;
+  }
+}
+
+function getAutoApproveKey(actionType: string): string {
+  switch (actionType) {
+    case 'check_in': return 'checkInAutoApprove';
+    case 'earn_points': return 'earnPointsAutoApprove';
+    case 'redeem_offer': return 'redeemOfferAutoApprove';
+    case 'receipt_credit': return 'receiptCreditAutoApprove';
+    default: return `${actionType}AutoApprove`;
+  }
+}
+
+function getCooldownKey(actionType: string): string {
+  switch (actionType) {
+    case 'check_in': return 'checkInCooldown';
+    case 'earn_points': return 'earnPointsCooldown';
+    case 'redeem_offer': return 'redeemOfferCooldown';
+    case 'receipt_credit': return 'receiptCreditCooldown';
+    default: return `${actionType}Cooldown`;
+  }
+}
+
+function getPointsKey(actionType: string): string {
+  switch (actionType) {
+    case 'check_in': return 'checkInPoints';
+    case 'earn_points': return 'earnPointsAmount';
+    default: return `${actionType}Points`;
   }
 }
 
