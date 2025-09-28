@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
     const sum = (k: 'points_delta' | 'credit_delta' | 'stored_value_delta') =>
       (events ?? []).reduce((acc, e) => acc + (Number(e.amounts_json?.[k]) || 0), 0)
 
-    const base: any = { program_type: programType, recent_activity: recent }
+    const base: any = { program_type: programType, recent_activity: recent, customer_id: customerId }
 
     let summary: any
     if (programType === 'membership') {

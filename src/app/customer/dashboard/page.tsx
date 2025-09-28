@@ -219,13 +219,13 @@ function CustomerDashboardContent() {
               ...(section as any).settings
             }
             
-            // Special props for MemberActions component
-            if (section.type === 'memberActions') {
-              componentProps = {
-                ...componentProps,
-                program_id: programSpec.program_id,
-                business_id: businessId,
-                customer_id: user?.id,
+        // Special props for MemberActions component
+        if (section.type === 'memberActions') {
+          componentProps = {
+            ...componentProps,
+            program_id: programSpec.program_id,
+            business_id: businessId,
+            customer_id: customerSummary?.customer_id || user?.id,
                 actions_config: (section as any).settings || (programSpec.spec as any)?.actions_config || boundProps.actions_config || {},
                 pending_requests: []
               }
