@@ -186,8 +186,13 @@ export function MemberActions({
         } else {
           setMessage('⏳ Request submitted for approval');
         }
-        setSelectedAction(null);
-        setTimeout(() => setMessage(''), 3000);
+        
+        // Auto-close modal after success
+        setTimeout(() => {
+          setIsModalOpen(false);
+          setSelectedAction(null);
+          setMessage('');
+        }, 2000);
       } else {
         setMessage(`❌ ${result.error || 'Request failed'}`);
       }
