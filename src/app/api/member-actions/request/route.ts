@@ -116,7 +116,67 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
-    // Create action request
+    // Check if this should be auto-approved
+    const shouldAutoApproveAction = actionConfig.auto_approve && shouldAutoApprove(type, payload, actionConfig);
+
+    if (shouldAutoApproveAction) {
+      console.log('🚀 Auto-approving action directly to ledger');
+      
+      // Get the current program version for the event
+      const { data: programVersion } = await supabase
+        .from('program_versions')
+        .select('id')
+        .eq('program_id', program_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      // Create customer event directly (skip action_requests for auto-approve)
+      const eventData = {
+        business_id,
+        program_id,
+        program_version_id: programVersion?.id,
+        customer_id,
+        type: mapActionTypeToEventType(type),
+        amounts_json: buildAmountsJson(type, payload),
+        source: 'member_scanner', // Changed from 'api' to 'member_scanner' for member-initiated actions
+        meta_json: {
+          auto_approved: true,
+          policy_applied: {
+            config: actionConfig,
+            cooldown_check: cooldownCheck
+          },
+          ...payload
+        },
+        idempotency_key: `auto_${idempotency_key}`,
+        observed_at: new Date().toISOString()
+      };
+
+      const { data: event, error: eventError } = await supabase
+        .from('customer_events')
+        .insert(eventData)
+        .select()
+        .single();
+
+      if (eventError) {
+        console.error('❌ Error creating customer event:', eventError);
+        if (eventError.code === '23505') { // Unique constraint violation
+          return NextResponse.json({ error: 'Duplicate request' }, { status: 409 });
+        }
+        throw eventError;
+      }
+
+      console.log('✅ Auto-approved action created directly in ledger:', event.id);
+
+      return NextResponse.json({
+        success: true,
+        status: 'auto_approved',
+        event_id: event.id,
+        message: 'Action completed successfully!'
+      });
+    }
+
+    // For manual approval actions, create action request
     const { data: actionRequest, error: insertError } = await supabase
       .from('action_requests')
       .insert({
@@ -143,23 +203,7 @@ export async function POST(request: NextRequest) {
       throw insertError;
     }
 
-    console.log('✅ Action request created:', actionRequest.id);
-
-    // Check if auto-approve
-    if (actionConfig.auto_approve && shouldAutoApprove(type, payload, actionConfig)) {
-      console.log('🚀 Auto-approving request:', actionRequest.id);
-      const approvalResult = await approveActionRequest(supabase, actionRequest.id, 'system');
-      
-      if (approvalResult.success) {
-        return NextResponse.json({
-          success: true,
-          status: 'auto_approved',
-          request_id: actionRequest.id,
-          event_id: approvalResult.event_id,
-          message: 'Action completed successfully!'
-        });
-      }
-    }
+    console.log('✅ Action request created for manual approval:', actionRequest.id);
 
     return NextResponse.json({
       success: true,
@@ -213,16 +257,28 @@ async function checkCooldowns(supabase: any, customer_id: string, business_id: s
   if (cooldownMinutes > 0) {
     const cutoff = new Date(Date.now() - cooldownMinutes * 60 * 1000);
     
-    const { data: recentRequests } = await supabase
-      .from('action_requests')
-      .select('id')
-      .eq('customer_id', customer_id)
-      .eq('business_id', business_id)
-      .eq('type', type)
-      .gte('created_at', cutoff.toISOString())
-      .limit(1);
+    // Check both action_requests AND customer_events for cooldowns
+    const [actionRequestsResult, customerEventsResult] = await Promise.all([
+      supabase
+        .from('action_requests')
+        .select('id')
+        .eq('customer_id', customer_id)
+        .eq('business_id', business_id)
+        .eq('type', type)
+        .gte('created_at', cutoff.toISOString())
+        .limit(1),
+      supabase
+        .from('customer_events')
+        .select('id')
+        .eq('customer_id', customer_id)
+        .eq('business_id', business_id)
+        .eq('type', mapActionTypeToEventType(type))
+        .gte('recorded_at', cutoff.toISOString())
+        .limit(1)
+    ]);
 
-    if (recentRequests && recentRequests.length > 0) {
+    if ((actionRequestsResult.data && actionRequestsResult.data.length > 0) ||
+        (customerEventsResult.data && customerEventsResult.data.length > 0)) {
       return {
         allowed: false,
         reason: `Cooldown active. Try again in ${cooldownMinutes} minutes.`
@@ -236,15 +292,27 @@ async function checkCooldowns(supabase: any, customer_id: string, business_id: s
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const { data: todayRequests } = await supabase
-      .from('action_requests')
-      .select('id')
-      .eq('customer_id', customer_id)
-      .eq('business_id', business_id)
-      .eq('type', type)
-      .gte('created_at', today.toISOString());
+    // Check both action_requests AND customer_events for daily limits
+    const [actionRequestsResult, customerEventsResult] = await Promise.all([
+      supabase
+        .from('action_requests')
+        .select('id')
+        .eq('customer_id', customer_id)
+        .eq('business_id', business_id)
+        .eq('type', type)
+        .gte('created_at', today.toISOString()),
+      supabase
+        .from('customer_events')
+        .select('id')
+        .eq('customer_id', customer_id)
+        .eq('business_id', business_id)
+        .eq('type', mapActionTypeToEventType(type))
+        .gte('recorded_at', today.toISOString())
+    ]);
 
-    if (todayRequests && todayRequests.length >= maxPerDay) {
+    const totalToday = (actionRequestsResult.data?.length || 0) + (customerEventsResult.data?.length || 0);
+    
+    if (totalToday >= maxPerDay) {
       return {
         allowed: false,
         reason: `Daily limit reached (${maxPerDay} per day)`

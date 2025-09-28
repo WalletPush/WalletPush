@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No business access' }, { status: 403 })
     }
 
-    // Get customer events for this business
+    // Get customer events for this business with customer info
     const { data: customerEvents, error } = await supabase
       .from('customer_events')
       .select(`
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         idempotency_key,
         observed_at,
         recorded_at,
-        customers!customer_id (
+        customers:customer_id (
           first_name,
           last_name,
           email
