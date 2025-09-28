@@ -3,8 +3,27 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const body = await request.json();
+    console.log('🔍 Starting member action request processing...');
+    
+    // Create Supabase client with error handling
+    let supabase;
+    try {
+      supabase = await createClient();
+      console.log('✅ Supabase client created successfully');
+    } catch (clientError) {
+      console.error('❌ Failed to create Supabase client:', clientError);
+      throw new Error(`Supabase client creation failed: ${clientError instanceof Error ? clientError.message : 'Unknown client error'}`);
+    }
+    
+    // Parse request body with error handling
+    let body;
+    try {
+      body = await request.json();
+      console.log('✅ Request body parsed successfully');
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError);
+      throw new Error(`Request body parsing failed: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
+    }
     
     const { 
       business_id, 
@@ -135,25 +154,38 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error creating action request:', error);
-    console.error('❌ Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : 'No stack trace',
-      name: error instanceof Error ? error.name : 'Unknown error type'
-    });
+    console.error('❌ Error type:', typeof error);
+    console.error('❌ Error constructor:', error?.constructor?.name);
     
-    // More specific error logging for production debugging
+    // Handle different error types
+    let errorMessage = 'Unknown error';
+    let errorDetails = {};
+    
     if (error instanceof Error) {
-      console.error('❌ PRODUCTION ERROR DETAILS:', {
-        errorMessage: error.message,
-        errorName: error.name,
-        stackTrace: error.stack?.split('\n').slice(0, 5).join('\n'), // First 5 lines of stack
-        timestamp: new Date().toISOString()
-      });
+      errorMessage = error.message;
+      errorDetails = {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      };
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+      errorDetails = { message: error };
+    } else if (error && typeof error === 'object') {
+      errorMessage = error.message || error.toString() || 'Object error';
+      errorDetails = { ...error };
     }
+    
+    console.error('❌ PRODUCTION ERROR DETAILS:', {
+      errorMessage,
+      errorDetails,
+      timestamp: new Date().toISOString()
+    });
     
     return NextResponse.json({ 
       error: 'Internal server error',
-      debug: error instanceof Error ? error.message : 'Unknown error', // Always include debug info for now
+      debug: errorMessage,
+      errorType: typeof error,
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }
