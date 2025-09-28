@@ -127,7 +127,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error creating action request:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      name: error instanceof Error ? error.name : 'Unknown error type'
+    });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      debug: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : 'Unknown error' : undefined
+    }, { status: 500 });
   }
 }
 
