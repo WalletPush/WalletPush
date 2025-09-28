@@ -92,10 +92,43 @@ export function MemberActions({
     return () => observer.disconnect();
   }, []);
 
-  // Get enabled actions
-  const enabledActions = Object.entries(actions_config)
-    .filter(([_, config]) => config?.enabled)
-    .map(([action, _]) => action as ActionType);
+  // Get enabled actions based on settings structure
+  const enabledActions: ActionType[] = [];
+  if (actions_config.enableCheckIn) enabledActions.push('check_in');
+  if (actions_config.enableEarnPoints) enabledActions.push('earn_points');
+  if (actions_config.enableRedeemOffer) enabledActions.push('redeem_offer');
+  if (actions_config.enableReceiptCredit) enabledActions.push('receipt_credit');
+
+  // Helper function to get action config from settings
+  const getActionConfig = (action: ActionType) => {
+    switch (action) {
+      case 'check_in':
+        return {
+          enabled: actions_config.enableCheckIn,
+          auto_approve: actions_config.checkInAutoApprove,
+          cooldown: actions_config.checkInCooldown,
+          points: actions_config.checkInPoints
+        };
+      case 'earn_points':
+        return {
+          enabled: actions_config.enableEarnPoints,
+          auto_approve: actions_config.earnPointsAutoApprove,
+          max_per_day: actions_config.earnPointsMaxPerDay
+        };
+      case 'redeem_offer':
+        return {
+          enabled: actions_config.enableRedeemOffer,
+          auto_approve: actions_config.redeemOfferAutoApprove
+        };
+      case 'receipt_credit':
+        return {
+          enabled: actions_config.enableReceiptCredit,
+          auto_approve: actions_config.receiptCreditAutoApprove
+        };
+      default:
+        return { enabled: false };
+    }
+  };
 
   const handleActionSelect = (action: ActionType) => {
     setSelectedAction(action);
@@ -206,6 +239,7 @@ export function MemberActions({
         <ActionModal
           enabledActions={enabledActions}
           actionsConfig={actions_config}
+          getActionConfig={getActionConfig}
           selectedAction={selectedAction}
           onActionSelect={handleActionSelect}
           onSubmit={handleSubmitAction}
@@ -250,6 +284,7 @@ export function MemberActions({
 function ActionModal({ 
   enabledActions, 
   actionsConfig, 
+  getActionConfig,
   selectedAction, 
   onActionSelect, 
   onSubmit, 
@@ -294,7 +329,7 @@ function ActionModal({
           <div className="grid grid-cols-2 gap-3">
             {enabledActions.map((action: ActionType) => {
               const Icon = ACTION_ICONS[action];
-              const config = actionsConfig[action];
+              const config = getActionConfig(action);
               
               return (
                 <button
