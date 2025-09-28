@@ -161,8 +161,8 @@ export default function PointsTransactionsPage() {
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter
     const matchesType = typeFilter === 'all' || request.type === typeFilter
     const matchesSearch = !searchTerm || 
-      request.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      `${request.customers?.first_name} ${request.customers?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.customers?.email?.toLowerCase().includes(searchTerm.toLowerCase())
     
     return matchesStatus && matchesType && matchesSearch
   })
@@ -170,8 +170,8 @@ export default function PointsTransactionsPage() {
   const filteredEvents = customerEvents.filter(event => {
     const matchesType = typeFilter === 'all' || event.type === typeFilter
     const matchesSearch = !searchTerm || 
-      event.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      `${event.customers?.first_name} ${event.customers?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.customers?.email?.toLowerCase().includes(searchTerm.toLowerCase())
     
     return matchesType && matchesSearch
   })
