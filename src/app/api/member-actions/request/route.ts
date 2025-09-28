@@ -37,33 +37,6 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Member action request:', { business_id, program_id, customer_id, type });
     console.log('🔍 Full request body:', JSON.stringify(body, null, 2));
 
-    // Auto-create customer if they don't exist (to handle mobile/different devices)
-    const { data: existingCustomer } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('id', customer_id)
-      .single();
-
-    if (!existingCustomer) {
-      console.log('🔧 Creating missing customer:', customer_id);
-      const { error: customerError } = await supabase
-        .from('customers')
-        .insert({
-          id: customer_id,
-          email: 'auto-created@customer.com', // Placeholder email
-          business_id: business_id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      if (customerError) {
-        console.error('❌ Failed to create customer:', customerError);
-        // Continue anyway - the foreign key error will be more descriptive
-      } else {
-        console.log('✅ Customer created successfully');
-      }
-    }
-
     // Validate required fields
     if (!business_id || !program_id || !customer_id || !type || !idempotency_key) {
       console.error('❌ Missing required fields:', { business_id, program_id, customer_id, type, idempotency_key });
