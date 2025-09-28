@@ -4,7 +4,8 @@ import React from 'react'
 import { Star, TrendingUp, Award, Zap } from 'lucide-react'
 
 interface BalanceSpeedoProps {
-  pointsBalance: number
+  points_balance?: number  // Changed to match bindProps output
+  pointsBalance?: number   // Keep for backward compatibility
   pointsToNextTier?: number
   tier?: {
     name: string
@@ -25,6 +26,7 @@ interface BalanceSpeedoProps {
 }
 
 export function BalanceSpeedo({
+  points_balance,
   pointsBalance,
   pointsToNextTier,
   tier,
@@ -35,6 +37,9 @@ export function BalanceSpeedo({
   size = 'md',
   accent = 'primary'
 }: BalanceSpeedoProps) {
+  // Use points_balance (from bindProps) or pointsBalance (backward compatibility)
+  const actualPointsBalance = points_balance ?? pointsBalance ?? 0;
+  
   const formatPoints = (points: number) => {
     if (points >= 1000000) return `${(points / 1000000).toFixed(1)}M`
     if (points >= 1000) return `${(points / 1000).toFixed(1)}K`
@@ -58,7 +63,7 @@ export function BalanceSpeedo({
     // Find current tier (highest tier the user has achieved)
     let currentTier = sortedTiers[0]
     for (const tierConfig of sortedTiers) {
-      if (pointsBalance >= tierConfig.pointsRequired) {
+      if (actualPointsBalance >= tierConfig.pointsRequired) {
         currentTier = tierConfig
       } else {
         break
@@ -66,14 +71,14 @@ export function BalanceSpeedo({
     }
     
     // Find next tier
-    const nextTier = sortedTiers.find(t => t.pointsRequired > pointsBalance)
-    const pointsToNext = nextTier ? nextTier.pointsRequired - pointsBalance : 0
+    const nextTier = sortedTiers.find(t => t.pointsRequired > actualPointsBalance)
+    const pointsToNext = nextTier ? nextTier.pointsRequired - actualPointsBalance : 0
     
     // Calculate progress percentage
     let progressPercentage = 0
     if (nextTier && currentTier) {
       const tierRange = nextTier.pointsRequired - currentTier.pointsRequired
-      const currentProgress = pointsBalance - currentTier.pointsRequired
+      const currentProgress = actualPointsBalance - currentTier.pointsRequired
       progressPercentage = tierRange > 0 ? (currentProgress / tierRange) * 100 : 100
     } else if (!nextTier) {
       progressPercentage = 100 // Max tier achieved
@@ -132,7 +137,7 @@ export function BalanceSpeedo({
         <div className="flex items-center justify-between">
           <div>
             <div className={`font-bold wp-text-primary ${textSizeClasses[size].main}`}>
-              {formatPoints(pointsBalance)}
+              {formatPoints(actualPointsBalance)}
             </div>
             <div className={`wp-text-secondary ${textSizeClasses[size].label}`}>
               points
@@ -184,7 +189,7 @@ export function BalanceSpeedo({
           
           <div className="flex-1">
             <div className={`font-bold wp-text-primary ${textSizeClasses[size].main}`}>
-              {formatPoints(pointsBalance)}
+              {formatPoints(actualPointsBalance)}
             </div>
             <div className={`wp-text-secondary ${textSizeClasses[size].label} mb-2`}>
               points available
@@ -266,7 +271,7 @@ export function BalanceSpeedo({
           
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <div className={`font-bold wp-text-primary ${textSizeClasses[size].main}`}>
-              {formatPoints(pointsBalance)}
+              {formatPoints(actualPointsBalance)}
             </div>
             <div className={`wp-text-secondary ${textSizeClasses[size].label}`}>
               points
@@ -336,7 +341,7 @@ export function BalanceSpeedo({
         
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className={`font-bold wp-text-primary ${textSizeClasses[size].main}`}>
-            {formatPoints(pointsBalance)}
+            {formatPoints(actualPointsBalance)}
           </div>
           <div className={`wp-text-secondary ${textSizeClasses[size].label}`}>
             points
