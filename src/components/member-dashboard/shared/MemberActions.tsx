@@ -112,42 +112,44 @@ export function MemberActions({
   // DEBUG: Log what we're receiving
   console.log('🔍 MemberActions actions_config received:', JSON.stringify(actions_config, null, 2));
   
-  // Get enabled actions based on settings structure
+  // Get enabled actions based on settings structure (handle both old and new formats)
   const enabledActions: ActionType[] = [];
   const settings = actions_config as any; // Type assertion for settings access
-  if (settings.enableCheckIn) enabledActions.push('check_in');
-  if (settings.enableEarnPoints) enabledActions.push('earn_points');
-  if (settings.enableRedeemOffer) enabledActions.push('redeem_offer');
-  if (settings.enableReceiptCredit) enabledActions.push('receipt_credit');
+  
+  // Check for new format first, then fall back to old format
+  if (settings.enableCheckIn || settings.check_in?.enabled) enabledActions.push('check_in');
+  if (settings.enableEarnPoints || settings.earn_points?.enabled) enabledActions.push('earn_points');
+  if (settings.enableRedeemOffer || settings.redeem_offer?.enabled) enabledActions.push('redeem_offer');
+  if (settings.enableReceiptCredit || settings.receipt_credit?.enabled) enabledActions.push('receipt_credit');
   
   console.log('🔍 MemberActions enabledActions:', enabledActions);
 
-  // Helper function to get action config from settings
+  // Helper function to get action config from settings (handle both old and new formats)
   const getActionConfig = (action: ActionType) => {
     const settings = actions_config as any; // Type assertion for settings access
     switch (action) {
       case 'check_in':
         return {
-          enabled: settings.enableCheckIn,
-          auto_approve: settings.checkInAutoApprove,
-          cooldown: settings.checkInCooldown,
-          points: settings.checkInPoints
+          enabled: settings.enableCheckIn || settings.check_in?.enabled,
+          auto_approve: settings.checkInAutoApprove || settings.check_in?.auto_approve,
+          cooldown: settings.checkInCooldown || settings.check_in?.cooldown_minutes,
+          points: settings.checkInPoints || settings.check_in?.points
         };
       case 'earn_points':
         return {
-          enabled: settings.enableEarnPoints,
-          auto_approve: settings.earnPointsAutoApprove,
-          max_per_day: settings.earnPointsMaxPerDay
+          enabled: settings.enableEarnPoints || settings.earn_points?.enabled,
+          auto_approve: settings.earnPointsAutoApprove || settings.earn_points?.auto_approve,
+          max_per_day: settings.earnPointsMaxPerDay || settings.earn_points?.max_per_day
         };
       case 'redeem_offer':
         return {
-          enabled: settings.enableRedeemOffer,
-          auto_approve: settings.redeemOfferAutoApprove
+          enabled: settings.enableRedeemOffer || settings.redeem_offer?.enabled,
+          auto_approve: settings.redeemOfferAutoApprove || settings.redeem_offer?.auto_approve
         };
       case 'receipt_credit':
         return {
-          enabled: settings.enableReceiptCredit,
-          auto_approve: settings.receiptCreditAutoApprove
+          enabled: settings.enableReceiptCredit || settings.receipt_credit?.enabled,
+          auto_approve: settings.receiptCreditAutoApprove || settings.receipt_credit?.auto_approve
         };
       default:
         return { enabled: false };
