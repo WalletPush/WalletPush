@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       customer_id: actionRequest.customer_id,
       type: mapActionTypeToEventType(actionRequest.type),
       amounts_json: buildAmountsJson(actionRequest.type, actionRequest.payload),
-      source: 'staff_approval',
+      source: 'admin',
       meta_json: {
         action_request_id: actionRequest.id,
         approved_by: 'staff', // TODO: Get actual user ID from auth
