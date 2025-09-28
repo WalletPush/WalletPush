@@ -48,7 +48,7 @@ const ACTION_ICONS = {
   receipt_credit: ReceiptRefundIcon,
 };
 
-const ACTION_LABELS = {
+const ACTION_LABELS: Record<ActionType, string> = {
   check_in: 'Check In',
   earn_points: 'Add Points',
   redeem_offer: 'Redeem Offer',
@@ -279,7 +279,7 @@ function ActionModal({
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold wp-text-primary">
-            {selectedAction ? ACTION_LABELS[selectedAction] : 'Select Action'}
+            {selectedAction ? ACTION_LABELS[selectedAction as ActionType] : 'Select Action'}
           </h3>
           <button
             onClick={onClose}
@@ -304,7 +304,7 @@ function ActionModal({
                 >
                   <Icon className="w-8 h-8 mx-auto mb-2 wp-icon-primary" />
                   <div className="font-medium text-sm wp-text-primary">
-                    {ACTION_LABELS[action]}
+                    {ACTION_LABELS[action as ActionType]}
                   </div>
                   {config?.auto_approve && (
                     <div className="text-xs mt-1 wp-icon-success">
@@ -456,7 +456,7 @@ function ActionForm({ action, config, formData, setFormData }: any) {
       return (
         <div className="space-y-3">
           <p className="text-[#C6C8CC] text-sm">
-            Request {ACTION_LABELS[action]?.toLowerCase()} from the business
+            Request {ACTION_LABELS[action as ActionType]?.toLowerCase()} from the business
           </p>
           <div>
             <label className="block text-white text-sm font-medium mb-1">
