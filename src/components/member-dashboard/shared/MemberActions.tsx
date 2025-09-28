@@ -221,19 +221,24 @@ export function MemberActions({
       }
 
       if (response.ok) {
+        console.log('🎉 API Success! Result:', result);
         if (result.status === 'auto_approved') {
+          console.log('✅ Setting success message');
           setMessage('✅ Action completed successfully!');
         } else {
+          console.log('⏳ Setting pending message');
           setMessage('⏳ Request submitted for approval');
         }
         
+        console.log('⏰ Starting 3-second timer for modal close');
         // Auto-close modal after success (no page refresh!)
         setTimeout(() => {
+          console.log('⏰ Timer complete - closing modal');
           setIsModalOpen(false);
           setSelectedAction(null);
           setMessage('');
           // TODO: Update points balance without page refresh
-        }, 2000);
+        }, 3000); // Increased to 3 seconds to see message better
       } else {
         console.error('❌ API Error:', result);
         setMessage(`❌ ${result.error || result.message || 'Request failed'}`);

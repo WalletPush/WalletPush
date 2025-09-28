@@ -60,6 +60,11 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Loaded action requests:', actionRequests?.length || 0)
+    
+    // Debug: Log the first request to see the customer data structure
+    if (actionRequests && actionRequests.length > 0) {
+      console.log('🔍 First action request structure:', JSON.stringify(actionRequests[0], null, 2));
+    }
 
     return NextResponse.json(actionRequests || [])
 

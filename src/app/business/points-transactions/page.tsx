@@ -287,9 +287,11 @@ export default function PointsTransactionsPage() {
                           </div>
                           
                           <div className="text-sm text-slate-600">
-                            <span className="font-medium">{request.customer?.name || 'Unknown Customer'}</span>
+                            <span className="font-medium">
+                              {request.customers ? `${request.customers.first_name} ${request.customers.last_name}` : 'Unknown Customer'}
+                            </span>
                             <span className="mx-2">•</span>
-                            <span>{request.customer?.email}</span>
+                            <span>{request.customers?.email}</span>
                             <span className="mx-2">•</span>
                             <span>Source: {request.source.replace('_', ' ')}</span>
                           </div>
@@ -358,9 +360,11 @@ export default function PointsTransactionsPage() {
                           </div>
                           
                           <div className="text-sm text-slate-600">
-                            <span className="font-medium">{event.customer?.name || 'Unknown Customer'}</span>
+                            <span className="font-medium">
+                              {event.customers ? `${event.customers.first_name} ${event.customers.last_name}` : 'Unknown Customer'}
+                            </span>
                             <span className="mx-2">•</span>
-                            <span>{event.customer?.email}</span>
+                            <span>{event.customers?.email}</span>
                             <span className="mx-2">•</span>
                             <span>Source: {event.source.replace('_', ' ')}</span>
                           </div>
