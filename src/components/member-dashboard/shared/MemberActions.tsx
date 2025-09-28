@@ -27,12 +27,28 @@ interface MemberActionsProps {
   business_id: string;
   customer_id: string;
   actions_config: {
+    // Legacy format support
     check_in?: ActionConfig;
     earn_points?: ActionConfig;
     redeem_offer?: ActionConfig;
     spend_value?: ActionConfig;
     ticket_use?: ActionConfig;
     receipt_credit?: ActionConfig;
+    // New settings format
+    enableCheckIn?: boolean;
+    checkInAutoApprove?: boolean;
+    checkInCooldown?: number;
+    checkInPoints?: number;
+    enableEarnPoints?: boolean;
+    earnPointsAutoApprove?: boolean;
+    earnPointsMaxPerDay?: number;
+    enableRedeemOffer?: boolean;
+    redeemOfferAutoApprove?: boolean;
+    enableReceiptCredit?: boolean;
+    receiptCreditAutoApprove?: boolean;
+    buttonText?: string;
+    variant?: string;
+    size?: string;
   };
   pending_requests?: any[];
 }
