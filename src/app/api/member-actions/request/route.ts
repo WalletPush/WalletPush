@@ -132,13 +132,16 @@ export async function POST(request: NextRequest) {
         .single();
 
       // Create customer event directly (skip action_requests for auto-approve)
+      const amountsJson = buildAmountsJson(type, payload);
+      const pointsDelta = amountsJson.points_delta || 0;
+      
       const eventData = {
         business_id,
         program_id,
         program_version_id: programVersion?.id,
         customer_id,
         type: mapActionTypeToEventType(type),
-        amounts_json: buildAmountsJson(type, payload),
+        amounts_json: amountsJson,
         source: 'member_scanner', // Changed from 'api' to 'member_scanner' for member-initiated actions
         meta_json: {
           auto_approved: true,
@@ -167,6 +170,9 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('✅ Auto-approved action created directly in ledger:', event.id);
+
+      // Update customer balance
+      await updateCustomerBalance(supabase, customer_id, pointsDelta);
 
       return NextResponse.json({
         success: true,
@@ -404,7 +410,9 @@ async function approveActionRequest(supabase: any, requestId: string, reviewerId
 
     console.log('✅ Action request approved and event created:', event.id);
 
-    // TODO: Trigger side effects (balance updates, pass updates, etc.)
+    // Update customer balance
+    const pointsDelta = eventData.amounts_json.points_delta || 0;
+    await updateCustomerBalance(supabase, request.customer_id, pointsDelta);
     
     return { success: true, event_id: event.id };
 
@@ -484,6 +492,53 @@ function getPointsKey(actionType: string): string {
     case 'check_in': return 'checkInPoints';
     case 'earn_points': return 'earnPointsAmount';
     default: return `${actionType}Points`;
+  }
+}
+
+async function updateCustomerBalance(supabase: any, customer_id: string, pointsDelta: number) {
+  if (pointsDelta === 0) return; // No balance change needed
+  
+  try {
+    console.log(`🔄 Updating customer balance: ${customer_id} by ${pointsDelta} points`);
+    
+    // Get current balance
+    const { data: customer, error: fetchError } = await supabase
+      .from('customers')
+      .select('points_balance, points_earned, points_redeemed')
+      .eq('id', customer_id)
+      .single();
+    
+    if (fetchError) {
+      console.error('❌ Error fetching customer for balance update:', fetchError);
+      return;
+    }
+    
+    const currentBalance = customer.points_balance || 0;
+    const currentEarned = customer.points_earned || 0;
+    const currentRedeemed = customer.points_redeemed || 0;
+    
+    const newBalance = currentBalance + pointsDelta;
+    const newEarned = pointsDelta > 0 ? currentEarned + pointsDelta : currentEarned;
+    const newRedeemed = pointsDelta < 0 ? currentRedeemed + Math.abs(pointsDelta) : currentRedeemed;
+    
+    // Update customer balance
+    const { error: updateError } = await supabase
+      .from('customers')
+      .update({
+        points_balance: newBalance,
+        points_earned: newEarned,
+        points_redeemed: newRedeemed,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', customer_id);
+    
+    if (updateError) {
+      console.error('❌ Error updating customer balance:', updateError);
+    } else {
+      console.log(`✅ Customer balance updated: ${currentBalance} → ${newBalance} points`);
+    }
+  } catch (error) {
+    console.error('❌ Error in updateCustomerBalance:', error);
   }
 }
 

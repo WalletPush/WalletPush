@@ -157,6 +157,26 @@ export default function PointsTransactionsPage() {
     }
   }
 
+  const handleEditTransaction = async (eventId: string) => {
+    // TODO: Implement edit transaction modal
+    console.log('Edit transaction:', eventId)
+    alert('Edit transaction feature coming soon!')
+  }
+
+  const handleRevokeTransaction = async (eventId: string) => {
+    if (!confirm('Are you sure you want to revoke this transaction? This will reverse the points and cannot be undone.')) {
+      return
+    }
+    
+    try {
+      // TODO: Implement revoke transaction API
+      console.log('Revoke transaction:', eventId)
+      alert('Revoke transaction feature coming soon!')
+    } catch (error) {
+      console.error('Error revoking transaction:', error)
+    }
+  }
+
   const filteredRequests = actionRequests.filter(request => {
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter
     const matchesType = typeFilter === 'all' || request.type === typeFilter
@@ -361,10 +381,15 @@ export default function PointsTransactionsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredEvents.map((event) => {
+                      {filteredEvents.map((event, index) => {
                         const pointsDelta = event.amounts_json?.points_delta || 0;
                         const isPositive = pointsDelta > 0;
                         const isNegative = pointsDelta < 0;
+                        
+                        // Calculate running balance (events are ordered by date DESC, so we reverse calculate)
+                        const runningBalance = filteredEvents
+                          .slice(index)
+                          .reduce((sum, e) => sum + (e.amounts_json?.points_delta || 0), 0);
                         
                         return (
                           <tr key={event.id} className="border-b border-slate-100 hover:bg-slate-50">
@@ -408,8 +433,8 @@ export default function PointsTransactionsPage() {
                               </span>
                             </td>
                             
-                            <td className="py-3 px-4 text-right text-sm text-slate-600">
-                              {event.amounts_json?.balance_after || '—'}
+                            <td className="py-3 px-4 text-right text-sm font-medium text-slate-900">
+                              {runningBalance}
                             </td>
                             
                             <td className="py-3 px-4">
@@ -419,22 +444,44 @@ export default function PointsTransactionsPage() {
                             </td>
                             
                             <td className="py-3 px-4 text-sm text-slate-600">
-                              {event.meta_json?.auto_approved && (
-                                <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                                  <CheckCircle className="w-3 h-3" />
-                                  Auto-approved
-                                </span>
-                              )}
-                              {event.meta_json?.action_request_id && !event.meta_json?.auto_approved && (
-                                <span className="text-xs text-blue-600">
-                                  Staff approved
-                                </span>
-                              )}
-                              {event.meta_json?.points && (
-                                <div className="text-xs text-slate-500 mt-1">
-                                  Earned: {event.meta_json.points} pts
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  {event.meta_json?.auto_approved && (
+                                    <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                                      <CheckCircle className="w-3 h-3" />
+                                      Auto-approved
+                                    </span>
+                                  )}
+                                  {event.meta_json?.action_request_id && !event.meta_json?.auto_approved && (
+                                    <span className="text-xs text-blue-600">
+                                      Staff approved
+                                    </span>
+                                  )}
+                                  {event.meta_json?.points && (
+                                    <div className="text-xs text-slate-500 mt-1">
+                                      Earned: {event.meta_json.points} pts
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    onClick={() => handleEditTransaction(event.id)}
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => handleRevokeTransaction(event.id)}
+                                  >
+                                    Revoke
+                                  </Button>
+                                </div>
+                              </div>
                             </td>
                           </tr>
                         );
