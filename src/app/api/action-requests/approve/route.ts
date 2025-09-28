@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     // Create customer event (the ledger entry)
+    const now = new Date().toISOString();
     const eventData = {
       business_id: actionRequest.business_id,
       program_id: actionRequest.program_id,
@@ -52,7 +53,8 @@ export async function POST(request: NextRequest) {
         ...actionRequest.payload
       },
       idempotency_key: `approved_${actionRequest.idempotency_key}`,
-      observed_at: new Date().toISOString()
+      observed_at: now,
+      recorded_at: now
     };
 
     const { data: event, error: eventError } = await supabase
@@ -63,7 +65,12 @@ export async function POST(request: NextRequest) {
 
     if (eventError) {
       console.error('❌ Error creating customer event:', eventError);
-      return NextResponse.json({ error: 'Failed to create event' }, { status: 500 });
+      console.error('❌ Event data that failed:', eventData);
+      return NextResponse.json({ 
+        error: 'Failed to create event', 
+        details: eventError.message,
+        eventData 
+      }, { status: 500 });
     }
 
     // Update request status
