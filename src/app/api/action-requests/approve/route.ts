@@ -52,25 +52,48 @@ export async function POST(request: NextRequest) {
         approved_by: 'staff', // TODO: Get actual user ID from auth
         ...actionRequest.payload
       },
-      idempotency_key: `approved_${actionRequest.idempotency_key}`,
+      idempotency_key: `approved_${actionRequest.id}`,
       observed_at: now,
       recorded_at: now
     };
 
-    const { data: event, error: eventError } = await supabase
+    let event;
+    const { data: insertedEvent, error: eventError } = await supabase
       .from('customer_events')
       .insert(eventData)
       .select()
       .single();
 
     if (eventError) {
-      console.error('❌ Error creating customer event:', eventError);
-      console.error('❌ Event data that failed:', eventData);
-      return NextResponse.json({ 
-        error: 'Failed to create event', 
-        details: eventError.message,
-        eventData 
-      }, { status: 500 });
+      // Check if it's a duplicate idempotency key error
+      if (eventError.message?.includes('duplicate key value violates unique constraint "uq_customer_events_idem"')) {
+        console.log('🔍 Event already exists, finding existing event...');
+        // Find the existing event
+        const { data: existingEvent, error: findError } = await supabase
+          .from('customer_events')
+          .select()
+          .eq('idempotency_key', eventData.idempotency_key)
+          .single();
+        
+        if (findError || !existingEvent) {
+          console.error('❌ Could not find existing event:', findError);
+          return NextResponse.json({ error: 'Failed to find existing event' }, { status: 500 });
+        }
+        
+        event = existingEvent;
+        console.log('✅ Using existing event:', event.id);
+      } else {
+        console.error('❌ Error creating customer event:', eventError);
+        console.error('❌ Event data that failed:', eventData);
+        return NextResponse.json({ 
+          error: 'Failed to create event', 
+          details: eventError.message,
+          eventData 
+        }, { status: 500 });
+      }
+    } else {
+      event = insertedEvent;
+      console.log('✅ Created new event:', event.id);
     }
 
     // Update request status
