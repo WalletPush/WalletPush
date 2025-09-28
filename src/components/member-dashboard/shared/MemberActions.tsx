@@ -108,12 +108,17 @@ export function MemberActions({
     return () => observer.disconnect();
   }, []);
 
+  // DEBUG: Log what we're receiving
+  console.log('🔍 MemberActions actions_config received:', JSON.stringify(actions_config, null, 2));
+  
   // Get enabled actions based on settings structure
   const enabledActions: ActionType[] = [];
   if (actions_config.enableCheckIn) enabledActions.push('check_in');
   if (actions_config.enableEarnPoints) enabledActions.push('earn_points');
   if (actions_config.enableRedeemOffer) enabledActions.push('redeem_offer');
   if (actions_config.enableReceiptCredit) enabledActions.push('receipt_credit');
+  
+  console.log('🔍 MemberActions enabledActions:', enabledActions);
 
   // Helper function to get action config from settings
   const getActionConfig = (action: ActionType) => {

@@ -226,7 +226,7 @@ function CustomerDashboardContent() {
                 program_id: programSpec.program_id,
                 business_id: businessId,
                 customer_id: user?.id,
-                actions_config: (programSpec.spec as any)?.actions_config || boundProps.actions_config || {},
+                actions_config: (section as any).settings || (programSpec.spec as any)?.actions_config || boundProps.actions_config || {},
                 pending_requests: []
               }
             }
