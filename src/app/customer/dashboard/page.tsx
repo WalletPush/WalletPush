@@ -52,6 +52,22 @@ function CustomerDashboardContent() {
               console.log('✅ Resolved from customer lookup:', { businessId: currentBusinessId, customerId: actualCustomerId });
             } else {
               console.error('❌ Failed to resolve businessId from customer email');
+              console.log('🔍 User might be business owner, not customer. Trying business lookup...');
+              
+              // Fallback: Try to get business from account_members (for business owners/admins)
+              try {
+                const businessLookupResponse = await fetch(`/api/business/lookup?email=${encodeURIComponent(user.email)}`);
+                if (businessLookupResponse.ok) {
+                  const businessData = await businessLookupResponse.json();
+                  currentBusinessId = businessData.business_id;
+                  console.log('✅ Resolved from business lookup:', { businessId: currentBusinessId });
+                  console.log('⚠️ Business user accessing customer dashboard - this might not work properly');
+                } else {
+                  console.error('❌ Failed to resolve businessId from business lookup');
+                }
+              } catch (businessError) {
+                console.error('❌ Error in business lookup:', businessError);
+              }
             }
           } catch (error) {
             console.error('❌ Error resolving businessId:', error);
