@@ -113,38 +113,40 @@ export function MemberActions({
   
   // Get enabled actions based on settings structure
   const enabledActions: ActionType[] = [];
-  if (actions_config.enableCheckIn) enabledActions.push('check_in');
-  if (actions_config.enableEarnPoints) enabledActions.push('earn_points');
-  if (actions_config.enableRedeemOffer) enabledActions.push('redeem_offer');
-  if (actions_config.enableReceiptCredit) enabledActions.push('receipt_credit');
+  const settings = actions_config as any; // Type assertion for settings access
+  if (settings.enableCheckIn) enabledActions.push('check_in');
+  if (settings.enableEarnPoints) enabledActions.push('earn_points');
+  if (settings.enableRedeemOffer) enabledActions.push('redeem_offer');
+  if (settings.enableReceiptCredit) enabledActions.push('receipt_credit');
   
   console.log('🔍 MemberActions enabledActions:', enabledActions);
 
   // Helper function to get action config from settings
   const getActionConfig = (action: ActionType) => {
+    const settings = actions_config as any; // Type assertion for settings access
     switch (action) {
       case 'check_in':
         return {
-          enabled: actions_config.enableCheckIn,
-          auto_approve: actions_config.checkInAutoApprove,
-          cooldown: actions_config.checkInCooldown,
-          points: actions_config.checkInPoints
+          enabled: settings.enableCheckIn,
+          auto_approve: settings.checkInAutoApprove,
+          cooldown: settings.checkInCooldown,
+          points: settings.checkInPoints
         };
       case 'earn_points':
         return {
-          enabled: actions_config.enableEarnPoints,
-          auto_approve: actions_config.earnPointsAutoApprove,
-          max_per_day: actions_config.earnPointsMaxPerDay
+          enabled: settings.enableEarnPoints,
+          auto_approve: settings.earnPointsAutoApprove,
+          max_per_day: settings.earnPointsMaxPerDay
         };
       case 'redeem_offer':
         return {
-          enabled: actions_config.enableRedeemOffer,
-          auto_approve: actions_config.redeemOfferAutoApprove
+          enabled: settings.enableRedeemOffer,
+          auto_approve: settings.redeemOfferAutoApprove
         };
       case 'receipt_credit':
         return {
-          enabled: actions_config.enableReceiptCredit,
-          auto_approve: actions_config.receiptCreditAutoApprove
+          enabled: settings.enableReceiptCredit,
+          auto_approve: settings.receiptCreditAutoApprove
         };
       default:
         return { enabled: false };
