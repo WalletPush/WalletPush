@@ -146,6 +146,7 @@ export interface ProgramSpecResponse {
 }
 
 export interface CustomerSummary {
+  customer_id: string;
   program_type: string;
   points_balance?: number;
   tier?: {
