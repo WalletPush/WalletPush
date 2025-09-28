@@ -33,14 +33,32 @@ function CustomerDashboardContent() {
           return
         }
 
-        // Get businessId from URL parameter or let API resolve from domain
+        // Get businessId from URL parameter or resolve from customer record
         console.log('Loading dashboard for user:', user.email, 'businessId:', businessId)
+        
+        // If no businessId in URL, resolve it from customer record
+        let resolvedBusinessId = businessId;
+        if (!resolvedBusinessId && user?.email) {
+          console.log('🔍 No businessId in URL, resolving from customer email...');
+          try {
+            const customerLookupResponse = await fetch(`/api/customer/lookup?email=${encodeURIComponent(user.email)}`);
+            if (customerLookupResponse.ok) {
+              const customerData = await customerLookupResponse.json();
+              resolvedBusinessId = customerData.business_id;
+              console.log('✅ Resolved businessId from customer:', resolvedBusinessId);
+            } else {
+              console.error('❌ Failed to resolve businessId from customer email');
+            }
+          } catch (error) {
+            console.error('❌ Error resolving businessId:', error);
+          }
+        }
         
         // Load program spec (pass businessId if available) - add aggressive cache busting
         const timestamp = Date.now()
         const random = Math.random().toString(36).substring(7)
-        const specUrl = businessId 
-          ? `/api/program/spec?businessId=${businessId}&t=${timestamp}&r=${random}` 
+        const specUrl = resolvedBusinessId 
+          ? `/api/program/spec?businessId=${resolvedBusinessId}&t=${timestamp}&r=${random}` 
           : `/api/program/spec?t=${timestamp}&r=${random}`
         
         console.log('🔍 CALLING PROGRAM SPEC API:', specUrl)
@@ -60,8 +78,8 @@ function CustomerDashboardContent() {
           setProgramSpec(specData)
           
           // Load customer summary (pass businessId if available)
-          const summaryUrl = businessId 
-            ? `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}&businessId=${businessId}`
+          const summaryUrl = resolvedBusinessId 
+            ? `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}&businessId=${resolvedBusinessId}`
             : `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}`
           const summaryResponse = await fetch(summaryUrl)
           if (summaryResponse.ok) {
@@ -73,8 +91,8 @@ function CustomerDashboardContent() {
           }
           
           // Load offers (pass businessId if available)
-          const offersUrl = businessId
-            ? `/api/program/offers?programId=${specData.program_id}&businessId=${businessId}`
+          const offersUrl = resolvedBusinessId
+            ? `/api/program/offers?programId=${specData.program_id}&businessId=${resolvedBusinessId}`
             : `/api/program/offers?programId=${specData.program_id}`
           const offersResponse = await fetch(offersUrl)
           if (offersResponse.ok) {
@@ -177,9 +195,9 @@ function CustomerDashboardContent() {
     member: customerSummary,
     offers: offers || { active: [] },
     business: { 
-      check_in_endpoint: `/api/checkin/${businessId || 'demo-business-123'}`,
+      check_in_endpoint: `/api/checkin/${resolvedBusinessId || 'demo-business-123'}`,
       // Add business_id for Member Actions component
-      business_id: businessId,
+      business_id: resolvedBusinessId,
       program_id: programSpec.program_id,
       customer_id: user?.id
     },
@@ -224,7 +242,7 @@ function CustomerDashboardContent() {
           componentProps = {
             ...componentProps,
             program_id: programSpec.program_id,
-            business_id: businessId,
+            business_id: resolvedBusinessId,
             customer_id: customerSummary?.customer_id || user?.id,
                 actions_config: (section as any).settings || (programSpec.spec as any)?.actions_config || boundProps.actions_config || {},
                 pending_requests: []
@@ -235,7 +253,7 @@ function CustomerDashboardContent() {
             if (section.type === 'qrCheckInButton') {
               componentProps = {
                 ...componentProps,
-                check_in_endpoint: `/api/checkin/${businessId || 'demo-business-123'}`
+                check_in_endpoint: `/api/checkin/${resolvedBusinessId || 'demo-business-123'}`
               }
             }
             
