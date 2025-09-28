@@ -122,6 +122,7 @@ export default function PointsTransactionsPage() {
   // Removed duplicate loadData function
 
   const handleApproveRequest = async (requestId: string) => {
+    console.log('🔍 Approving request:', requestId)
     try {
       const response = await fetch('/api/action-requests/approve', {
         method: 'POST',
@@ -129,17 +130,25 @@ export default function PointsTransactionsPage() {
         body: JSON.stringify({ request_id: requestId })
       })
 
+      console.log('📡 Approve response status:', response.status)
+      const data = await response.json()
+      console.log('📋 Approve response data:', data)
+
       if (response.ok) {
+        console.log('✅ Request approved successfully!')
         loadData() // Refresh data
       } else {
-        console.error('Failed to approve request')
+        console.error('❌ Failed to approve request:', data)
+        alert(`Failed to approve request: ${data.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Error approving request:', error)
+      console.error('❌ Error approving request:', error)
+      alert('Error approving request. Please try again.')
     }
   }
 
   const handleDeclineRequest = async (requestId: string) => {
+    console.log('🔍 Declining request:', requestId)
     try {
       const response = await fetch('/api/action-requests/decline', {
         method: 'POST',
@@ -147,13 +156,20 @@ export default function PointsTransactionsPage() {
         body: JSON.stringify({ request_id: requestId })
       })
 
+      console.log('📡 Decline response status:', response.status)
+      const data = await response.json()
+      console.log('📋 Decline response data:', data)
+
       if (response.ok) {
+        console.log('✅ Request declined successfully!')
         loadData() // Refresh data
       } else {
-        console.error('Failed to decline request')
+        console.error('❌ Failed to decline request:', data)
+        alert(`Failed to decline request: ${data.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Error declining request:', error)
+      console.error('❌ Error declining request:', error)
+      alert('Error declining request. Please try again.')
     }
   }
 
