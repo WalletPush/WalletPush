@@ -133,7 +133,37 @@ export async function GET(req: NextRequest) {
       summary = { ...base, stored_value_balance: sum('stored_value_delta') }
     } else {
       const points = sum('points_delta')
-      summary = { ...base, points_balance: points, tier: null, points_to_next_tier: null, claimables: [] }
+      
+      // Calculate tier based on program spec
+      let tier = null
+      let points_to_next_tier = null
+      
+      const tiers = version.spec_json.tiers
+      if (tiers && Array.isArray(tiers) && tiers.length > 0) {
+        // Sort tiers by points required
+        const sortedTiers = [...tiers].sort((a, b) => a.pointsRequired - b.pointsRequired)
+        
+        // Find current tier (highest tier achieved)
+        let currentTier = sortedTiers[0]
+        for (const tierConfig of sortedTiers) {
+          if (points >= tierConfig.pointsRequired) {
+            currentTier = tierConfig
+          } else {
+            break
+          }
+        }
+        
+        // Find next tier
+        const nextTier = sortedTiers.find(t => t.pointsRequired > points)
+        
+        tier = {
+          name: currentTier.name,
+          threshold: currentTier.pointsRequired
+        }
+        points_to_next_tier = nextTier ? nextTier.pointsRequired - points : null
+      }
+      
+      summary = { ...base, points_balance: points, tier, points_to_next_tier, claimables: [] }
     }
 
     console.log('🔍 Customer summary final result:', {
