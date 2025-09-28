@@ -78,47 +78,46 @@ export default function PointsTransactionsPage() {
   const [typeFilter, setTypeFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
 
-  const supabase = createClient()
-
+  // Load data on component mount
   useEffect(() => {
     loadData()
   }, [])
 
   const loadData = async () => {
-    setLoading(true)
     try {
+      setLoading(true)
+      console.log('🔍 Loading Points & Transactions data...')
+
       // Load action requests
-      const { data: requests, error: requestsError } = await supabase
-        .from('action_requests')
-        .select(`
-          *,
-          customer:customers(name, email)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100)
+      const requestsResponse = await fetch('/api/business/action-requests')
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json()
+        console.log('✅ Action requests loaded:', requestsData.length)
+        setActionRequests(requestsData)
+      } else {
+        console.error('❌ Failed to load action requests')
+      }
 
-      if (requestsError) throw requestsError
-      setActionRequests(requests || [])
-
-      // Load customer events (ledger)
-      const { data: events, error: eventsError } = await supabase
-        .from('customer_events')
-        .select(`
-          *,
-          customer:customers(name, email)
-        `)
-        .order('recorded_at', { ascending: false })
-        .limit(100)
-
-      if (eventsError) throw eventsError
-      setCustomerEvents(events || [])
+      // Load customer events  
+      const eventsResponse = await fetch('/api/business/customer-events')
+      if (eventsResponse.ok) {
+        const eventsData = await eventsResponse.json()
+        console.log('✅ Customer events loaded:', eventsData.length)
+        setCustomerEvents(eventsData)
+      } else {
+        console.error('❌ Failed to load customer events')
+      }
 
     } catch (error) {
-      console.error('Error loading data:', error)
+      console.error('❌ Error loading data:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  const supabase = createClient()
+
+  // Removed duplicate loadData function
 
   const handleApproveRequest = async (requestId: string) => {
     try {

@@ -227,11 +227,13 @@ export function MemberActions({
           setMessage('⏳ Request submitted for approval');
         }
         
-        // Auto-close modal after success
+        // Auto-close modal after success and refresh page
         setTimeout(() => {
           setIsModalOpen(false);
           setSelectedAction(null);
           setMessage('');
+          // Force page refresh to update points balance
+          window.location.reload();
         }, 2000);
       } else {
         console.error('❌ API Error:', result);
