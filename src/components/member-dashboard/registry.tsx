@@ -23,6 +23,7 @@ import { RedeemGrid } from '@/components/member-dashboard/store-card/RedeemGrid'
 import { OffersStrip } from '@/components/member-dashboard/shared/OffersStrip';
 import { QrCheckInButton } from '@/components/member-dashboard/shared/QrCheckInButton';
 import { ActivityFeed } from '@/components/member-dashboard/shared/ActivityFeed';
+import { MemberActions } from '@/components/member-dashboard/shared/MemberActions';
 
 export const SECTION_REGISTRY = {
   // Loyalty components
@@ -47,6 +48,7 @@ export const SECTION_REGISTRY = {
   offersStrip: OffersStrip,
   qrCheckInButton: QrCheckInButton,
   activityFeed: ActivityFeed,
+  memberActions: MemberActions,
 } as const;
 
 export type SectionType = keyof typeof SECTION_REGISTRY;

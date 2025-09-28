@@ -249,7 +249,7 @@
   button.bg-purple-500,
   button.bg-purple-700,
   button[class*="gradient"],
-  button[class*="primary"]:not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-yellow"]):not(.settings-nav-tab) {
+  button[class*="primary"]:not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-yellow"]):not(.settings-nav-tab):not(.wp-button-primary):not(.wp-button-surface) {
     background: linear-gradient(to right, #2563eb, #9333ea) !important;
     color: white !important;
     font-weight: 600 !important;
@@ -265,7 +265,7 @@
   button.bg-purple-500:hover,
   button.bg-purple-700:hover,
   button[class*="gradient"]:hover,
-  button[class*="primary"]:not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-yellow"]):not(.settings-nav-tab):hover {
+  button[class*="primary"]:not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-yellow"]):not(.settings-nav-tab):not(.wp-button-primary):not(.wp-button-surface):hover {
     background: linear-gradient(to right, #1d4ed8, #7c3aed) !important;
     color: white !important;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;

@@ -169,10 +169,20 @@ function CustomerDashboardContent() {
   // 🎯 JSON-DRIVEN DASHBOARD RENDERING
   // This is the core of our new system - render sections from UI contract
   const dataContext = {
-    program: programSpec.spec,
+    program: {
+      ...programSpec.spec,
+      // Add actions_config for Member Actions component
+      actions_config: (programSpec.spec as any)?.actions_config || {}
+    },
     member: customerSummary,
     offers: offers || { active: [] },
-    business: { check_in_endpoint: `/api/checkin/${businessId || 'demo-business-123'}` },
+    business: { 
+      check_in_endpoint: `/api/checkin/${businessId || 'demo-business-123'}`,
+      // Add business_id for Member Actions component
+      business_id: businessId,
+      program_id: programSpec.program_id,
+      customer_id: user?.id
+    },
     copy: programSpec.spec.copy || {}
   }
 
@@ -204,9 +214,29 @@ function CustomerDashboardContent() {
             const boundProps = bindProps(section.props, dataContext)
             
             // Merge bound props with section settings (e.g., variant, showTier, etc.)
-            const componentProps = {
+            let componentProps = {
               ...boundProps,
               ...(section as any).settings
+            }
+            
+            // Special props for MemberActions component
+            if (section.type === 'memberActions') {
+              componentProps = {
+                ...componentProps,
+                program_id: programSpec.program_id,
+                business_id: businessId,
+                customer_id: user?.id,
+                actions_config: (programSpec.spec as any)?.actions_config || boundProps.actions_config || {},
+                pending_requests: []
+              }
+            }
+            
+            // Special props for QR Check-In component  
+            if (section.type === 'qrCheckInButton') {
+              componentProps = {
+                ...componentProps,
+                check_in_endpoint: `/api/checkin/${businessId || 'demo-business-123'}`
+              }
             }
             
             // Debug logging for components
@@ -214,7 +244,15 @@ function CustomerDashboardContent() {
               console.log('🔍 BalanceHeader props:', componentProps)
             }
             if (section.type === 'qrCheckInButton') {
-              console.log('🔍 QrCheckInButton props:', componentProps)
+              console.log('🔍 QrCheckInButton section found!')
+              console.log('🔍 QrCheckInButton boundProps:', boundProps)
+              console.log('🔍 QrCheckInButton final componentProps:', componentProps)
+            }
+            if (section.type === 'memberActions') {
+              console.log('🔍 MemberActions section found!')
+              console.log('🔍 MemberActions boundProps:', boundProps)
+              console.log('🔍 MemberActions settings:', (section as any).settings)
+              console.log('🔍 MemberActions final componentProps:', componentProps)
             }
             
             return <Component key={index} {...componentProps} />

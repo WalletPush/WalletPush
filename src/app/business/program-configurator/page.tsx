@@ -578,6 +578,7 @@ export default function ProgramConfiguratorPage() {
           </div>
         </div>
 
+
         {/* Core Components */}
         {coreComponents.length > 0 && (
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">

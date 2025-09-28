@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { QrCheckInButton as QRCheckInButton } from '@/components/member-dashboard/shared/QrCheckInButton';
+import { MemberActions } from '@/components/member-dashboard/shared/MemberActions';
 import { BalanceSpeedo } from '@/components/member-dashboard/loyalty/BalanceSpeedo';
 import { HowToEarn as HowToEarnWidget } from '@/components/member-dashboard/universal/HowToEarn';
 // import { WPThemeProvider } from '@/components/member-dashboard/WPThemeProvider';
@@ -422,6 +423,29 @@ const ActivityFeed = ({ recent_activity }: any) => (
   </Card>
 );
 
+// Member Actions wrapper for preview
+const MemberActionsPreview = (props: any) => {
+  // Provide default actions_config for preview mode
+  const defaultActionsConfig = {
+    check_in: { enabled: true, auto_approve: true, cooldown_minutes: 240 },
+    earn_points: { enabled: true, auto_approve: false, max_per_day: 3 },
+    redeem_offer: { enabled: true, auto_approve: false },
+    receipt_credit: { enabled: false, auto_approve: false }
+  };
+
+  return (
+    <MemberActions
+      program_id={props.program_id || 'preview'}
+      business_id={props.business_id || 'preview'}
+      customer_id={props.customer_id || 'preview'}
+      actions_config={props.actions_config || defaultActionsConfig}
+      pending_requests={props.pending_requests || []}
+      isPreview={true}
+      {...props}
+    />
+  );
+};
+
 // Component Registry
 export const SECTION_REGISTRY = {
   // Loyalty components (with both old and new naming)
@@ -457,6 +481,8 @@ export const SECTION_REGISTRY = {
   DashboardHeader,
   qrCheckInButton: QrCheckInButton,
   QrCheckInButton,
+  memberActions: MemberActionsPreview,
+  MemberActions: MemberActionsPreview,
   referralWidget: ReferralWidget,
   ReferralWidget,
   offersStrip: WPOffersStrip,

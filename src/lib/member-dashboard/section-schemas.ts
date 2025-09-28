@@ -21,6 +21,105 @@ export interface SectionSchema {
 }
 
 export const SECTION_SCHEMAS: Record<string, SectionSchema> = {
+  memberActions: {
+    behavior: [
+      {
+        key: 'settings.buttonText',
+        type: 'text',
+        label: 'Button Text',
+        placeholder: 'Request Action',
+        help: 'Text displayed on the main action button'
+      },
+      {
+        key: 'settings.enableCheckIn',
+        type: 'switch',
+        label: 'Enable Check-In',
+        help: 'Allow members to check in at your location'
+      },
+      {
+        key: 'settings.checkInAutoApprove',
+        type: 'switch',
+        label: 'Auto Approve Check-Ins',
+        help: 'Automatically approve check-in requests'
+      },
+      {
+        key: 'settings.checkInCooldown',
+        type: 'number',
+        label: 'Check-In Cooldown (hours)',
+        min: 0,
+        max: 24,
+        help: 'Time between check-ins (0 = no cooldown)'
+      },
+      {
+        key: 'settings.checkInPoints',
+        type: 'number',
+        label: 'Points for Check-In',
+        min: 0,
+        max: 1000,
+        help: 'How many points to award for each check-in'
+      },
+      {
+        key: 'settings.enableEarnPoints',
+        type: 'switch',
+        label: 'Enable Earn Points',
+        help: 'Allow members to request points for activities'
+      },
+      {
+        key: 'settings.earnPointsAutoApprove',
+        type: 'switch',
+        label: 'Auto Approve Points',
+        help: 'Automatically approve point requests'
+      },
+      {
+        key: 'settings.earnPointsMaxPerDay',
+        type: 'number',
+        label: 'Max Points Requests/Day',
+        min: 0,
+        max: 50,
+        help: 'Maximum point requests per day'
+      },
+      {
+        key: 'settings.enableRedeemOffer',
+        type: 'switch',
+        label: 'Enable Redeem Offers',
+        help: 'Allow members to redeem available offers'
+      },
+      {
+        key: 'settings.redeemOfferAutoApprove',
+        type: 'switch',
+        label: 'Auto Approve Redemptions',
+        help: 'Automatically approve offer redemptions'
+      },
+      {
+        key: 'settings.enableReceiptCredit',
+        type: 'switch',
+        label: 'Enable Receipt Credit',
+        help: 'Allow members to submit receipts for credit'
+      },
+      {
+        key: 'settings.receiptCreditAutoApprove',
+        type: 'switch',
+        label: 'Auto Approve Receipts',
+        help: 'Automatically approve receipt submissions'
+      }
+    ],
+    appearance: [
+      {
+        key: 'settings.variant',
+        type: 'select',
+        label: 'Button Style',
+        options: ['primary', 'secondary', 'outline'],
+        help: 'Visual style of the action button'
+      },
+      {
+        key: 'settings.size',
+        type: 'select',
+        label: 'Button Size',
+        options: ['sm', 'md', 'lg'],
+        help: 'Size of the action button'
+      }
+    ]
+  },
   balanceHeader: {
     appearance: [
       { 

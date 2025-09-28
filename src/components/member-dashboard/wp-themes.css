@@ -14,6 +14,49 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* WP Button Styles */
+.wp-root .wp-button-primary {
+  background: var(--wp-primary);
+  color: var(--wp-text);
+  border: 1px solid var(--wp-border);
+  border-radius: var(--wp-radius);
+  transition: var(--wp-transition);
+}
+
+.wp-root .wp-button-primary:hover {
+  background: var(--wp-primary-hover);
+  border-color: var(--wp-border-hover);
+}
+
+.wp-root .wp-button-surface {
+  background: var(--wp-surface);
+  color: var(--wp-text);
+  border: 1px solid var(--wp-border);
+  border-radius: var(--wp-radius);
+  transition: var(--wp-transition);
+}
+
+.wp-root .wp-button-surface:hover {
+  background: var(--wp-surface-hover);
+  border-color: var(--wp-border-hover);
+}
+
+.wp-root .wp-text-primary {
+  color: var(--wp-text);
+}
+
+.wp-root .wp-text-muted {
+  color: var(--wp-text-muted);
+}
+
+.wp-root .wp-icon-primary {
+  color: var(--wp-primary);
+}
+
+.wp-root .wp-icon-success {
+  color: var(--wp-success);
+}
+
 /* Dark Midnight Theme (Default) */
 .wp-root[data-wp-theme="dark-midnight"] {
   --wp-bg: #0f1419;
