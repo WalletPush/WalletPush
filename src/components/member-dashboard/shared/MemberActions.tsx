@@ -293,7 +293,7 @@ export function MemberActions({
         className="w-full py-3 px-4 font-semibold flex items-center justify-center gap-2 wp-button-primary"
       >
         <PlusIcon className="w-5 h-5" />
-        Request Action
+        {actions_config.buttonText || 'Request Action'}
       </button>
 
       {message && (

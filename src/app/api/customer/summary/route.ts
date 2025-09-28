@@ -114,8 +114,15 @@ export async function GET(req: NextRequest) {
       meta: e.meta_json ?? {},
     }))
 
-    const sum = (k: 'points_delta' | 'credit_delta' | 'stored_value_delta') =>
-      (events ?? []).reduce((acc, e) => acc + (Number(e.amounts_json?.[k]) || 0), 0)
+    const sum = (k: 'points_delta' | 'credit_delta' | 'stored_value_delta') => {
+      const total = (events ?? []).reduce((acc, e) => acc + (Number(e.amounts_json?.[k]) || 0), 0);
+      console.log(`🔍 Customer summary calculation for ${k}:`, {
+        events_count: events?.length || 0,
+        total,
+        sample_events: events?.slice(0, 3).map(e => ({ amounts: e.amounts_json, type: e.type }))
+      });
+      return total;
+    }
 
     const base: any = { program_type: programType, recent_activity: recent, customer_id: customerId }
 
@@ -128,6 +135,12 @@ export async function GET(req: NextRequest) {
       const points = sum('points_delta')
       summary = { ...base, points_balance: points, tier: null, points_to_next_tier: null, claimables: [] }
     }
+
+    console.log('🔍 Customer summary final result:', {
+      customerId,
+      programId,
+      summary: { ...summary, recent_activity: `${summary.recent_activity?.length || 0} events` }
+    });
 
     return NextResponse.json(summary)
   } catch (err) {
