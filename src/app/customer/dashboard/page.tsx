@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useBranding } from '@/lib/branding'
 import { SECTION_REGISTRY } from '@/lib/member-dashboard/registry'
-import { bindProps, ProgramSpecResponse, CustomerSummary } from '@/lib/member-dashboard/utils'
+import { bindProps, ProgramSpecResponse, CustomerSummary } from '@/components/member-dashboard/utils'
 import { BrandedHeader } from '@/components/branding/BrandedHeader'
 import '@/components/member-dashboard/wp-themes.css'
 
