@@ -212,6 +212,11 @@ function CustomerDashboardContent() {
 
   // 🎯 JSON-DRIVEN DASHBOARD RENDERING
   // This is the core of our new system - render sections from UI contract
+  
+  // Debug the customerSummary data
+  console.log('🔍 customerSummary for dataContext:', customerSummary);
+  console.log('🔍 customerSummary.points_balance:', customerSummary?.points_balance);
+  
   const dataContext = {
     program: {
       ...programSpec.spec,
