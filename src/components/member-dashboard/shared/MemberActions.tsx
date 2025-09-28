@@ -123,6 +123,11 @@ export function MemberActions({
   if (settings.enableReceiptCredit || settings.receipt_credit?.enabled) enabledActions.push('receipt_credit');
   
   console.log('🔍 MemberActions enabledActions:', enabledActions);
+  console.log('🔍 MemberActions backward compatibility check:', {
+    checkInEnabled: settings.check_in?.enabled,
+    earnPointsEnabled: settings.earn_points?.enabled,
+    redeemOfferEnabled: settings.redeem_offer?.enabled
+  });
 
   // Helper function to get action config from settings (handle both old and new formats)
   const getActionConfig = (action: ActionType) => {
