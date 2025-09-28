@@ -27,14 +27,18 @@ import {
 } from 'lucide-react';
 
 // WP-Themed Components with proper theming
-const BalanceHeader = ({ member, variant, showTier, showProgress, size, ...props }: any) => {
-  console.log('🔍 BalanceHeader wrapper props:', { member, variant, showTier, showProgress, size, props });
+const BalanceHeader = ({ member, points_balance, name, variant, showTier, showProgress, size, ...props }: any) => {
+  console.log('🔍 BalanceHeader wrapper props:', { member, points_balance, name, variant, showTier, showProgress, size, props });
+  
+  // Support both old format (member.points_balance) and new format (points_balance directly)
+  const actualPointsBalance = points_balance ?? member?.points_balance ?? 0;
+  const actualTier = name ? { name } : member?.tier;
   
   return (
     <BalanceSpeedo 
-      pointsBalance={member?.points_balance || 0}
+      pointsBalance={actualPointsBalance}
       pointsToNextTier={member?.points_to_next_tier}
-      tier={member?.tier}
+      tier={actualTier}
       tiers={props.tiers}
       variant={variant || "ring"}
       size={size || "md"}
