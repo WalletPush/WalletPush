@@ -27,7 +27,7 @@ import { MemberActions } from '@/components/member-dashboard/shared/MemberAction
 
 export const SECTION_REGISTRY = {
   // Loyalty components
-  balanceHeader: BalanceSpeedo,
+  balanceHeader: BalanceHeader,
   progressNextTier: ProgressNextTier,
   rewardsGrid: RewardsGrid,
   howToEarn: HowToEarn,
