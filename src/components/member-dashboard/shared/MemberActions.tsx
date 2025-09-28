@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { 
   CheckCircleIcon, 
   PlusIcon, 
@@ -174,11 +175,22 @@ export function MemberActions({
         idempotency_key: `${selectedAction}_${customer_id}_${Date.now()}`,
       });
 
+      // Get the Supabase client to include auth headers
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add authorization header if we have a session
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch('/api/member-actions/request', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           business_id,
           program_id,
