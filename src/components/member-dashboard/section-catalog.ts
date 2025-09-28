@@ -182,7 +182,7 @@ export const SECTION_CATALOG: CatalogItem[] = [
     description: 'Self-service actions: check-in, earn points, redeem offers, spend value',
     programTypes: ['loyalty', 'membership', 'store_card'],
     requiredCapabilities: ['member_actions'],
-    defaultProps: ['program.actions_config', 'business.id', 'customer.id'],
+    defaultProps: ['program.actions_config', 'business.id', 'customer.id', 'business.name'],
     category: 'core'
   },
 ];

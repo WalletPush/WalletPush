@@ -52,6 +52,7 @@ interface MemberActionsProps {
     size?: string;
   };
   pending_requests?: any[];
+  business_name?: string; // Add business name prop
 }
 
 type ActionType = 'check_in' | 'earn_points' | 'redeem_offer' | 'spend_value' | 'ticket_use' | 'receipt_credit';
@@ -80,6 +81,7 @@ export function MemberActions({
   customer_id, 
   actions_config = {},
   pending_requests = [],
+  business_name,
   isPreview = false
 }: MemberActionsProps & { isPreview?: boolean }) {
   const [showActionsModal, setShowActionsModal] = useState(false);
@@ -285,7 +287,7 @@ export function MemberActions({
       </div>
       
       <p className="text-[#C6C8CC] mb-4">
-        Request actions from your business - some may be approved instantly
+        Request actions from {business_name || 'your business'} - some may be approved instantly
       </p>
 
       <button

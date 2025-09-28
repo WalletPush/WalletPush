@@ -55,6 +55,17 @@ export function bindProps(paths: string[], ctx: {
     // Use the path as the key, or create a clean key
     const propKey = path.includes('.') ? path.split('.').pop() || `prop_${index}` : path;
     boundProps[propKey] = value;
+    
+    // Debug logging for points_balance specifically
+    if (path === 'member.points_balance') {
+      console.log('🔍 bindProps for member.points_balance:', {
+        path,
+        propKey,
+        value,
+        memberContext: ctx.member,
+        memberPointsBalance: ctx.member?.points_balance
+      });
+    }
   });
   
   return boundProps;

@@ -40,6 +40,14 @@ export function BalanceSpeedo({
   // Use points_balance (from bindProps) or pointsBalance (backward compatibility)
   const actualPointsBalance = points_balance ?? pointsBalance ?? 0;
   
+  // Debug logging
+  console.log('🔍 BalanceSpeedo received props:', {
+    points_balance,
+    pointsBalance,
+    actualPointsBalance,
+    allProps: { points_balance, pointsBalance, tier, tiers, variant, showTier, showProgress, size, accent }
+  });
+  
   const formatPoints = (points: number) => {
     if (points >= 1000000) return `${(points / 1000000).toFixed(1)}M`
     if (points >= 1000) return `${(points / 1000).toFixed(1)}K`
