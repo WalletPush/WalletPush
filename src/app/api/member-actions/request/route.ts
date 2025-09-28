@@ -236,11 +236,11 @@ async function approveActionRequest(supabase: any, requestId: string, reviewerId
       customer_id: request.customer_id,
       type: mapActionTypeToEventType(request.type),
       amounts_json: buildAmountsJson(request.type, request.payload),
-      source: 'member_dashboard',
-      meta_json: {
-        action_request_id: request.id,
-        ...request.payload
-      },
+        source: 'api',
+        meta_json: {
+          action_request_id: request.id,
+          ...request.payload
+        },
       idempotency_key: `approved_${request.idempotency_key}`,
       observed_at: new Date().toISOString()
     };
