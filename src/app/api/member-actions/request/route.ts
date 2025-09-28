@@ -65,7 +65,10 @@ export async function POST(request: NextRequest) {
 
     // Use actions_config column as the source of truth (populated during publish)
     const actionsConfig = programVersion.actions_config || {};
-    console.log('🔍 Actions config from program_versions.actions_config:', actionsConfig);
+    console.log('🔍 Actions config from program_versions.actions_config:', JSON.stringify(actionsConfig, null, 2));
+    console.log('🔍 Actions config keys:', Object.keys(actionsConfig));
+    console.log('🔍 Looking for type:', type);
+    console.log('🔍 actionsConfig[type]:', actionsConfig[type]);
     
     // Handle both old and new config structures
     let actionConfig;
@@ -76,12 +79,25 @@ export async function POST(request: NextRequest) {
       // New structure: actions_config.enableCheckIn
       const enabledKey = getEnabledKey(type);
       const autoApproveKey = getAutoApproveKey(type);
+      const cooldownKey = getCooldownKey(type);
+      const pointsKey = getPointsKey(type);
+      
+      console.log('🔍 Helper function results:', {
+        enabledKey,
+        autoApproveKey,
+        cooldownKey,
+        pointsKey,
+        enabledValue: actionsConfig[enabledKey],
+        autoApproveValue: actionsConfig[autoApproveKey],
+        cooldownValue: actionsConfig[cooldownKey],
+        pointsValue: actionsConfig[pointsKey]
+      });
       
       actionConfig = {
         enabled: actionsConfig[enabledKey],
         auto_approve: actionsConfig[autoApproveKey],
-        cooldown: actionsConfig[getCooldownKey(type)],
-        points: actionsConfig[getPointsKey(type)]
+        cooldown: actionsConfig[cooldownKey],
+        points: actionsConfig[pointsKey]
       };
     }
 
