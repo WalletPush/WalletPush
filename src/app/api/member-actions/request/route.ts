@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Program not found' }, { status: 404 });
     }
 
+    // Use actions_config column as the source of truth (populated during publish)
     const actionsConfig = programVersion.actions_config || {};
+    console.log('🔍 Actions config from program_versions.actions_config:', actionsConfig);
     
     // Handle both old and new config structures
     let actionConfig;

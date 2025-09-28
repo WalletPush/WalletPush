@@ -85,12 +85,25 @@ export async function POST(request: NextRequest) {
       version: version.toString()
     }
     
+    // Extract Member Actions config from UI contract for actions_config column
+    let actionsConfig = {};
+    const uiContract = updatedSpec.ui_contract || {};
+    const sections = uiContract.sections || [];
+    
+    // Find memberActions section and extract settings
+    const memberActionsSection = sections.find((section: any) => section.type === 'memberActions');
+    if (memberActionsSection?.settings) {
+      console.log('📋 Extracting Member Actions config from UI contract:', memberActionsSection.settings);
+      actionsConfig = memberActionsSection.settings;
+    }
+
     console.log(`🔄 Publishing version ${version} with updated spec version`)
     console.log('📋 Updated spec preview:', {
       version: updatedSpec.version,
       program_type: updatedSpec.program_type,
       ui_contract_sections: updatedSpec.ui_contract?.sections?.length || 0,
-      sections: updatedSpec.ui_contract?.sections?.map((s: any) => s.type) || []
+      sections: updatedSpec.ui_contract?.sections?.map((s: any) => s.type) || [],
+      actions_config_keys: Object.keys(actionsConfig)
     })
     
     const { data: newVersion, error: versionError } = await supabase
@@ -99,6 +112,7 @@ export async function POST(request: NextRequest) {
         program_id: programId,
         version: version,
         spec_json: updatedSpec, // This contains rules + ui_contract with updated version
+        actions_config: actionsConfig, // Extract and save Member Actions config
         created_by: user.id,
         created_at: new Date().toISOString()
       })
