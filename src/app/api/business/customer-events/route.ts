@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         idempotency_key,
         observed_at,
         recorded_at,
-        customers (
+        customers!customer_id (
           first_name,
           last_name,
           email

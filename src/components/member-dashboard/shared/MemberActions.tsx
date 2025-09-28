@@ -227,13 +227,12 @@ export function MemberActions({
           setMessage('⏳ Request submitted for approval');
         }
         
-        // Auto-close modal after success and refresh page
+        // Auto-close modal after success (no page refresh!)
         setTimeout(() => {
           setIsModalOpen(false);
           setSelectedAction(null);
           setMessage('');
-          // Force page refresh to update points balance
-          window.location.reload();
+          // TODO: Update points balance without page refresh
         }, 2000);
       } else {
         console.error('❌ API Error:', result);
@@ -367,7 +366,18 @@ function ActionModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Add points to payload for check_in actions
+    const payload = { ...formData };
+    if (selectedAction === 'check_in') {
+      const actionConfig = getActionConfig(selectedAction);
+      if (actionConfig?.points) {
+        payload.points = actionConfig.points;
+        console.log('🔍 Adding points to check_in payload:', actionConfig.points);
+      }
+    }
+    
+    onSubmit(payload);
   };
 
   return (
