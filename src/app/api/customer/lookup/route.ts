@@ -39,20 +39,6 @@ export async function GET(request: NextRequest) {
     }
 
     const customer = customers[0]
-    console.log('✅ Using customer:', { id: customer.id, business_id: customer.business_id })
-
-    const error = null
-
-    if (error) {
-      console.error('❌ Customer lookup error:', error)
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
-    }
-
-    if (!customer) {
-      console.error('❌ No customer found for email:', email)
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
-    }
-
     console.log('✅ Customer found:', { 
       id: customer.id, 
       business_id: customer.business_id, 
