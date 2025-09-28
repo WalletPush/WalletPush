@@ -27,8 +27,9 @@ interface ActionRequest {
   resulting_event_id?: string
   created_at: string
   updated_at: string
-  customer?: {
-    name: string
+  customers?: {
+    first_name: string
+    last_name: string
     email: string
   }
 }
@@ -44,8 +45,9 @@ interface CustomerEvent {
   meta_json: any
   observed_at: string
   recorded_at: string
-  customer?: {
-    name: string
+  customers?: {
+    first_name: string
+    last_name: string
     email: string
   }
 }
