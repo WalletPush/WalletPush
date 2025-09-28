@@ -39,6 +39,8 @@ function CustomerDashboardContent() {
         
         // If no businessId in URL, resolve it from customer record
         let currentBusinessId = businessId;
+        let actualCustomerId = null;
+        
         if (!currentBusinessId && user?.email) {
           console.log('🔍 No businessId in URL, resolving from customer email...');
           try {
@@ -46,7 +48,8 @@ function CustomerDashboardContent() {
             if (customerLookupResponse.ok) {
               const customerData = await customerLookupResponse.json();
               currentBusinessId = customerData.business_id;
-              console.log('✅ Resolved businessId from customer:', currentBusinessId);
+              actualCustomerId = customerData.customer_id; // Get the actual customer ID
+              console.log('✅ Resolved from customer lookup:', { businessId: currentBusinessId, customerId: actualCustomerId });
             } else {
               console.error('❌ Failed to resolve businessId from customer email');
             }
@@ -81,10 +84,13 @@ function CustomerDashboardContent() {
           console.log('🔍 UI CONTRACT SECTIONS:', specData.spec?.ui_contract?.sections)
           setProgramSpec(specData)
           
-          // Load customer summary (pass businessId if available)
+          // Load customer summary (use actual customer ID, not auth user ID)
+          const customerIdToUse = actualCustomerId || user.id;
+          console.log('🔍 Using customer ID for summary:', { actualCustomerId, userAuthId: user.id, using: customerIdToUse });
+          
           const summaryUrl = currentBusinessId 
-            ? `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}&businessId=${currentBusinessId}`
-            : `/api/customer/summary?programId=${specData.program_id}&customerId=${user.id}`
+            ? `/api/customer/summary?programId=${specData.program_id}&customerId=${customerIdToUse}&businessId=${currentBusinessId}`
+            : `/api/customer/summary?programId=${specData.program_id}&customerId=${customerIdToUse}`
           const summaryResponse = await fetch(summaryUrl)
           if (summaryResponse.ok) {
             const summaryData = await summaryResponse.json()
