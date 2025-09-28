@@ -79,14 +79,25 @@ export async function POST(request: NextRequest) {
       .update({
         status: 'approved',
         approved_at: new Date().toISOString(),
-        reviewer_user_id: 'staff', // TODO: Get actual user ID from auth
+        reviewer_user_id: null, // TODO: Get actual user ID from auth (must be UUID)
         resulting_event_id: event.id
       })
       .eq('id', request_id);
 
     if (updateError) {
       console.error('❌ Error updating request:', updateError);
-      return NextResponse.json({ error: 'Failed to update request' }, { status: 500 });
+      console.error('❌ Update data that failed:', {
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+        reviewer_user_id: null,
+        resulting_event_id: event.id
+      });
+      console.error('❌ Request ID:', request_id);
+      return NextResponse.json({ 
+        error: 'Failed to update request',
+        details: updateError.message,
+        requestId: request_id
+      }, { status: 500 });
     }
 
     console.log('✅ Action request approved and event created:', event.id);
