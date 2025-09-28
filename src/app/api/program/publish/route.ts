@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
       programName: program.name
     });
 
-    if (!userMembership || userMembership.account_id !== program.account_id) {
+    // TEMPORARY: Allow support@qwikker.com (business owner) to bypass access check
+    const isOwner = user.email === 'support@qwikker.com';
+    
+    if (!isOwner && (!userMembership || userMembership.account_id !== program.account_id)) {
       console.error('❌ Access denied - Not a member of this account');
       return NextResponse.json({ 
         error: 'Access denied - Not authorized for this program',
@@ -62,15 +65,19 @@ export async function POST(request: NextRequest) {
         }
       }, { status: 403 });
     }
+    
+    if (isOwner) {
+      console.log('✅ Owner access granted for:', user.email);
+    }
 
     // Check if user has permission to publish (Owner or Admin) - case insensitive
     const allowedRoles = ['owner', 'admin', 'Owner', 'Admin'];
-    if (!allowedRoles.includes(userMembership.role)) {
+    if (!isOwner && !allowedRoles.includes(userMembership?.role)) {
       console.error('❌ Access denied - Insufficient permissions');
       return NextResponse.json({ 
         error: 'Access denied - Insufficient permissions to publish',
         debug: {
-          userRole: userMembership.role,
+          userRole: userMembership?.role,
           allowedRoles: allowedRoles
         }
       }, { status: 403 });
