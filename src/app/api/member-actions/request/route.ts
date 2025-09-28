@@ -16,13 +16,16 @@ export async function POST(request: NextRequest) {
     } = body;
 
     console.log('🔍 Member action request:', { business_id, program_id, customer_id, type });
+    console.log('🔍 Full request body:', JSON.stringify(body, null, 2));
 
     // Validate required fields
     if (!business_id || !program_id || !customer_id || !type || !idempotency_key) {
+      console.error('❌ Missing required fields:', { business_id, program_id, customer_id, type, idempotency_key });
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     // Get program configuration
+    console.log('🔍 Querying program_versions for program_id:', program_id);
     const { data: programVersion, error: programError } = await supabase
       .from('program_versions')
       .select('spec_json, actions_config')
@@ -30,6 +33,11 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
+
+    console.log('🔍 Program version query result:', { programVersion: !!programVersion, programError });
+    if (programError) {
+      console.error('❌ Program version query error:', programError);
+    }
 
     if (programError || !programVersion) {
       console.error('❌ Program not found:', programError);
@@ -132,9 +140,21 @@ export async function POST(request: NextRequest) {
       stack: error instanceof Error ? error.stack : 'No stack trace',
       name: error instanceof Error ? error.name : 'Unknown error type'
     });
+    
+    // More specific error logging for production debugging
+    if (error instanceof Error) {
+      console.error('❌ PRODUCTION ERROR DETAILS:', {
+        errorMessage: error.message,
+        errorName: error.name,
+        stackTrace: error.stack?.split('\n').slice(0, 5).join('\n'), // First 5 lines of stack
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     return NextResponse.json({ 
       error: 'Internal server error',
-      debug: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : 'Unknown error' : undefined
+      debug: error instanceof Error ? error.message : 'Unknown error', // Always include debug info for now
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   }
 }
