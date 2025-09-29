@@ -306,6 +306,11 @@ function CustomerDashboardContent() {
             
         // Special props for MemberActions component
         if (section.type === 'memberActions') {
+          console.log('🔍 Adding onPointsUpdate to MemberActions props:', {
+            hasRefreshFunction: !!refreshCustomerSummary,
+            refreshFunctionType: typeof refreshCustomerSummary
+          });
+          
           componentProps = {
             ...componentProps,
             program_id: programSpec.program_id,

@@ -86,6 +86,16 @@ export function MemberActions({
   onPointsUpdate,
   isPreview = false
 }: MemberActionsProps & { isPreview?: boolean }) {
+  // Debug props received
+  console.log('🔍 MemberActions received props:', {
+    hasOnPointsUpdate: !!onPointsUpdate,
+    onPointsUpdateType: typeof onPointsUpdate,
+    isPreview,
+    program_id,
+    business_id,
+    customer_id
+  });
+
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<ActionType | null>(null);
