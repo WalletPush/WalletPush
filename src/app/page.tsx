@@ -276,33 +276,67 @@ export default function HomePage() {
           </div>
 
           {/* Your Program, Your Style Section */}
-          <div className="mt-32">
-            <div className="text-center mb-16">
-              <h3 className="text-4xl font-bold text-gray-900 mb-8">Your Program, Your Style</h3>
+          <div className="mt-32 max-w-7xl mx-auto px-8">
+            <div className="text-center mb-20">
+              <h3 className="text-5xl font-bold text-gray-900 mb-6 leading-tight">Your Program, Your Style</h3>
+              <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto"></div>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <div className="order-2 lg:order-1">
-                <p className="text-xl text-gray-600 leading-relaxed mb-6">
-                  With us, you're in full control.
-                </p>
-                <p className="text-lg text-gray-600 leading-relaxed mb-6">
-                  Whether you want to reward customer check-ins, launch a refer-a-friend campaign, encourage social shares, or create something entirely your own - our flexible Program Configurator makes it effortless.
-                </p>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Design loyalty, membership, or store card programs that reflect your brand and engage your customers the way you want. No cookie-cutter templates - just your vision, powered by our smart tools.
-                </p>
-              </div>
-              
-              <div className="order-1 lg:order-2">
-                <div className="relative">
-                  <Image
-                    src="/images/yourstyle.png"
-                    alt="Your Program, Your Style"
-                    width={600}
-                    height={400}
-                    className="rounded-2xl shadow-2xl w-full h-auto"
-                  />
+            <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-3xl p-12 lg:p-16 shadow-2xl border border-gray-100">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
+                <div className="order-2 lg:order-1 space-y-8">
+                  <p className="text-2xl font-semibold text-gray-800 leading-relaxed">
+                    With us, you're in full control.
+                  </p>
+                  <div className="space-y-6">
+                    <p className="text-lg text-gray-600 leading-relaxed">
+                      Whether you want to reward customer check-ins, launch a refer-a-friend campaign, encourage social shares, or create something entirely your own - our flexible <span className="font-semibold text-blue-600">Program Configurator</span> makes it effortless.
+                    </p>
+                    <p className="text-lg text-gray-600 leading-relaxed">
+                      Design loyalty, membership, or store card programs that reflect your brand and engage your customers the way you want. No cookie-cutter templates - just your vision, powered by our smart tools.
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 pt-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-700">Fully Customizable</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-700">No Coding Required</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-700">Live in Minutes</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="order-1 lg:order-2">
+                  <div className="relative group">
+                    <div className="absolute -inset-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
+                    <div className="relative">
+                      <Image
+                        src="/images/yourstyle.png"
+                        alt="Your Program, Your Style"
+                        width={600}
+                        height={400}
+                        className="rounded-2xl shadow-2xl w-full h-auto transform group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute -bottom-6 -right-6 bg-gradient-to-r from-green-400 to-blue-500 rounded-2xl p-4 shadow-xl">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                            <Target className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-lg font-bold text-white">Your Brand</div>
+                            <div className="text-white/80 text-xs">Your Rules</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
