@@ -276,28 +276,28 @@ export default function HomePage() {
           </div>
 
           {/* Your Program, Your Style Section */}
-          <div className="mt-32 max-w-7xl mx-auto px-8">
-            <div className="text-center mb-20">
-              <h3 className="text-5xl font-bold text-gray-900 mb-6 leading-tight">Your Program, Your Style</h3>
+          <div className="mt-32 mx-auto px-4 md:px-8 max-w-7xl">
+            <div className="text-center mb-12 md:mb-20">
+              <h3 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 md:mb-6 leading-tight px-2">Your Program, Your Style</h3>
               <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto"></div>
             </div>
             
-            <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-3xl p-12 lg:p-16 shadow-2xl border border-gray-100">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
-                <div className="order-2 lg:order-1 space-y-8">
-                  <p className="text-2xl font-semibold text-gray-800 leading-relaxed">
+            <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl md:rounded-3xl p-6 md:p-12 lg:p-16 shadow-2xl border border-gray-100">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-center max-w-6xl mx-auto">
+                <div className="order-2 lg:order-1 space-y-6 md:space-y-8">
+                  <p className="text-xl md:text-2xl font-semibold text-gray-800 leading-relaxed">
                     With us, you're in full control.
                   </p>
-                  <div className="space-y-6">
-                    <p className="text-lg text-gray-600 leading-relaxed">
+                  <div className="space-y-4 md:space-y-6">
+                    <p className="text-base md:text-lg text-gray-600 leading-relaxed">
                       Whether you want to reward customer check-ins, launch a refer-a-friend campaign, encourage social shares, or create something entirely your own - our flexible <span className="font-semibold text-blue-600">Program Configurator</span> makes it effortless.
                     </p>
-                    <p className="text-lg text-gray-600 leading-relaxed">
+                    <p className="text-base md:text-lg text-gray-600 leading-relaxed">
                       Design loyalty, membership, or store card programs that reflect your brand and engage your customers the way you want. No cookie-cutter templates - just your vision, powered by our smart tools.
                     </p>
                   </div>
                   
-                  <div className="flex items-center space-x-4 pt-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0 pt-4">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <span className="text-sm font-medium text-gray-700">Fully Customizable</span>
@@ -324,13 +324,13 @@ export default function HomePage() {
                         height={400}
                         className="rounded-2xl shadow-2xl w-full h-auto transform group-hover:scale-105 transition-transform duration-500"
                       />
-                      <div className="absolute -bottom-6 -right-6 bg-gradient-to-r from-green-400 to-blue-500 rounded-2xl p-4 shadow-xl">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                            <Target className="w-5 h-5 text-white" />
+                      <div className="absolute -bottom-4 md:-bottom-6 -right-4 md:-right-6 bg-gradient-to-r from-green-400 to-blue-500 rounded-2xl p-3 md:p-4 shadow-xl">
+                        <div className="flex items-center space-x-2 md:space-x-3">
+                          <div className="w-8 md:w-10 h-8 md:h-10 bg-white/20 rounded-full flex items-center justify-center">
+                            <Target className="w-4 md:w-5 h-4 md:h-5 text-white" />
                           </div>
                           <div>
-                            <div className="text-lg font-bold text-white">Your Brand</div>
+                            <div className="text-sm md:text-lg font-bold text-white">Your Brand</div>
                             <div className="text-white/80 text-xs">Your Rules</div>
                           </div>
                         </div>
