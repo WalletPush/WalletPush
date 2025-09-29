@@ -188,6 +188,20 @@ export function BalanceSpeedo({
   }
 
   if (variant === 'bar') {
+    // Debug logging for bar variant specifically
+    console.log('🎯 BAR VARIANT DEBUG:', {
+      tiers,
+      tierInfo,
+      pointsToNextTier,
+      progressPercentage,
+      showProgress,
+      actualPointsBalance,
+      shouldShowProgress: showProgress && (
+        (tierInfo.pointsToNextTier !== null && tierInfo.pointsToNextTier > 0) ||
+        (pointsToNextTier !== undefined && pointsToNextTier > 0)
+      )
+    });
+    
     return (
       <div className="wp-card p-6" data-wp-section-accent={accent}>
         <div className="flex items-center gap-4">
@@ -203,21 +217,25 @@ export function BalanceSpeedo({
               points available
             </div>
             
-            {showProgress && pointsToNextTier !== undefined && pointsToNextTier > 0 && (
+            {showProgress && (
+              (tierInfo.pointsToNextTier !== null && tierInfo.pointsToNextTier > 0) ||
+              (pointsToNextTier !== undefined && pointsToNextTier > 0)
+            ) && (
               <div>
                 <div className="flex justify-between mb-1">
                   <span className="text-xs wp-text-muted">
-                    {tier?.name && `Progress to ${tier.name}`}
+                    {tierInfo.nextTier ? `Progress to ${tierInfo.nextTier.name}` : 
+                     (tier?.name ? `Progress to ${tier.name}` : 'Progress to next tier')}
                   </span>
                   <span className="text-xs wp-text-muted">
-                    {formatPoints(pointsToNextTier)} to go
+                    {formatPoints(tierInfo.pointsToNextTier || pointsToNextTier || 0)} to go
                   </span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-3">
                   <div 
                     className="h-3 rounded-full transition-all duration-1000 ease-out"
                     style={{ 
-                      width: `${progressPercentage}%`,
+                      width: `${tierInfo.progressPercentage || progressPercentage}%`,
                       background: `var(--wp-${accent})`
                     }}
                   />
