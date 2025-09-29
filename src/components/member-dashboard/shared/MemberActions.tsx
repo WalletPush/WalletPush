@@ -90,6 +90,9 @@ export function MemberActions({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [currentTheme, setCurrentTheme] = useState('dark-midnight');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'pending'>('success');
 
   // Get the current theme from the closest wp-root parent
   useEffect(() => {
@@ -224,23 +227,41 @@ export function MemberActions({
 
       if (response.ok) {
         console.log('🎉 API Success! Result:', result);
+        
+        // Close modal immediately
+        setIsModalOpen(false);
+        setSelectedAction(null);
+        setMessage('');
+        
+        // Show success toast with dynamic message
         if (result.status === 'auto_approved') {
-          console.log('✅ Setting success message');
-          setMessage('✅ Action completed successfully!');
+          const pointsEarned = actionData.points || getActionConfig(selectedAction)?.points || 0;
+          if (selectedAction === 'check_in') {
+            setToastMessage(`🎉 Check-in Success! You earned ${pointsEarned} points.`);
+          } else if (selectedAction === 'earn_points') {
+            setToastMessage(`🎉 Points Added! You earned ${pointsEarned} points.`);
+          } else {
+            setToastMessage(`🎉 Action completed successfully! You earned ${pointsEarned} points.`);
+          }
+          setToastType('success');
         } else {
-          console.log('⏳ Setting pending message');
-          setMessage('⏳ Request submitted for approval');
+          if (selectedAction === 'earn_points') {
+            setToastMessage(`📋 Your points request has been submitted for approval.`);
+          } else if (selectedAction === 'check_in') {
+            setToastMessage(`📋 Your check-in request has been submitted for approval.`);
+          } else {
+            setToastMessage(`📋 Your request has been submitted for approval.`);
+          }
+          setToastType('pending');
         }
         
-        console.log('⏰ Starting 3-second timer for modal close');
-        // Auto-close modal after success (no page refresh!)
+        setShowToast(true);
+        
+        // Auto-hide toast after 4 seconds
         setTimeout(() => {
-          console.log('⏰ Timer complete - closing modal');
-          setIsModalOpen(false);
-          setSelectedAction(null);
-          setMessage('');
-          // TODO: Update points balance without page refresh
-        }, 3000); // Increased to 3 seconds to see message better
+          setShowToast(false);
+        }, 4000);
+        
       } else {
         console.error('❌ API Error:', result);
         setMessage(`❌ ${result.error || result.message || 'Request failed'}`);
@@ -349,6 +370,41 @@ export function MemberActions({
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-50 max-w-sm">
+          <div className={`
+            p-4 rounded-lg shadow-lg border backdrop-blur-sm transform transition-all duration-300
+            ${toastType === 'success' ? 'bg-green-500/90 border-green-400 text-white' : 
+              toastType === 'pending' ? 'bg-blue-500/90 border-blue-400 text-white' : 
+              'bg-red-500/90 border-red-400 text-white'}
+          `}>
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                {toastType === 'success' ? (
+                  <CheckCircleIcon className="w-5 h-5" />
+                ) : toastType === 'pending' ? (
+                  <ClockIcon className="w-5 h-5" />
+                ) : (
+                  <ExclamationTriangleIcon className="w-5 h-5" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{toastMessage}</p>
+              </div>
+              <button
+                onClick={() => setShowToast(false)}
+                className="flex-shrink-0 text-white/80 hover:text-white"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       )}

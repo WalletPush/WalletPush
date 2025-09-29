@@ -79,6 +79,9 @@ export default function PointsTransactionsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState<'success' | 'error'>('success')
 
   // Load data on component mount
   useEffect(() => {
@@ -119,6 +122,21 @@ export default function PointsTransactionsPage() {
 
   const supabase = createClient()
 
+  // Toast helper function
+  const showSuccessToast = (message: string) => {
+    setToastMessage(message)
+    setToastType('success')
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 4000)
+  }
+
+  const showErrorToast = (message: string) => {
+    setToastMessage(message)
+    setToastType('error')
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 4000)
+  }
+
   // Removed duplicate loadData function
 
   const handleApproveRequest = async (requestId: string) => {
@@ -136,14 +154,15 @@ export default function PointsTransactionsPage() {
 
       if (response.ok) {
         console.log('✅ Request approved successfully!')
+        showSuccessToast('✅ Request approved successfully! Points have been added to the customer\'s account.')
         loadData() // Refresh data
       } else {
         console.error('❌ Failed to approve request:', data)
-        alert(`Failed to approve request: ${data.error || 'Unknown error'}`)
+        showErrorToast(`Failed to approve request: ${data.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('❌ Error approving request:', error)
-      alert('Error approving request. Please try again.')
+      showErrorToast('Error approving request. Please try again.')
     }
   }
 
@@ -162,14 +181,15 @@ export default function PointsTransactionsPage() {
 
       if (response.ok) {
         console.log('✅ Request declined successfully!')
+        showSuccessToast('✅ Request declined successfully.')
         loadData() // Refresh data
       } else {
         console.error('❌ Failed to decline request:', data)
-        alert(`Failed to decline request: ${data.error || 'Unknown error'}`)
+        showErrorToast(`Failed to decline request: ${data.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('❌ Error declining request:', error)
-      alert('Error declining request. Please try again.')
+      showErrorToast('Error declining request. Please try again.')
     }
   }
 
@@ -511,6 +531,38 @@ export default function PointsTransactionsPage() {
         </TabsContent>
       </Tabs>
       </div>
+
+      {/* Success Toast */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-50 max-w-sm">
+          <div className={`
+            p-4 rounded-lg shadow-lg border backdrop-blur-sm transform transition-all duration-300
+            ${toastType === 'success' ? 'bg-green-500/90 border-green-400 text-white' : 
+              'bg-red-500/90 border-red-400 text-white'}
+          `}>
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                {toastType === 'success' ? (
+                  <CheckCircle className="w-5 h-5" />
+                ) : (
+                  <XCircle className="w-5 h-5" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{toastMessage}</p>
+              </div>
+              <button
+                onClick={() => setShowToast(false)}
+                className="flex-shrink-0 text-white/80 hover:text-white"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
