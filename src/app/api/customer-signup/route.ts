@@ -455,10 +455,10 @@ export async function POST(request: NextRequest) {
       }
 
       // 5. Save customer to database with pass details and initial business intelligence values
-      // Use upsert to handle potential duplicates (user might have attempted signup before)
+      // Insert customer record (handle duplicates in error handling)
       const { data: customer, error: customerError } = await supabase
         .from('customers')
-        .upsert({
+        .insert({
           business_id, // 🎯 CRITICAL: Link customer to business for multi-tenant
           landing_page_id: landing_page_id || null, // Allow null if no landing page
           template_id: actualTemplate.id,
@@ -522,9 +522,6 @@ export async function POST(request: NextRequest) {
           // 📝 Initial customer management
           notes: '',
           tags: []
-        }, {
-          onConflict: 'business_id,email', // Handle duplicates by email+business combination
-          ignoreDuplicates: false // Update existing records with new data
         })
         .select()
         .single()
@@ -555,27 +552,50 @@ export async function POST(request: NextRequest) {
         
         // Enhanced error details for debugging
         const errorDetail = customerError.code === '23505' 
-          ? 'Customer already exists (duplicate email/business combination)'
+          ? 'Customer already exists (duplicate email/business combination) - this is normal for returning customers'
           : customerError.code === '23503'
           ? `Foreign key constraint violation: ${customerError.message}`
           : customerError.code === '23502'
           ? `Not null constraint violation: ${customerError.message}`
           : `Database error: ${customerError.message}`;
+
+        // For duplicate customers (23505), try to get the existing customer instead of failing
+        if (customerError.code === '23505') {
+          console.log('🔄 Customer already exists, fetching existing record...');
+          const { data: existingCustomer, error: fetchError } = await supabase
+            .from('customers')
+            .select('id, email, first_name, last_name, business_id')
+            .eq('email', email)
+            .eq('business_id', business_id)
+            .single();
           
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Failed to save customer information',
-            detail: errorDetail,
-            debug: {
-              error_code: customerError.code,
-              error_message: customerError.message,
-              error_details: customerError.details,
-              hint: customerError.hint
-            }
-          },
-          { status: 500 }
-        )
+          if (existingCustomer && !fetchError) {
+            console.log('✅ Found existing customer:', existingCustomer.id);
+            // Use the existing customer for the rest of the process
+            customer = existingCustomer;
+            customerError = null; // Clear the error since we recovered
+          } else {
+            console.error('❌ Could not fetch existing customer:', fetchError);
+          }
+        }
+
+        // Only return error if we still have an error after duplicate handling
+        if (customerError) {
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Failed to save customer information',
+              detail: errorDetail,
+              debug: {
+                error_code: customerError.code,
+                error_message: customerError.message,
+                error_details: customerError.details,
+                hint: customerError.hint
+              }
+            },
+            { status: 500 }
+          )
+        }
       }
 
       console.log('✅ Customer saved successfully:', customer.id)
