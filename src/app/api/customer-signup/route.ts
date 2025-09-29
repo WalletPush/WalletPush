@@ -729,10 +729,9 @@ export async function POST(request: NextRequest) {
         })
         console.error('❌ Full passError details:', JSON.stringify(passError, null, 2))
         
-        // CRITICAL: Delete the customer if pass creation fails to avoid orphaned records
-        console.log('🔍 ATTEMPTING TO DELETE CUSTOMER:', customer.id)
-        const { error: deleteError } = await supabase.from('customers').delete().eq('id', customer.id)
-        console.log('🔍 Customer deletion result:', deleteError ? `FAILED: ${deleteError.message}` : 'SUCCESS')
+        // DON'T delete customer - they can still complete account setup even if pass fails
+        console.log('⚠️ Pass creation failed but keeping customer record for account completion')
+        console.log('🔍 Customer can still access account:', customer.id)
         
         return NextResponse.json(
           { 

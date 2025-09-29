@@ -21,10 +21,23 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // First, check if a customer exists with this email but no password set
-    const { data: existingCustomer, error: customerError } = await supabase
+    // Create service client for customer lookup (bypasses RLS)
+    const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+    const serviceSupabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // First, check if a customer exists with this email (use service client to bypass RLS)
+    const { data: existingCustomer, error: customerError } = await serviceSupabase
       .from('customers')
-      .select('id, email, first_name, last_name')
+      .select('id, email, first_name, last_name, business_id')
       .eq('email', email)
       .maybeSingle()
 
@@ -37,8 +50,26 @@ export async function POST(request: NextRequest) {
     }
 
     if (!existingCustomer) {
+      console.error('❌ No customer found for email:', email)
+      console.log('🔍 Checking for any customers with similar email...')
+      
+      // Debug: Check for any customers in the database
+      const { data: allCustomers, error: debugError } = await serviceSupabase
+        .from('customers')
+        .select('id, email, business_id')
+        .limit(5)
+        
+      console.log('🔍 Sample customers in database:', allCustomers)
+      console.log('🔍 Debug query error:', debugError)
+      
       return NextResponse.json(
-        { error: 'No customer found with this email. Please contact support.' },
+        { 
+          error: 'No customer found with this email. Please contact support.',
+          debug: {
+            email_searched: email,
+            sample_customers: allCustomers?.map(c => ({ id: c.id, email: c.email }))
+          }
+        },
         { status: 404 }
       )
     }
