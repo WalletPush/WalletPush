@@ -318,7 +318,8 @@ function CustomerDashboardContent() {
             customer_id: customerSummary?.customer_id || user?.id,
                 actions_config: (section as any).settings || (programSpec.spec as any)?.actions_config || boundProps.actions_config || {},
                 pending_requests: [],
-                onPointsUpdate: refreshCustomerSummary // Add refresh function
+                onPointsUpdate: refreshCustomerSummary, // Add refresh function
+                isPreview: false // Explicitly set to false for customer dashboard
               }
             }
             
