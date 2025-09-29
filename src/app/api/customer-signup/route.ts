@@ -6,7 +6,21 @@ import { processTemplateForPassGeneration } from '@/lib/dynamic-template-process
 
 export async function POST(request: NextRequest) {
   try {
+    // Use service role to bypass RLS for customer creation from public landing pages
     const supabase = await createClient()
+    
+    // Create service client for customer creation (bypasses RLS)
+    const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+    const serviceSupabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
     
     let body
     try {
@@ -455,8 +469,8 @@ export async function POST(request: NextRequest) {
       }
 
       // 5. Save customer to database with pass details and initial business intelligence values
-      // Insert customer record (handle duplicates in error handling)
-      let { data: customer, error: customerError } = await supabase
+      // Insert customer record using service role (bypasses RLS)
+      let { data: customer, error: customerError } = await serviceSupabase
         .from('customers')
         .insert({
           business_id, // 🎯 CRITICAL: Link customer to business for multi-tenant
@@ -562,7 +576,7 @@ export async function POST(request: NextRequest) {
         // For duplicate customers (23505), try to get the existing customer instead of failing
         if (customerError.code === '23505') {
           console.log('🔄 Customer already exists, fetching existing record...');
-          const { data: existingCustomer, error: fetchError } = await supabase
+          const { data: existingCustomer, error: fetchError } = await serviceSupabase
             .from('customers')
             .select('id, email, first_name, last_name, business_id')
             .eq('email', email)
