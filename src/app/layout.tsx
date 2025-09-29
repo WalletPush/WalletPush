@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   title: 'WalletPush - Modern Wallet Membership & Loyalty Platform',
   description: 'Create and manage Apple Wallet and Google Wallet membership, loyalty, and store card programs for your business.',
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/favicon.ico',
+    icon: '/images/favicon.ico',
+    shortcut: '/images/favicon.ico',
+    apple: '/images/favicon.ico',
   },
 }
 
