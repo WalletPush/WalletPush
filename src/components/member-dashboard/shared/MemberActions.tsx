@@ -53,6 +53,7 @@ interface MemberActionsProps {
   };
   pending_requests?: any[];
   business_name?: string; // Add business name prop
+  onPointsUpdate?: () => Promise<any>; // Add refresh function prop
 }
 
 type ActionType = 'check_in' | 'earn_points' | 'redeem_offer' | 'spend_value' | 'ticket_use' | 'receipt_credit';
@@ -82,6 +83,7 @@ export function MemberActions({
   actions_config = {},
   pending_requests = [],
   business_name,
+  onPointsUpdate,
   isPreview = false
 }: MemberActionsProps & { isPreview?: boolean }) {
   const [showActionsModal, setShowActionsModal] = useState(false);
@@ -261,6 +263,27 @@ export function MemberActions({
         setTimeout(() => {
           setShowToast(false);
         }, 4000);
+        
+        // Refresh customer data for real-time updates
+        if (onPointsUpdate && !isPreview) {
+          setTimeout(async () => {
+            console.log('🔄 Refreshing customer data for real-time update...');
+            const updatedSummary = await onPointsUpdate();
+            
+            if (updatedSummary && result.status === 'auto_approved') {
+              // Show points update notification
+              const newBalance = updatedSummary.points_balance || 0;
+              setToastMessage(`🎉 Your points have been updated! New balance: ${newBalance} points`);
+              setToastType('success');
+              setShowToast(true);
+              
+              // Auto-hide this toast too
+              setTimeout(() => {
+                setShowToast(false);
+              }, 4000);
+            }
+          }, 1500); // Wait 1.5 seconds after first toast
+        }
         
       } else {
         console.error('❌ API Error:', result);

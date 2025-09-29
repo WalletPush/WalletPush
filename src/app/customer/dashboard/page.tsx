@@ -22,6 +22,41 @@ function CustomerDashboardContent() {
   const [resolvedBusinessId, setResolvedBusinessId] = useState<string | null>(null)
   const { branding } = useBranding()
 
+  // Function to refresh customer summary (for real-time updates)
+  const refreshCustomerSummary = async () => {
+    if (!programSpec || !user) return null
+
+    try {
+      const actualCustomerId = resolvedBusinessId ? await resolveCustomerId() : null
+      const customerIdToUse = actualCustomerId || user.id
+      
+      const summaryUrl = resolvedBusinessId 
+        ? `/api/customer/summary?programId=${programSpec.program_id}&customerId=${customerIdToUse}&businessId=${resolvedBusinessId}`
+        : `/api/customer/summary?programId=${programSpec.program_id}&customerId=${customerIdToUse}`
+      
+      console.log('🔄 Refreshing customer summary...')
+      const summaryResponse = await fetch(summaryUrl, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      })
+      
+      if (summaryResponse.ok) {
+        const summaryData = await summaryResponse.json()
+        console.log('✅ Customer summary refreshed:', summaryData)
+        setCustomerSummary(summaryData)
+        return summaryData
+      } else {
+        console.error('❌ Failed to refresh customer summary')
+        return null
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing customer summary:', error)
+      return null
+    }
+  }
+
   useEffect(() => {
     const loadDashboard = async () => {
       try {
@@ -276,7 +311,8 @@ function CustomerDashboardContent() {
             business_id: resolvedBusinessId,
             customer_id: customerSummary?.customer_id || user?.id,
                 actions_config: (section as any).settings || (programSpec.spec as any)?.actions_config || boundProps.actions_config || {},
-                pending_requests: []
+                pending_requests: [],
+                onPointsUpdate: refreshCustomerSummary // Add refresh function
               }
             }
             
