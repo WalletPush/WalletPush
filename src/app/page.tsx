@@ -274,6 +274,39 @@ export default function HomePage() {
               <p className="text-gray-600 text-sm">Bank-level security for all customer data</p>
             </div>
           </div>
+
+          {/* Your Program, Your Style Section */}
+          <div className="mt-32">
+            <div className="text-center mb-16">
+              <h3 className="text-4xl font-bold text-gray-900 mb-8">Your Program, Your Style</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              <div className="order-2 lg:order-1">
+                <p className="text-xl text-gray-600 leading-relaxed mb-6">
+                  With us, you're in full control.
+                </p>
+                <p className="text-lg text-gray-600 leading-relaxed mb-6">
+                  Whether you want to reward customer check-ins, launch a refer-a-friend campaign, encourage social shares, or create something entirely your own - our flexible Program Configurator makes it effortless.
+                </p>
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Design loyalty, membership, or store card programs that reflect your brand and engage your customers the way you want. No cookie-cutter templates - just your vision, powered by our smart tools.
+                </p>
+              </div>
+              
+              <div className="order-1 lg:order-2">
+                <div className="relative">
+                  <Image
+                    src="/images/yourstyle.png"
+                    alt="Your Program, Your Style"
+                    width={600}
+                    height={400}
+                    className="rounded-2xl shadow-2xl w-full h-auto"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
