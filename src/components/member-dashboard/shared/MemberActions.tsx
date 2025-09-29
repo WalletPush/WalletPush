@@ -265,24 +265,49 @@ export function MemberActions({
         }, 4000);
         
         // Refresh customer data for real-time updates
+        console.log('🔍 Checking real-time update conditions:', {
+          onPointsUpdate: !!onPointsUpdate,
+          isPreview,
+          resultStatus: result.status
+        });
+        
         if (onPointsUpdate && !isPreview) {
+          console.log('✅ Starting real-time update timer...');
           setTimeout(async () => {
             console.log('🔄 Refreshing customer data for real-time update...');
-            const updatedSummary = await onPointsUpdate();
-            
-            if (updatedSummary && result.status === 'auto_approved') {
-              // Show points update notification
-              const newBalance = updatedSummary.points_balance || 0;
-              setToastMessage(`🎉 Your points have been updated! New balance: ${newBalance} points`);
-              setToastType('success');
-              setShowToast(true);
+            try {
+              const updatedSummary = await onPointsUpdate();
+              console.log('🔍 Updated summary received:', updatedSummary);
+              console.log('🔍 Result status check:', result.status === 'auto_approved');
               
-              // Auto-hide this toast too
-              setTimeout(() => {
-                setShowToast(false);
-              }, 4000);
+              if (updatedSummary && result.status === 'auto_approved') {
+                // Show points update notification
+                const newBalance = updatedSummary.points_balance || 0;
+                console.log('🎉 Showing points update toast with balance:', newBalance);
+                setToastMessage(`🎉 Your points have been updated! New balance: ${newBalance} points`);
+                setToastType('success');
+                setShowToast(true);
+                
+                // Auto-hide this toast too
+                setTimeout(() => {
+                  setShowToast(false);
+                }, 4000);
+              } else {
+                console.log('❌ Not showing update toast:', {
+                  hasUpdatedSummary: !!updatedSummary,
+                  isAutoApproved: result.status === 'auto_approved',
+                  resultStatus: result.status
+                });
+              }
+            } catch (error) {
+              console.error('❌ Error in real-time update:', error);
             }
           }, 1500); // Wait 1.5 seconds after first toast
+        } else {
+          console.log('❌ Real-time update skipped:', {
+            hasOnPointsUpdate: !!onPointsUpdate,
+            isPreview
+          });
         }
         
       } else {
