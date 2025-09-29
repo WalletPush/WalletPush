@@ -136,6 +136,35 @@ cp .env.example .env.local
 pnpm dev
 ```
 
+### 🚨 **Deployment Notes & Troubleshooting**
+
+#### **Vercel Free Tier Limitations**
+If you encounter "100 deployments limit reached" on Vercel:
+
+**Solutions:**
+1. **Wait for Reset**: Free tier resets monthly (100 deployments/month)
+2. **Upgrade to Pro**: $20/month for unlimited deployments
+3. **Alternative Hosting**: Deploy to Netlify, Railway, or self-host
+4. **Optimize Deployments**: 
+   - Use preview branches for testing
+   - Batch multiple changes before pushing to main
+   - Disable auto-deploy and deploy manually when ready
+
+**Current Status**: ⚠️ *Deployment limit reached - waiting for monthly reset or considering upgrade*
+
+#### **Alternative Deployment Options**
+```bash
+# Deploy to Netlify
+npx netlify-cli deploy --prod
+
+# Deploy to Railway
+railway login && railway up
+
+# Self-host with Docker
+docker build -t walletpush .
+docker run -p 3000:3000 walletpush
+```
+
 ## 📦 **Available Programs**
 
 ### 🎯 **Loyalty Programs**
