@@ -455,9 +455,10 @@ export async function POST(request: NextRequest) {
       }
 
       // 5. Save customer to database with pass details and initial business intelligence values
+      // Use upsert to handle potential duplicates (user might have attempted signup before)
       const { data: customer, error: customerError } = await supabase
         .from('customers')
-        .insert({
+        .upsert({
           business_id, // 🎯 CRITICAL: Link customer to business for multi-tenant
           landing_page_id: landing_page_id || null, // Allow null if no landing page
           template_id: actualTemplate.id,
@@ -521,6 +522,9 @@ export async function POST(request: NextRequest) {
           // 📝 Initial customer management
           notes: '',
           tags: []
+        }, {
+          onConflict: 'business_id,email', // Handle duplicates by email+business combination
+          ignoreDuplicates: false // Update existing records with new data
         })
         .select()
         .single()
@@ -533,11 +537,42 @@ export async function POST(request: NextRequest) {
           template_id: actualTemplate.id,
           email
         })
+        console.error('❌ Full customer insert payload:', {
+          business_id,
+          landing_page_id: landing_page_id || null,
+          template_id: actualTemplate.id,
+          first_name: actualFirstName,
+          last_name: actualLastName,
+          email,
+          phone,
+          date_of_birth,
+          address,
+          city,
+          state,
+          zip_code,
+          company
+        })
+        
+        // Enhanced error details for debugging
+        const errorDetail = customerError.code === '23505' 
+          ? 'Customer already exists (duplicate email/business combination)'
+          : customerError.code === '23503'
+          ? `Foreign key constraint violation: ${customerError.message}`
+          : customerError.code === '23502'
+          ? `Not null constraint violation: ${customerError.message}`
+          : `Database error: ${customerError.message}`;
+          
         return NextResponse.json(
           { 
             success: false, 
             error: 'Failed to save customer information',
-            debug: process.env.NODE_ENV === 'development' ? customerError : undefined
+            detail: errorDetail,
+            debug: {
+              error_code: customerError.code,
+              error_message: customerError.message,
+              error_details: customerError.details,
+              hint: customerError.hint
+            }
           },
           { status: 500 }
         )
