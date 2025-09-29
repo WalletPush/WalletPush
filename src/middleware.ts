@@ -150,34 +150,62 @@ async function handleBusinessCustomDomainRedirect(request: NextRequest, hostname
       return null // Not a business/customer route that needs redirecting
     }
     
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    
     console.log(`🔄 Checking for custom domain redirect: ${hostname}${pathname}`)
     
-    // Step 1: Try to get the user's active business account from session
-    let businessId = await getUserActiveBusinessId(request, supabaseUrl, serviceRoleKey)
+    // SECURITY FIX: Only check URL parameters for business context
+    // NO MORE user_active_account lookups that cause cross-account contamination
+    let businessId: string | null = null
     
-    // Step 2: Fallback methods if we can't determine from session
+    // Method 1: Check URL parameters for explicit business context
+    const urlParams = request.nextUrl.searchParams
+    const businessIdParam = urlParams.get('business_id') || urlParams.get('businessId')
+    if (businessIdParam) {
+      businessId = businessIdParam
+      console.log(`🎯 Using business ID from URL parameter: ${businessId}`)
+    }
+    
+    // Method 2: Extract business slug from URL path (e.g., /business/sambor/dashboard)
     if (!businessId) {
-      // Check URL parameters for business context
-      const urlParams = request.nextUrl.searchParams
-      const businessIdParam = urlParams.get('business_id') || urlParams.get('businessId')
-      if (businessIdParam) {
-        businessId = businessIdParam
-        console.log(`🎯 Using business ID from URL parameter: ${businessId}`)
+      const pathSegments = pathname.split('/').filter(Boolean)
+      if (pathSegments[0] === 'business' && pathSegments[1]) {
+        const slug = pathSegments[1]
+        console.log(`🎯 Extracted business slug from URL: ${slug}`)
+        
+        // Look up business ID by slug (safe - no user session dependency)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+        
+        const businessResponse = await fetch(
+          `${supabaseUrl}/rest/v1/businesses?select=id&slug=eq.${slug}`,
+          {
+            headers: {
+              'apikey': serviceRoleKey,
+              'Authorization': `Bearer ${serviceRoleKey}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+        
+        if (businessResponse.ok) {
+          const businessData = await businessResponse.json()
+          if (businessData && businessData.length > 0) {
+            businessId = businessData[0].id
+            console.log(`✅ Found business ID from slug: ${businessId}`)
+          }
+        }
       }
     }
     
-    // Step 3: Don't use fallback to other businesses - this causes cross-account redirects
-    // Only redirect if we have explicit business context from the user's session
-    
+    // If no business context, don't redirect (prevents cross-account contamination)
     if (!businessId) {
-      console.log(`📝 No business context available for redirect`)
+      console.log(`📝 No business context available for redirect - this is SAFE`)
       return null
     }
     
-    // Step 4: Look up the custom domain for this business
+    // Look up the custom domain for this specific business
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    
     const domainResponse = await fetch(
       `${supabaseUrl}/rest/v1/custom_domains?select=domain,business_id&status=eq.active&business_id=eq.${businessId}`,
       {
@@ -214,103 +242,10 @@ async function handleBusinessCustomDomainRedirect(request: NextRequest, hostname
   }
 }
 
-// Helper function to get user's active business account ID
-async function getUserActiveBusinessId(request: NextRequest, supabaseUrl: string, serviceRoleKey: string): Promise<string | null> {
-  try {
-    // Extract session token from cookies
-    const cookies = request.cookies
-    const accessToken = cookies.get('sb-access-token')?.value || 
-                       cookies.get('supabase-auth-token')?.value ||
-                       extractTokenFromCookies(cookies)
-    
-    if (!accessToken) {
-      console.log(`📝 No session token found in cookies`)
-      return null
-    }
-    
-    // Get user from session
-    const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    })
-    
-    if (!userResponse.ok) {
-      console.log(`❌ Failed to get user from session: ${userResponse.status}`)
-      return null
-    }
-    
-    const userData = await userResponse.json()
-    const userId = userData?.id
-    
-    if (!userId) {
-      console.log(`📝 No user ID found in session`)
-      return null
-    }
-    
-    console.log(`👤 Found user ID from session: ${userId}`)
-    
-    // Get user's active account
-    const activeAccountResponse = await fetch(
-      `${supabaseUrl}/rest/v1/user_active_account?select=active_account_id&user_id=eq.${userId}`,
-      {
-        headers: {
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-    
-    if (!activeAccountResponse.ok) {
-      console.log(`❌ Failed to get active account: ${activeAccountResponse.status}`)
-      return null
-    }
-    
-    const activeAccountData = await activeAccountResponse.json()
-    const activeAccountId = activeAccountData?.[0]?.active_account_id
-    
-    if (!activeAccountId) {
-      console.log(`📝 No active account found for user ${userId}`)
-      return null
-    }
-    
-    console.log(`🏢 Found active account: ${activeAccountId}`)
-    
-    // Check if this account is a business account
-    const accountResponse = await fetch(
-      `${supabaseUrl}/rest/v1/accounts?select=id,type&id=eq.${activeAccountId}&type=eq.business`,
-      {
-        headers: {
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-    
-    if (!accountResponse.ok) {
-      console.log(`❌ Failed to verify business account: ${accountResponse.status}`)
-      return null
-    }
-    
-    const accountData = await accountResponse.json()
-    
-    if (!accountData || accountData.length === 0) {
-      console.log(`📝 Active account ${activeAccountId} is not a business account`)
-      return null
-    }
-    
-    console.log(`✅ Found active business account: ${activeAccountId}`)
-    return activeAccountId
-    
-  } catch (error) {
-    console.error('❌ Error getting user active business ID:', error)
-    return null
-  }
-}
+// REMOVED: getUserActiveBusinessId function 
+// This function was causing cross-account contamination by using user_active_account 
+// which is a global state that gets overwritten by middleware domain routing.
+// Business context should be derived from URL/domain, not user session state.
 
 // Helper function to extract token from various cookie formats
 function extractTokenFromCookies(cookies: any): string | null {
