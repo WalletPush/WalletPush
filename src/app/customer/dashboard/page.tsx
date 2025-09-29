@@ -20,6 +20,7 @@ function CustomerDashboardContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [resolvedBusinessId, setResolvedBusinessId] = useState<string | null>(null)
+  const [resolvedCustomerId, setResolvedCustomerId] = useState<string | null>(null)
   const { branding } = useBranding()
 
   // Function to refresh customer summary (for real-time updates)
@@ -27,8 +28,7 @@ function CustomerDashboardContent() {
     if (!programSpec || !user) return null
 
     try {
-      const actualCustomerId = resolvedBusinessId ? await resolveCustomerId() : null
-      const customerIdToUse = actualCustomerId || user.id
+      const customerIdToUse = resolvedCustomerId || user.id
       
       const summaryUrl = resolvedBusinessId 
         ? `/api/customer/summary?programId=${programSpec.program_id}&customerId=${customerIdToUse}&businessId=${resolvedBusinessId}`
@@ -85,6 +85,7 @@ function CustomerDashboardContent() {
               currentBusinessId = customerData.business_id;
               actualCustomerId = customerData.customer_id; // Get the actual customer ID
               console.log('✅ Resolved from customer lookup:', { businessId: currentBusinessId, customerId: actualCustomerId });
+              setResolvedCustomerId(actualCustomerId); // Store in state for refresh function
             } else {
               console.error('❌ Failed to resolve businessId from customer email');
               console.log('🔍 User might be business owner, not customer. Trying business lookup...');
