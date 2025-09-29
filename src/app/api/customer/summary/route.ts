@@ -26,22 +26,45 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'businessId could not be resolved' }, { status: 400 })
     }
 
-    // 2) Bind customer: prefer logged-in user → customers.email within this business
+    // 2) Bind customer: prefer override → auth metadata customer_id → email lookup
     let customerId = url.searchParams.get('customerId') // dev override only
     if (!customerId && !preview) {
       const { data: auth } = await supabase.auth.getUser()
-      const email = auth?.user?.email
-      if (!email) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+      const user = auth?.user
+      if (!user?.email) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-      const { data: customer } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('business_id', businessId)
-        .eq('email', email)
-        .limit(1)
-        .maybeSingle()
+      // First try: use customer_id from auth user metadata (set during account completion)
+      if (user.user_metadata?.customer_id) {
+        console.log('🔍 Using customer_id from auth metadata:', user.user_metadata.customer_id)
+        customerId = user.user_metadata.customer_id
+        
+        // Verify this customer exists and belongs to this business
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('id, business_id')
+          .eq('id', customerId)
+          .eq('business_id', businessId)
+          .single()
+        
+        if (!customer) {
+          console.log('⚠️ Auth metadata customer_id invalid, falling back to email lookup')
+          customerId = null
+        }
+      }
+      
+      // Fallback: lookup by email within this business
+      if (!customerId) {
+        console.log('🔍 Looking up customer by email:', user.email)
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('business_id', businessId)
+          .eq('email', user.email)
+          .limit(1)
+          .maybeSingle()
 
-      customerId = customer?.id ?? null
+        customerId = customer?.id ?? null
+      }
     }
     if (!customerId) {
       return NextResponse.json({ error: 'customer not found' }, { status: 404 })

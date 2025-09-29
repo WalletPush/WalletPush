@@ -72,9 +72,12 @@ function CustomerDashboardContent() {
         // Get businessId from URL parameter or resolve from customer record
         console.log('Loading dashboard for user:', user.email, 'businessId:', businessId)
         
+        // Get customer_id from auth user metadata first (set during account completion)
+        let actualCustomerId = user?.user_metadata?.customer_id || null;
+        console.log('🔍 Customer ID from auth metadata:', actualCustomerId);
+        
         // If no businessId in URL, resolve it from customer record
         let currentBusinessId = businessId;
-        let actualCustomerId = null;
         
         if (!currentBusinessId && user?.email) {
           console.log('🔍 No businessId in URL, resolving from customer email...');
@@ -83,9 +86,16 @@ function CustomerDashboardContent() {
             if (customerLookupResponse.ok) {
               const customerData = await customerLookupResponse.json();
               currentBusinessId = customerData.business_id;
-              actualCustomerId = customerData.customer_id; // Get the actual customer ID
-              console.log('✅ Resolved from customer lookup:', { businessId: currentBusinessId, customerId: actualCustomerId });
-              setResolvedCustomerId(actualCustomerId); // Store in state for refresh function
+              
+              // Only override actualCustomerId if we didn't get it from auth metadata
+              if (!actualCustomerId) {
+                actualCustomerId = customerData.customer_id;
+                console.log('✅ Resolved customer_id from lookup:', actualCustomerId);
+              } else {
+                console.log('✅ Using customer_id from auth metadata, business_id from lookup');
+              }
+              
+              console.log('✅ Resolved:', { businessId: currentBusinessId, customerId: actualCustomerId });
             } else {
               console.error('❌ Failed to resolve businessId from customer email');
               console.log('🔍 User might be business owner, not customer. Trying business lookup...');
@@ -108,6 +118,11 @@ function CustomerDashboardContent() {
           } catch (error) {
             console.error('❌ Error resolving businessId:', error);
           }
+        }
+        
+        // Store the resolved customer ID for use in refresh function
+        if (actualCustomerId) {
+          setResolvedCustomerId(actualCustomerId);
         }
         
         // Set the resolved business ID in state
