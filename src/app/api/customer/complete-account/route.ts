@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
           error: 'No customer found with this email. Please contact support.',
           debug: {
             email_searched: email,
-            sample_customers: allCustomers?.map(c => ({ id: c.id, email: c.email }))
+            sample_customers: allCustomers?.map((c: any) => ({ id: c.id, email: c.email }))
           }
         },
         { status: 404 }
