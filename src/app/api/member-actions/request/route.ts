@@ -43,6 +43,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Validate that customer exists in customers table (not just auth.users)
+    console.log('🔍 Validating customer exists:', customer_id);
+    const { data: customer, error: customerError } = await supabase
+      .from('customers')
+      .select('id, business_id, email, first_name, last_name')
+      .eq('id', customer_id)
+      .single();
+
+    if (customerError || !customer) {
+      console.error('❌ Customer not found in customers table:', { customer_id, customerError });
+      
+      // Provide helpful debugging information
+      const errorDetail = customerError?.code === 'PGRST116' 
+        ? 'Customer ID does not exist in customers table. This might be an auth.users ID instead of a customers.id.'
+        : `Database error: ${customerError?.message || 'Unknown error'}`;
+        
+      return NextResponse.json({ 
+        error: 'Customer not found', 
+        detail: errorDetail,
+        customer_id,
+        debug: {
+          error_code: customerError?.code,
+          error_message: customerError?.message
+        }
+      }, { status: 404 });
+    }
+
+    // Validate that customer belongs to the specified business
+    if (customer.business_id !== business_id) {
+      console.error('❌ Customer business mismatch:', { 
+        customer_business_id: customer.business_id, 
+        request_business_id: business_id 
+      });
+      return NextResponse.json({ 
+        error: 'Customer business mismatch', 
+        detail: `Customer ${customer.email} belongs to business ${customer.business_id}, not ${business_id}` 
+      }, { status: 403 });
+    }
+
+    console.log('✅ Customer validation passed:', { 
+      customer_id, 
+      business_id, 
+      customer_email: customer.email,
+      customer_name: `${customer.first_name} ${customer.last_name}`
+    });
+
     // Get program configuration
     console.log('🔍 Querying program_versions for program_id:', program_id);
     const { data: programVersion, error: programError } = await supabase

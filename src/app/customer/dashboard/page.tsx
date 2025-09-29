@@ -306,16 +306,25 @@ function CustomerDashboardContent() {
             
         // Special props for MemberActions component
         if (section.type === 'memberActions') {
+          const actualCustomerId = resolvedCustomerId || customerSummary?.customer_id;
+          
+          // Skip rendering MemberActions if we don't have a valid customer ID from the customers table
+          if (!actualCustomerId) {
+            console.error('❌ Skipping MemberActions: No valid customer_id found');
+            return null;
+          }
+          
           console.log('🔍 Adding onPointsUpdate to MemberActions props:', {
             hasRefreshFunction: !!refreshCustomerSummary,
-            refreshFunctionType: typeof refreshCustomerSummary
+            refreshFunctionType: typeof refreshCustomerSummary,
+            customer_id: actualCustomerId
           });
           
           componentProps = {
             ...componentProps,
             program_id: programSpec.program_id,
             business_id: resolvedBusinessId,
-            customer_id: customerSummary?.customer_id || user?.id,
+            customer_id: actualCustomerId,
                 actions_config: (section as any).settings || (programSpec.spec as any)?.actions_config || boundProps.actions_config || {},
                 pending_requests: [],
                 onPointsUpdate: refreshCustomerSummary, // Add refresh function
