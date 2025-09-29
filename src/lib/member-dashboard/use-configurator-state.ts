@@ -141,6 +141,11 @@ export function useConfiguratorState() {
         const section = { ...newSpec.ui_contract.sections[sectionIndex] };
         (section as any).settings = { ...(section as any).settings, [settingKey]: value };
         newSpec.ui_contract.sections[sectionIndex] = section;
+        
+        // Special case: if we're updating tiers, also save them at the top level for the customer summary API
+        if (settingKey === 'tiers' && sectionKey === 'balanceHeader') {
+          newSpec.tiers = value;
+        }
       }
     }
 

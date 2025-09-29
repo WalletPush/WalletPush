@@ -27,8 +27,17 @@ import {
 } from 'lucide-react';
 
 // WP-Themed Components with proper theming
-const BalanceHeader = ({ member, points_balance, name, variant, showTier, showProgress, size, ...props }: any) => {
-  console.log('🔍 BalanceHeader wrapper props:', { member, points_balance, name, variant, showTier, showProgress, size, props });
+const BalanceHeader = ({ member, points_balance, name, variant, showTier, showProgress, size, settings, ...props }: any) => {
+  // Handle both direct settings and nested settings object (for backward compatibility)
+  const actualVariant = variant ?? settings?.variant ?? "ring";
+  const actualShowTier = showTier !== undefined ? showTier : (settings?.showTier !== undefined ? settings.showTier : true);
+  const actualShowProgress = showProgress !== undefined ? showProgress : (settings?.showProgress !== undefined ? settings.showProgress : true);
+  const actualSize = size ?? settings?.size ?? "md";
+  
+  console.log('🔍 BalanceHeader wrapper props:', { 
+    member, points_balance, name, variant, showTier, showProgress, size, settings, props,
+    resolved: { actualVariant, actualShowTier, actualShowProgress, actualSize }
+  });
   
   // Support both old format (member.points_balance) and new format (points_balance directly)
   const actualPointsBalance = points_balance ?? member?.points_balance ?? 0;
@@ -39,11 +48,11 @@ const BalanceHeader = ({ member, points_balance, name, variant, showTier, showPr
       pointsBalance={actualPointsBalance}
       pointsToNextTier={member?.points_to_next_tier}
       tier={actualTier}
-      tiers={props.tiers}
-      variant={variant || "ring"}
-      size={size || "md"}
-      showTier={showTier !== undefined ? showTier : true}
-      showProgress={showProgress !== undefined ? showProgress : true}
+      tiers={props.tiers ?? settings?.tiers}
+      variant={actualVariant}
+      size={actualSize}
+      showTier={actualShowTier}
+      showProgress={actualShowProgress}
       accent="primary"
     />
   );

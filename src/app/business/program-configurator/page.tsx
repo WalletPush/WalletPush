@@ -949,10 +949,10 @@ export default function ProgramConfiguratorPage() {
             
             const boundProps = bindProps(section.props, mockData)
             
-            // Add settings from the configuration to the props
+            // Add settings from the configuration to the props (spread settings directly like customer dashboard)
             const componentProps = {
               ...boundProps,
-              settings: (section as any).settings || {},
+              ...(section as any).settings, // Spread settings directly to match customer dashboard behavior
               business: (mockData as any).business || {},
               // Pass the full context for complex components
               ...mockData
