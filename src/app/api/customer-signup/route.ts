@@ -456,7 +456,7 @@ export async function POST(request: NextRequest) {
 
       // 5. Save customer to database with pass details and initial business intelligence values
       // Insert customer record (handle duplicates in error handling)
-      const { data: customer, error: customerError } = await supabase
+      let { data: customer, error: customerError } = await supabase
         .from('customers')
         .insert({
           business_id, // 🎯 CRITICAL: Link customer to business for multi-tenant
