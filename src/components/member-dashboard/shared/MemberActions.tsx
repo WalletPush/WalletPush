@@ -217,7 +217,7 @@ export function MemberActions({
 
       console.log('📡 API Response status:', response.status);
       
-      let result;
+      let result: any;
       try {
         result = await response.json();
         console.log('📋 API Response data:', result);
