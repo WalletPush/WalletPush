@@ -8,6 +8,8 @@ import {
   ShieldCheckIcon, 
   UserGroupIcon,
   ChartBarIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   CurrencyDollarIcon,
   KeyIcon,
   CogIcon,
@@ -15,8 +17,13 @@ import {
   ArrowTrendingUpIcon,
   StarIcon,
   ClockIcon,
-  RocketLaunchIcon
+  RocketLaunchIcon,
+  GlobeAltIcon,
+  DocumentArrowUpIcon,
+  EyeIcon,
+  EyeSlashIcon
 } from '@heroicons/react/24/outline'
+import { createClient } from '@/lib/supabase/client'
 
 interface Business {
   id: string
@@ -66,6 +73,276 @@ interface NewBusinessForm {
   custom_domain: string
 }
 
+interface NewAgencyForm {
+  name: string
+  email: string
+  customDomain: string
+  agencyPlan: 'starter_100k' | 'business_150k' | 'enterprise_250k'
+  autoGenerateCredentials: boolean
+  logo: File | null
+}
+
+interface ExistingAgency {
+  id: string
+  name: string
+  email: string
+  created_at: string
+  subscription_status: string
+  subscription_plan: string
+  custom_domain?: string
+  businesses_count: number
+}
+
+const PLATFORM_OWNER_EMAIL = 'david.sambor@icloud.com'
+
+// Agency Card Component with Tabs
+function AgencyCard({ 
+  agency, 
+  settingUpDomain, 
+  verifyingDomain, 
+  domainSetupInstructions,
+  onSetupDomain,
+  onVerifyDomain 
+}: { 
+  agency: any
+  settingUpDomain: string | null
+  verifyingDomain: string | null
+  domainSetupInstructions: {[key: string]: {cname: string, txt?: string}}
+  onSetupDomain: (agencyId: string, domain: string) => void
+  onVerifyDomain: (agencyId: string, domain: string) => void
+}) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
+
+  // Platform owner should see domain setup for ALL agencies they manage
+  const isPlatformOwner = false // Always show domain tab for platform owner
+
+  return (
+    <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+      {/* Header - Always Visible */}
+      <div 
+        className="p-4 cursor-pointer hover:bg-slate-50"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              {isExpanded ? (
+                <ChevronDownIcon className="w-5 h-5 text-slate-400" />
+              ) : (
+                <ChevronRightIcon className="w-5 h-5 text-slate-400" />
+              )}
+              {agency.logo_url && !isPlatformOwner && (
+                <img 
+                  src={agency.logo_url} 
+                  alt={`${agency.name} logo`}
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              )}
+              <h3 className="font-semibold text-lg">
+                {isPlatformOwner ? (
+                  <>
+                    WalletPush Platform{' '}
+                    <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full ml-2">
+                      Owner
+                    </span>
+                  </>
+                ) : (
+                  agency.name
+                )}
+              </h3>
+            </div>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+              agency.subscription_status === 'active' 
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-100 text-gray-800'
+            }`}>
+              {agency.subscription_status}
+            </span>
+          </div>
+          <div className="text-sm text-slate-500">
+            {agency.email}
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="border-t border-slate-200">
+          {/* Tab Navigation */}
+          <div className="flex border-b border-slate-200 bg-slate-50">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2 text-sm font-medium ${
+                activeTab === 'overview'
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              📊 Overview
+            </button>
+            {!isPlatformOwner && (
+              <>
+                <button
+                  onClick={() => setActiveTab('credentials')}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    activeTab === 'credentials'
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  🔑 Credentials
+                </button>
+                <button
+                  onClick={() => setActiveTab('domain')}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    activeTab === 'domain'
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  🌐 Custom Domain
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-4">
+            {activeTab === 'overview' && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-slate-50 p-3 rounded-lg">
+                  <div className="text-xs text-slate-600">Plan</div>
+                  <div className="font-semibold">{agency.owner_pricing_tier || agency.subscription_plan}</div>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-lg">
+                  <div className="text-xs text-slate-600">Businesses</div>
+                  <div className="font-semibold">{agency.businesses_count || 0}</div>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-lg">
+                  <div className="text-xs text-slate-600">Pass Limit</div>
+                  <div className="font-semibold">{agency.pass_limit?.toLocaleString() || 'N/A'}</div>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-lg">
+                  <div className="text-xs text-slate-600">Created</div>
+                  <div className="font-semibold">{new Date(agency.created_at).toLocaleDateString()}</div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'credentials' && !isPlatformOwner && (
+              <div className="space-y-4">
+                {agency.admin_password ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-900 mb-3">🔑 Login Credentials</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-blue-700 w-16">Email:</span>
+                        <code className="bg-white px-2 py-1 rounded border text-sm font-mono">{agency.email}</code>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-blue-700 w-16">Password:</span>
+                        <code className="bg-white px-2 py-1 rounded border text-sm font-mono">{agency.admin_password}</code>
+                      </div>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(`Email: ${agency.email}\nPassword: ${agency.admin_password}`)}
+                        className="mt-2 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      >
+                        📋 Copy Credentials
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-slate-500 text-sm">No credentials available</div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'domain' && (
+              <div className="space-y-4">
+                {agency.custom_domain ? (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-green-900">🌐 Custom Domain</h4>
+                      {(agency.domain_status === 'needs_setup' || agency.domain_status === 'pending') && (
+                        <button
+                          onClick={() => onSetupDomain(agency.id, agency.custom_domain)}
+                          disabled={settingUpDomain === agency.id}
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                        >
+                          {settingUpDomain === agency.id ? (
+                            <>
+                              <div className="animate-spin h-3 w-3 border border-white border-t-transparent rounded-full"></div>
+                              <span>Setting up...</span>
+                            </>
+                          ) : (
+                            <span>Setup Domain</span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-green-700 w-16">Domain:</span>
+                        <code className="bg-white px-2 py-1 rounded border text-sm font-mono">{agency.custom_domain}</code>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-green-700 w-16">Status:</span>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          agency.domain_status === 'active' 
+                            ? 'bg-green-100 text-green-800'
+                            : agency.domain_status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {agency.domain_status || 'needs_setup'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {domainSetupInstructions[agency.id] && (
+                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <h4 className="text-sm font-medium text-blue-900 mb-2">DNS Configuration Required</h4>
+                        <div className="space-y-2 text-xs">
+                          <div>
+                            <span className="font-medium">CNAME Record:</span>
+                            <div className="bg-white p-2 rounded border font-mono text-gray-800">
+                              {agency.custom_domain} → {domainSetupInstructions[agency.id].cname}
+                            </div>
+                          </div>
+                          {domainSetupInstructions[agency.id].txt && (
+                            <div>
+                              <span className="font-medium">TXT Record:</span>
+                              <div className="bg-white p-2 rounded border font-mono text-gray-800 break-all">
+                                {domainSetupInstructions[agency.id].txt}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => onVerifyDomain(agency.id, agency.custom_domain)}
+                          disabled={verifyingDomain === agency.id}
+                          className="mt-3 px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {verifyingDomain === agency.id ? 'Verifying...' : 'Verify DNS Setup'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                    <div className="text-slate-600 text-sm">No custom domain configured</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AgencyDashboard() {
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [passTypeIDs, setPassTypeIDs] = useState<PassTypeID[]>([])
@@ -104,6 +381,26 @@ export default function AgencyDashboard() {
     subscription_plan: 'starter',
     custom_domain: ''
   })
+
+  // Platform Owner specific state
+  const [isPlatformOwner, setIsPlatformOwner] = useState(false)
+  const [showCreateAgencyModal, setShowCreateAgencyModal] = useState(false)
+  const [agencies, setAgencies] = useState<ExistingAgency[]>([])
+  const [showPassword, setShowPassword] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [newAgency, setNewAgency] = useState<NewAgencyForm>({
+    name: '',
+    email: '',
+    customDomain: '',
+    agencyPlan: 'starter_100k',
+    autoGenerateCredentials: true,
+    logo: null
+  })
+  
+  // Domain management state
+  const [settingUpDomain, setSettingUpDomain] = useState<string | null>(null)
+  const [verifyingDomain, setVerifyingDomain] = useState<string | null>(null)
+  const [domainSetupInstructions, setDomainSetupInstructions] = useState<{[key: string]: {cname: string, txt?: string}}>({})
 
   // Helper functions for business insights
   const getBusinessAge = (createdAt: string) => {
@@ -232,35 +529,294 @@ export default function AgencyDashboard() {
     }
   }
 
+  // Check if current user is platform owner
+  const checkPlatformOwnerAccess = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user && user.email === PLATFORM_OWNER_EMAIL) {
+        setIsPlatformOwner(true)
+        await loadExistingAgencies()
+      }
+    } catch (error) {
+      console.error('Platform owner check failed:', error)
+    }
+  }
+
+  // Load existing agencies (platform owner only)
+  const loadExistingAgencies = async () => {
+    try {
+      console.log('🔄 Loading agencies from API...')
+      const response = await fetch('/api/platform/agencies?t=' + Date.now()) // Force cache bust
+      if (response.ok) {
+        const data = await response.json()
+        console.log('📊 Loaded agencies:', data)
+        setAgencies(data)
+      } else {
+        console.error('❌ Failed to load agencies:', response.status, response.statusText)
+      }
+    } catch (error) {
+      console.error('Failed to load agencies:', error)
+    }
+  }
+
+  // Handle agency creation
+  const handleCreateAgency = async () => {
+    if (!newAgency.name || !newAgency.email || !newAgency.customDomain) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    setCreating(true)
+    try {
+      const formData = new FormData()
+      formData.append('name', newAgency.name)
+      formData.append('email', newAgency.email)
+      formData.append('customDomain', newAgency.customDomain)
+      formData.append('agencyPlan', newAgency.agencyPlan)
+      formData.append('autoGenerateCredentials', newAgency.autoGenerateCredentials.toString())
+      
+      if (newAgency.logo) {
+        formData.append('logo', newAgency.logo)
+      }
+
+      console.log('🚀 Sending agency creation request...');
+      const response = await fetch('/api/platform/create-agency', {
+        method: 'POST',
+        body: formData
+      })
+
+      console.log('📡 API Response status:', response.status, response.statusText);
+      
+      let result;
+      try {
+        result = await response.json();
+        console.log('📋 API Response data:', result);
+      } catch (parseError) {
+        console.error('❌ Failed to parse API response:', parseError);
+        const responseText = await response.text();
+        console.error('📄 Raw response:', responseText);
+        alert('Failed to parse server response. Check console for details.');
+        return;
+      }
+
+      if (response.ok) {
+        let message = `✅ Agency created successfully!\n\n`
+        
+        // Always show credentials for platform owner
+        if (result.credentials) {
+          message += `🔑 Login Credentials:\n`
+          message += `📧 Email: ${result.credentials.email}\n`
+          message += `🔒 Password: ${result.credentials.password}\n\n`
+          message += `💡 Save these credentials to send to the agency owner!\n\n`
+        }
+        
+        // Show DNS instructions if domain verification is needed
+        if (result.domain_info && result.domain_info.verification_instructions) {
+          message += `🌐 DNS Configuration Required for ${newAgency.customDomain}:\n\n`
+          
+          result.domain_info.verification_instructions.forEach((instruction: any, index: number) => {
+            message += `${index + 1}. ${instruction.type.toUpperCase()} Record:\n`
+            message += `   Domain: ${instruction.domain}\n`
+            message += `   Value: ${instruction.value}\n`
+            if (instruction.reason) {
+              message += `   Purpose: ${instruction.reason}\n`
+            }
+            message += `\n`
+          })
+          
+          message += `⚠️ Please add these DNS records to your domain provider.\n`
+          message += `The domain will be active once DNS propagates (usually 5-15 minutes).`
+        } else if (result.domain_info && result.domain_info.vercel_verified) {
+          message += `✅ Domain ${newAgency.customDomain} is already verified and active!`
+        }
+        
+        alert(message)
+        setShowCreateAgencyModal(false)
+        setNewAgency({
+          name: '',
+          email: '',
+          customDomain: '',
+          agencyPlan: 'starter_100k',
+          autoGenerateCredentials: true,
+          logo: null
+        })
+        await loadExistingAgencies()
+      } else {
+        console.error('❌ Agency creation failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: result.error,
+          details: result.details,
+          code: result.code
+        });
+        
+        let errorMessage = `❌ Failed to create agency\n\n`;
+        errorMessage += `Status: ${response.status} ${response.statusText}\n`;
+        errorMessage += `Error: ${result.error || 'Unknown error'}\n`;
+        
+        if (result.details) {
+          errorMessage += `Details: ${result.details}\n`;
+        }
+        
+        if (result.code) {
+          errorMessage += `Code: ${result.code}\n`;
+        }
+        
+        errorMessage += `\n🔍 Check the server terminal for detailed logs.`;
+        
+        alert(errorMessage);
+      }
+    } catch (error) {
+      console.error('Failed to create agency:', error)
+      alert('Failed to create agency')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  // Domain management functions
+  const handleSetupDomain = async (agencyId: string, domain: string) => {
+    try {
+      setSettingUpDomain(agencyId)
+      
+      const response = await fetch('/api/custom-domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain,
+          domain_type: 'agency',
+          agency_id: agencyId
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to setup domain')
+      }
+      
+      const result = await response.json()
+      
+      // Store the verification instructions
+      setDomainSetupInstructions(prev => ({
+        ...prev,
+        [agencyId]: {
+          cname: result.verification_instructions?.cname || `cname.vercel-dns.com`,
+          txt: result.verification_instructions?.txt
+        }
+      }))
+      
+      // Refresh agencies to update status
+      await loadExistingAgencies()
+      
+    } catch (error) {
+      console.error('❌ Domain setup failed:', error)
+      alert('Failed to setup domain. Please try again.')
+    } finally {
+      setSettingUpDomain(null)
+    }
+  }
+
+  const handleVerifyDomain = async (agencyId: string, domain: string) => {
+    try {
+      setVerifyingDomain(agencyId)
+      
+      const response = await fetch(`/api/custom-domains/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain,
+          agency_id: agencyId
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to verify domain')
+      }
+      
+      const result = await response.json()
+      
+      if (result.verified) {
+        alert('Domain verified successfully!')
+        // Clear setup instructions
+        setDomainSetupInstructions(prev => {
+          const updated = { ...prev }
+          delete updated[agencyId]
+          return updated
+        })
+        // Refresh agencies
+        await loadExistingAgencies()
+      } else {
+        alert('Domain verification failed. Please check your DNS settings and try again.')
+      }
+      
+    } catch (error) {
+      console.error('❌ Domain verification failed:', error)
+      alert('Failed to verify domain. Please try again.')
+    } finally {
+      setVerifyingDomain(null)
+    }
+  }
+
   // Load agency data
   const loadAgencyData = async () => {
     try {
       setIsLoading(true)
       setError('')
       
-      // This would call the agency manageable resources API
-      const response = await fetch('/api/agency/manageable-resources?t=' + Date.now())
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
+      // Platform owners see different data than regular agencies
+      if (isPlatformOwner) {
+        // Platform owner sees all agencies, not businesses
+        console.log('🔍 Loading agencies for platform owner...')
+        const response = await fetch('/api/platform/agencies?t=' + Date.now())
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+        
+        const agencies = await response.json()
+        console.log('📋 Platform Agencies:', agencies)
+        
+        setAgencies(agencies || [])
+        
+        // Platform owner stats are based on agencies, not businesses
+        setStats({
+          totalBusinesses: 0, // Platform owner doesn't manage businesses directly
+          activeBusinesses: 0,
+          totalRevenue: 0,
+          monthlyRevenue: 0,
+          totalMembers: 0,
+          totalPasses: 0
+        })
+        
+        setBusinesses([])
+        setPassTypeIDs([])
+        
+      } else {
+        // Regular agency user sees their businesses
+        const response = await fetch('/api/agency/manageable-resources?t=' + Date.now())
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log('📋 Agency Data:', data)
+        
+        setBusinesses(data.businesses || [])
+        setPassTypeIDs(data.passTypeIds || [])
+        
+        // Calculate stats
+        const activeBusinesses = (data.businesses || []).filter((b: Business) => b.status === 'active')
+        setStats({
+          totalBusinesses: data.businesses?.length || 0,
+          activeBusinesses: activeBusinesses.length,
+          totalRevenue: data.totalRevenue || 0,
+          monthlyRevenue: data.monthlyRevenue || 0,
+          totalMembers: data.totalMembers || 0,
+          totalPasses: data.totalPasses || 0
+        })
       }
-      
-      const data = await response.json()
-      console.log('📋 Agency Data:', data)
-      
-      setBusinesses(data.businesses || [])
-      setPassTypeIDs(data.passTypeIds || [])
-      
-      // Calculate stats
-      const activeBusinesses = (data.businesses || []).filter((b: Business) => b.status === 'active')
-      setStats({
-        totalBusinesses: data.businesses?.length || 0,
-        activeBusinesses: activeBusinesses.length,
-        totalRevenue: data.totalRevenue || 0,
-        monthlyRevenue: data.monthlyRevenue || 0,
-        totalMembers: data.totalMembers || 0,
-        totalPasses: data.totalPasses || 0
-      })
       
     } catch (error) {
       console.error('❌ Failed to load agency data:', error)
@@ -378,6 +934,7 @@ export default function AgencyDashboard() {
   }
 
   useEffect(() => {
+    checkPlatformOwnerAccess()
     loadAgencyData()
   }, [])
 
@@ -387,10 +944,26 @@ export default function AgencyDashboard() {
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Agency Dashboard</h1>
-              <p className="text-slate-600 mt-1">Manage your business portfolio and Pass Type ID assignments</p>
+              <h1 className="text-2xl font-bold text-slate-900">
+                {isPlatformOwner ? 'WalletPush Platform Owner Dashboard' : 'Agency Dashboard'}
+              </h1>
+              <p className="text-slate-600 mt-1">
+                {isPlatformOwner 
+                  ? 'Manage agencies, custom domains, and white-label branding'
+                  : 'Manage your business portfolio and Pass Type ID assignments'
+                }
+              </p>
             </div>
             <div className="flex gap-3">
+              {isPlatformOwner && (
+                <button
+                  onClick={() => setShowCreateAgencyModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  Create New Agency
+                </button>
+              )}
               <button
                 onClick={loadAgencyData}
                 className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
@@ -399,6 +972,50 @@ export default function AgencyDashboard() {
               </button>
             </div>
           </div>
+
+          {/* Platform Owner Section */}
+          {isPlatformOwner && (
+            <section className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <GlobeAltIcon className="w-6 h-6 text-purple-600" />
+                  <h2 className="text-xl font-semibold text-slate-900">Platform Agencies</h2>
+                  <span className="bg-purple-100 text-purple-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                    {agencies.length}
+                  </span>
+                </div>
+              </div>
+
+              {agencies.length === 0 ? (
+                <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
+                  <GlobeAltIcon className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No Agencies Created Yet</h3>
+                  <p className="text-slate-600 mb-4">Start by creating your first white-label agency with custom domain and branding.</p>
+                  <button 
+                    onClick={() => setShowCreateAgencyModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    Create First Agency
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {agencies.map((agency) => (
+                    <AgencyCard 
+                      key={agency.id} 
+                      agency={agency}
+                      settingUpDomain={settingUpDomain}
+                      verifyingDomain={verifyingDomain}
+                      domainSetupInstructions={domainSetupInstructions}
+                      onSetupDomain={handleSetupDomain}
+                      onVerifyDomain={handleVerifyDomain}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Error Display */}
           {error && (
@@ -438,7 +1055,7 @@ export default function AgencyDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-green-700">Monthly Revenue</p>
-                      <p className="text-3xl font-bold text-green-900 mt-1">${stats.monthlyRevenue.toLocaleString()}</p>
+                      <p className="text-3xl font-bold text-green-900 mt-1">${(stats.monthlyRevenue || 0).toLocaleString()}</p>
                       <p className="text-sm text-green-600 mt-2">from {stats.activeBusinesses} businesses</p>
                     </div>
                     <div className="bg-green-100 p-3 rounded-xl">
@@ -451,7 +1068,7 @@ export default function AgencyDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-purple-700">Total Members</p>
-                      <p className="text-3xl font-bold text-purple-900 mt-1">{stats.totalMembers.toLocaleString()}</p>
+                      <p className="text-3xl font-bold text-purple-900 mt-1">{(stats.totalMembers || 0).toLocaleString()}</p>
                       <p className="text-sm text-purple-600 mt-2">across all businesses</p>
                     </div>
                     <div className="bg-purple-100 p-3 rounded-xl">
@@ -464,7 +1081,7 @@ export default function AgencyDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-orange-700">Total Passes</p>
-                      <p className="text-3xl font-bold text-orange-900 mt-1">{stats.totalPasses.toLocaleString()}</p>
+                      <p className="text-3xl font-bold text-orange-900 mt-1">{(stats.totalPasses || 0).toLocaleString()}</p>
                       <p className="text-sm text-orange-600 mt-2">distributed to members</p>
                     </div>
                     <div className="bg-orange-100 p-3 rounded-xl">
@@ -1008,6 +1625,166 @@ export default function AgencyDashboard() {
                         {isSubmitting ? 'Assigning...' : 'Assign Selected ID'}
                       </button>
                     )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Create Agency Modal */}
+          {showCreateAgencyModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 rounded-t-xl">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-slate-900">Create New Agency</h2>
+                    <button
+                      onClick={() => setShowCreateAgencyModal(false)}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <span className="sr-only">Close</span>
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="agencyName" className="block text-sm font-medium text-slate-700 mb-2">
+                        Agency Name
+                      </label>
+                      <input
+                        id="agencyName"
+                        type="text"
+                        value={newAgency.name}
+                        onChange={(e) => setNewAgency({ ...newAgency, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="Acme Marketing Agency"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="agencyEmail" className="block text-sm font-medium text-slate-700 mb-2">
+                        Contact Email
+                      </label>
+                      <input
+                        id="agencyEmail"
+                        type="email"
+                        value={newAgency.email}
+                        onChange={(e) => setNewAgency({ ...newAgency, email: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="admin@acmemarketing.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="customDomain" className="block text-sm font-medium text-slate-700 mb-2">
+                      Custom Domain
+                    </label>
+                    <input
+                      id="customDomain"
+                      type="text"
+                      value={newAgency.customDomain}
+                      onChange={(e) => setNewAgency({ ...newAgency, customDomain: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="acmemarketing.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="agencyPlan" className="block text-sm font-medium text-slate-700 mb-2">
+                      Agency Package
+                    </label>
+                    <select
+                      id="agencyPlan"
+                      value={newAgency.agencyPlan}
+                      onChange={(e) => setNewAgency({ ...newAgency, agencyPlan: e.target.value as any })}
+                      className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="starter_100k">Starter - 100k passes ($297/month)</option>
+                      <option value="business_150k">Business - 150k passes ($997 lifetime)</option>
+                      <option value="enterprise_250k">Enterprise - 250k passes ($497/month)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Agency Logo
+                    </label>
+                    
+                    {newAgency.logo ? (
+                      <div className="flex items-center space-x-4 p-4 border border-green-200 rounded-md bg-green-50">
+                        <DocumentArrowUpIcon className="h-8 w-8 text-green-500" />
+                        <div className="flex-1">
+                          <p className="font-medium text-green-700">{newAgency.logo.name}</p>
+                          <p className="text-sm text-green-600">
+                            {Math.round(newAgency.logo.size / 1024)}KB • {newAgency.logo.type}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setNewAgency({ ...newAgency, logo: null })}
+                          className="px-3 py-1 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded hover:bg-red-50"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Click to select logo file:
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            console.log('🔥 File changed!');
+                            const file = e.target.files?.[0] || null;
+                            console.log('📸 File selected:', file ? { name: file.name, size: file.size, type: file.type } : 'No file');
+                            setNewAgency({ ...newAgency, logo: file });
+                          }}
+                          style={{ 
+                            display: 'block',
+                            width: '100%',
+                            padding: '8px',
+                            border: '2px solid #ccc',
+                            borderRadius: '4px',
+                            fontSize: '14px'
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="autoGenerate"
+                      checked={newAgency.autoGenerateCredentials}
+                      onChange={(e) => setNewAgency({ ...newAgency, autoGenerateCredentials: e.target.checked })}
+                    />
+                    <label htmlFor="autoGenerate" className="text-sm font-medium text-slate-700">
+                      Auto-generate secure password
+                    </label>
+                  </div>
+
+                  <div className="flex space-x-4 pt-4">
+                    <button
+                      onClick={handleCreateAgency}
+                      disabled={creating}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {creating ? 'Creating...' : 'Create Agency'}
+                    </button>
+                    <button
+                      onClick={() => setShowCreateAgencyModal(false)}
+                      className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
               </div>

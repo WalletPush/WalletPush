@@ -19,26 +19,27 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Fetching manageable resources for user:', user.email)
 
-    // Get or create agency account using our helper function
-    const { data: agencyAccountId, error: agencyError } = await supabase
-      .rpc('get_or_create_agency_account')
+    // Get agency account from agency_accounts table
+    const { data: agencyAccount, error: agencyError } = await supabase
+      .from('agency_accounts')
+      .select('id, name, email, owner_pricing_tier, pass_limit')
+      .eq('user_id', user.id)
+      .single()
 
-    if (agencyError || !agencyAccountId) {
+    if (agencyError || !agencyAccount) {
       console.error('❌ Agency account error:', agencyError)
       return NextResponse.json({ 
         error: 'No agency account found',
-        debug: `Agency Error: ${agencyError?.message || 'No agency account ID returned'}`
+        debug: `User ${user.email} is not associated with any agency account. Agency Error: ${agencyError?.message || 'No agency account found'}`
       }, { status: 404 })
     }
 
-    // Check if this is platform admin
-    const { data: isPlatform } = await supabase
-      .from('accounts')
-      .select('type')
-      .eq('id', agencyAccountId)
-      .single()
+    const agencyAccountId = agencyAccount.id
+    
+    // Check if this is platform owner (by email)
+    const isPlatformOwner = user.email === 'david.sambor@icloud.com'
 
-    console.log('🏢 Agency/Platform account:', agencyAccountId, 'Type:', isPlatform?.type)
+    console.log('🏢 Agency account found:', agencyAccountId, 'Name:', agencyAccount.name, 'Is Platform Owner:', isPlatformOwner)
 
     // 1. Get manageable businesses from the businesses table
     let businessesQuery = supabase
@@ -57,8 +58,8 @@ export async function GET(request: NextRequest) {
         monthly_cost
       `)
 
-    // If not platform, only show businesses under this agency
-    if (isPlatform?.type !== 'platform') {
+    // If not platform owner, only show businesses under this agency
+    if (!isPlatformOwner) {
       businessesQuery = businessesQuery.eq('agency_account_id', agencyAccountId)
     }
 
@@ -84,8 +85,8 @@ export async function GET(request: NextRequest) {
         created_at
       `)
 
-    // If platform, show all Pass Type IDs. If agency, show only theirs + global
-    if (isPlatform?.type === 'platform') {
+    // If platform owner, show all Pass Type IDs. If agency, show only theirs + global
+    if (isPlatformOwner) {
       // Platform sees all Pass Type IDs
       passTypeQuery = passTypeQuery.order('created_at', { ascending: false })
     } else {
@@ -183,8 +184,9 @@ export async function GET(request: NextRequest) {
       totalPasses,
       agencyInfo: {
         id: agencyAccountId,
-        type: isPlatform?.type,
-        isPlatform: isPlatform?.type === 'platform'
+        name: agencyAccount.name,
+        type: isPlatformOwner ? 'platform' : 'agency',
+        isPlatform: isPlatformOwner
       }
     })
 

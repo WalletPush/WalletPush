@@ -58,6 +58,13 @@ class VercelAPI {
     this.teamId = process.env.VERCEL_TEAM_ID || ''
     this.deployHookUrl = process.env.VERCEL_DEPLOY_HOOK_URL || ''
     
+    // DEBUG: Log what we're actually reading
+    console.log('🔍 VERCEL ENV DEBUG:', {
+      token: this.token ? `${this.token.substring(0, 8)}...` : 'MISSING',
+      projectId: this.projectId || 'MISSING',
+      teamId: this.teamId || 'MISSING'
+    })
+    
     if (!this.token) {
       throw new Error('VERCEL_TOKEN is required')
     }
@@ -71,8 +78,8 @@ class VercelAPI {
     
     const url = `${this.baseUrl}${endpoint}`
     
-    // Add team ID to query params if available
-    const urlWithTeam = this.teamId 
+    // Add team ID to query params if available (optional for personal accounts)
+    const urlWithTeam = this.teamId && this.teamId.trim()
       ? `${url}${url.includes('?') ? '&' : '?'}teamId=${this.teamId}`
       : url
     

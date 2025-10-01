@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { useBranding } from '@/lib/branding'
 
 export function AgencyLoginForm() {
   const [email, setEmail] = useState('')
@@ -11,7 +10,6 @@ export function AgencyLoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const { branding } = useBranding()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,24 +44,13 @@ export function AgencyLoginForm() {
 
   return (
     <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-2xl">
-        {/* Logo */}
-        {branding?.logoUrl && (
-          <div className="flex justify-center mb-6">
-            <img 
-              src={branding.logoUrl} 
-              alt={branding.companyName || 'Logo'} 
-              className="h-12 w-auto"
-            />
-          </div>
-        )}
-
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">
             Agency Portal
           </h1>
           <p className="text-[#C6C8CC]">
-            Sign in to {branding?.companyName || 'your agency'} dashboard
+            Sign in to your agency dashboard
           </p>
         </div>
 

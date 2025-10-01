@@ -79,7 +79,7 @@ importers:
         version: 14.2.32(eslint@8.57.1)(typescript@5.2.2)
       jiti:
         specifier: ^2.6.0
-        version: 2.6.1
+        version: 2.6.0
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
@@ -2018,8 +2018,8 @@ packages:
     resolution: {integrity: sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A==}
     hasBin: true
 
-  jiti@2.6.1:
-    resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
+  jiti@2.6.0:
+    resolution: {integrity: sha512-VXe6RjJkBPj0ohtqaO8vSWP3ZhAKo66fKrFNCll4BTcwljPLz03pCbaNKfzGP5MbrCYcbJ7v0nOYYwUzTEIdXQ==}
     hasBin: true
 
   joi@17.4.2:
@@ -4940,7 +4940,7 @@ snapshots:
 
   jiti@1.21.7: {}
 
-  jiti@2.6.1: {}
+  jiti@2.6.0: {}
 
   joi@17.4.2:
     dependencies:

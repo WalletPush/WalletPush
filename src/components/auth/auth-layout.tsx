@@ -1,23 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useBranding } from '@/lib/branding'
-
 interface AuthLayoutProps {
   children: React.ReactNode
   className?: string
 }
 
 export function AuthLayout({ children, className }: AuthLayoutProps) {
-  const { branding } = useBranding()
-  const [isMounted, setIsMounted] = useState(false)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  // Fallback branding for SSR
-  const safeBranding = isMounted ? branding : {
+  // Default branding colors
+  const safeBranding = {
     primary_color: '#2E3748',
     secondary_color: '#4F46E5'
   }
