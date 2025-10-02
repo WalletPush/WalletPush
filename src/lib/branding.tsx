@@ -1,6 +1,10 @@
+// Legacy branding compatibility layer
+// This file provides backward compatibility for the old branding system
+// while using the new dynamic branding system under the hood
+
 'use client'
 
-import React, { createContext, useContext, ReactNode } from 'react'
+import { useBranding as useNewBranding, useBrandColors } from '@/contexts/BrandingContext'
 
 interface BrandingConfig {
   primaryColor: string
@@ -14,37 +18,29 @@ interface BrandingContextType {
   updateBranding: (config: Partial<BrandingConfig>) => void
 }
 
-const defaultBranding: BrandingConfig = {
-  primaryColor: '#3B82F6',
-  secondaryColor: '#1E40AF', 
-  logoUrl: '/images/walletpush-logo.png',
-  companyName: 'WalletPush'
-}
+// Re-export the new BrandingProvider
+export { BrandingProvider } from '@/contexts/BrandingContext'
 
-const BrandingContext = createContext<BrandingContextType | undefined>(undefined)
-
-interface BrandingProviderProps {
-  children: ReactNode
-}
-
-export function BrandingProvider({ children }: BrandingProviderProps) {
-  const [branding, setBranding] = React.useState<BrandingConfig>(defaultBranding)
-
+// Legacy useBranding hook that maps to the new system
+export function useBranding(): BrandingContextType {
+  const { branding } = useNewBranding()
+  const colors = useBrandColors()
+  
+  // Map new branding format to legacy format
+  const legacyBranding: BrandingConfig = {
+    primaryColor: colors.primary,
+    secondaryColor: colors.secondary,
+    logoUrl: branding?.logo_url || '/images/walletpush-logo.png',
+    companyName: branding?.agency_name || 'WalletPush'
+  }
+  
+  // Legacy update function (no-op since new system is read-only from API)
   const updateBranding = (config: Partial<BrandingConfig>) => {
-    setBranding(prev => ({ ...prev, ...config }))
+    console.warn('updateBranding is deprecated. Branding is now managed through the database.')
   }
-
-  return (
-    <BrandingContext.Provider value={{ branding, updateBranding }}>
-      {children}
-    </BrandingContext.Provider>
-  )
-}
-
-export function useBranding() {
-  const context = useContext(BrandingContext)
-  if (context === undefined) {
-    throw new Error('useBranding must be used within a BrandingProvider')
+  
+  return {
+    branding: legacyBranding,
+    updateBranding
   }
-  return context
 }

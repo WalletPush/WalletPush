@@ -1,263 +1,146 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
-// GET - Get branding for current account or by domain
-
-// Force dynamic rendering
-export const dynamic = 'force-dynamic'
+// Create admin client for server-side operations
+function createSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const domain = searchParams.get('domain')
     
-    // Check for tenant info from middleware headers
-    const tenantId = request.headers.get('x-tenant-id')
-    const tenantType = request.headers.get('x-tenant-type')
-    
-    let branding = null
-    
-    if (tenantId) {
-      // Get branding from tenant info provided by middleware
-      const { data: accountData } = await supabase
-        .from('accounts')
-        .select('id, name, type, branding')
-        .eq('id', tenantId)
-        .single()
-
-      branding = accountData?.branding || getDefaultBranding()
-      branding.account_name = accountData?.name
-      branding.account_type = accountData?.type
-    } else if (domain) {
-      console.log('🔍 Branding API - Looking up domain:', domain)
-      
-      // First, try to find agency branding by custom domain
-      const { data: agencyData, error: agencyError } = await supabase
-        .from('agency_accounts')
-        .select('id, name, logo_url, primary_color, secondary_color, custom_domain, custom_domain_status')
-        .eq('custom_domain', domain)
-        .eq('custom_domain_status', 'active')
-        .single()
-      
-      if (!agencyError && agencyData) {
-        console.log('✅ Branding API - Found agency branding:', agencyData.name)
-        branding = {
-          logo_url: agencyData.logo_url,
-          primary_color: agencyData.primary_color,
-          secondary_color: agencyData.secondary_color,
-          agency_name: agencyData.name,
-          account_name: agencyData.name,
-          account_type: 'agency'
-        }
-      } else {
-        console.log('❌ Branding API - No agency found, trying account_domains')
-        
-        // Fallback: Get branding by custom domain from account_domains (legacy)
-        const { data: domainData } = await supabase
-          .from('account_domains')
-          .select(`
-            accounts!inner (
-              id,
-              name,
-              type,
-              branding
-            )
-          `)
-          .eq('domain', domain)
-          .single()
-        
-        // BEFORE using domainData, bail if it's nullish
-        if (!domainData) {
-          console.log('❌ Branding API - No domain found in account_domains')
-          return NextResponse.json({ branding: null }, { status: 200 });
-        }
-
-        // Safely grab accounts
-        const accounts = (domainData as any)?.accounts;
-
-        if (Array.isArray(accounts)) {
-          branding = accounts?.[0]?.branding ?? null;
-        } else if (accounts && typeof accounts === 'object') {
-          branding = (accounts as any)?.branding ?? null;
-        }
-        
-        if (branding && domainData) {
-          const account = Array.isArray(accounts) ? accounts[0] : accounts
-          branding.account_name = account?.name
-          branding.account_type = account?.type
-        }
-      }
-    } else {
-      // Get branding for current active account
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      
-      if (userError || !user) {
-        // Return default WalletPush branding for unauthenticated users
-        return NextResponse.json({
-          branding: getDefaultBranding()
-        })
-      }
-
-      // Get current active account
-      const { data: activeAccount } = await supabase
-        .from('user_active_account')
-        .select('active_account_id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      let accountId = activeAccount?.active_account_id
-
-      if (!accountId) {
-        const { data: userAccounts } = await supabase
-          .from('account_members')
-          .select('account_id')
-          .eq('user_id', user.id)
-          .limit(1)
-          .single()
-
-        accountId = userAccounts?.account_id
-      }
-
-      if (accountId) {
-        const { data: accountData } = await supabase
-          .from('accounts')
-          .select('id, name, type, branding')
-          .eq('id', accountId)
-          .single()
-
-        branding = accountData?.branding || getDefaultBranding()
-        branding.account_name = accountData?.name
-        branding.account_type = accountData?.type
-      }
+    if (!domain) {
+      return NextResponse.json({ error: 'Domain parameter is required' }, { status: 400 })
     }
+
+    const supabase = createSupabaseClient()
     
-    // Fallback to default branding
-    if (!branding) {
-      branding = getDefaultBranding()
+    console.log('🎨 Looking up branding for domain:', domain)
+
+    // First, check if this is an agency custom domain in custom_domains table
+    const { data: agencyDomain, error: agencyError } = await supabase
+      .from('custom_domains')
+      .select(`
+        domain,
+        agency_id,
+        agency_accounts!inner(
+          name,
+          logo_url,
+          primary_color,
+          secondary_color
+        )
+      `)
+      .eq('domain', domain)
+      .eq('domain_type', 'agency')
+      .eq('status', 'active')
+      .single()
+
+    if (!agencyError && agencyDomain) {
+      const agency = Array.isArray(agencyDomain.agency_accounts) 
+        ? agencyDomain.agency_accounts[0] 
+        : agencyDomain.agency_accounts
+
+      console.log('✅ Found agency branding from custom_domains:', {
+        domain,
+        agency_name: agency.name,
+        has_logo: !!agency.logo_url
+      })
+
+      return NextResponse.json({
+        logo_url: agency.logo_url,
+        primary_color: agency.primary_color || '#3B82F6',
+        secondary_color: agency.secondary_color || '#1E40AF',
+        agency_name: agency.name,
+        custom_domain: domain,
+        type: 'agency'
+      })
     }
-    
-    return NextResponse.json({ branding })
-    
+
+    // If not found in custom_domains, check agency_accounts table directly
+    const { data: agencyAccount, error: agencyAccountError } = await supabase
+      .from('agency_accounts')
+      .select(`
+        name,
+        logo_url,
+        primary_color,
+        secondary_color,
+        custom_domain,
+        custom_domain_status
+      `)
+      .eq('custom_domain', domain)
+      .eq('custom_domain_status', 'active')
+      .single()
+
+    if (!agencyAccountError && agencyAccount) {
+      console.log('✅ Found agency branding from agency_accounts:', {
+        domain,
+        agency_name: agencyAccount.name,
+        has_logo: !!agencyAccount.logo_url
+      })
+
+      return NextResponse.json({
+        logo_url: agencyAccount.logo_url,
+        primary_color: agencyAccount.primary_color || '#3B82F6',
+        secondary_color: agencyAccount.secondary_color || '#1E40AF',
+        agency_name: agencyAccount.name,
+        custom_domain: domain,
+        type: 'agency'
+      })
+    }
+
+    // If not an agency domain, check if it's a business custom domain
+    const { data: businessDomain, error: businessError } = await supabase
+      .from('custom_domains')
+      .select(`
+        domain,
+        business_id,
+        businesses!inner(
+          name,
+          logo_url,
+          primary_color,
+          secondary_color
+        )
+      `)
+      .eq('domain', domain)
+      .eq('domain_type', 'business')
+      .eq('status', 'active')
+      .single()
+
+    if (!businessError && businessDomain) {
+      const business = Array.isArray(businessDomain.businesses) 
+        ? businessDomain.businesses[0] 
+        : businessDomain.businesses
+
+      console.log('✅ Found business branding:', {
+        domain,
+        business_name: business.name,
+        has_logo: !!business.logo_url
+      })
+
+      return NextResponse.json({
+        logo_url: business.logo_url,
+        primary_color: business.primary_color || '#3B82F6',
+        secondary_color: business.secondary_color || '#1E40AF',
+        business_name: business.name,
+        custom_domain: domain,
+        type: 'business'
+      })
+    }
+
+    // No custom branding found
+    console.log('📝 No custom branding found for domain:', domain)
+    return NextResponse.json({ error: 'No branding found for this domain' }, { status: 404 })
+
   } catch (error) {
     console.error('❌ Branding API error:', error)
     return NextResponse.json({ 
-      branding: getDefaultBranding() 
-    })
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
-}
-
-// PUT - Update branding for current account
-export async function PUT(request: NextRequest) {
-  try {
-    const supabase = await createClient()
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const brandingData = await request.json()
-    
-    // Get current active account
-    const { data: activeAccount } = await supabase
-      .from('user_active_account')
-      .select('active_account_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    let accountId = activeAccount?.active_account_id
-
-    if (!accountId) {
-      const { data: userAccounts } = await supabase
-        .from('account_members')
-        .select('account_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .single()
-
-      accountId = userAccounts?.account_id
-    }
-
-    if (!accountId) {
-      return NextResponse.json({ error: 'No account found' }, { status: 404 })
-    }
-
-    // Validate and sanitize branding data
-    const validatedBranding = validateBrandingData(brandingData)
-    
-    // Update account branding
-    const { data: updatedAccount, error: updateError } = await supabase
-      .from('accounts')
-      .update({ branding: validatedBranding })
-      .eq('id', accountId)
-      .select('branding')
-      .single()
-
-    if (updateError) {
-      console.error('❌ Error updating branding:', updateError)
-      return NextResponse.json({ error: 'Failed to update branding' }, { status: 500 })
-    }
-
-    return NextResponse.json({
-      success: true,
-      branding: updatedAccount.branding
-    })
-    
-  } catch (error) {
-    console.error('❌ Branding update error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
-
-function getDefaultBranding() {
-  return {
-    logo_url: '/images/walletpush-logo.png',
-    primary_color: '#2E3748',
-    secondary_color: '#4F46E5',
-    background_color: '#1a1f2e',
-    text_color: '#ffffff',
-    company_name: 'WalletPush',
-    welcome_message: 'Welcome to WalletPush',
-    tagline: 'Digital Wallet Solutions',
-    custom_css: null,
-    account_name: 'WalletPush',
-    account_type: 'platform'
-  }
-}
-
-function validateBrandingData(data: any) {
-  const validated: any = {}
-  
-  // Validate colors (hex format)
-  const colorFields = ['primary_color', 'secondary_color', 'background_color', 'text_color']
-  colorFields.forEach(field => {
-    if (data[field] && /^#[0-9A-F]{6}$/i.test(data[field])) {
-      validated[field] = data[field]
-    }
-  })
-  
-  // Validate strings
-  const stringFields = ['company_name', 'welcome_message', 'tagline', 'logo_url']
-  stringFields.forEach(field => {
-    if (data[field] && typeof data[field] === 'string' && data[field].length <= 255) {
-      validated[field] = data[field].trim()
-    }
-  })
-  
-  // Validate custom CSS (basic sanitization)
-  if (data.custom_css && typeof data.custom_css === 'string') {
-    // Remove potentially dangerous CSS
-    const sanitized = data.custom_css
-      .replace(/javascript:/gi, '')
-      .replace(/expression\(/gi, '')
-      .replace(/import\s+/gi, '')
-    
-    if (sanitized.length <= 10000) { // Limit CSS size
-      validated.custom_css = sanitized
-    }
-  }
-  
-  return validated
 }
