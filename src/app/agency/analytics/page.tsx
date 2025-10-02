@@ -87,111 +87,8 @@ export default function AgencyAnalyticsPage() {
       
     } catch (error) {
       console.error('❌ Failed to load analytics:', error)
-      // Fallback to spectacular mock data
-      setAnalyticsData({
-        mrr: 3850,
-        arr: 46200,
-        potentialRevenue: 75000,
-        revenueGrowth: 23.5,
-        
-        totalBusinesses: 47,
-        activeBusinesses: 42,
-        trialBusinesses: 8,
-        churnRate: 3.2,
-        
-        totalPassesUsed: 67420,
-        passesRemaining: 32580,
-        passUtilization: 67.4,
-        passGrowthRate: 18.7,
-        
-        avgRevenuePerBusiness: 82,
-        customerLifetimeValue: 1240,
-        conversionRate: 78.3,
-        
-        revenueChart: [
-          { month: 'Jan', revenue: 2890, businesses: 32 },
-          { month: 'Feb', revenue: 3120, businesses: 35 },
-          { month: 'Mar', revenue: 3340, businesses: 38 },
-          { month: 'Apr', revenue: 3520, businesses: 40 },
-          { month: 'May', revenue: 3680, businesses: 43 },
-          { month: 'Jun', revenue: 3850, businesses: 47 }
-        ],
-        
-        passUsageChart: [
-          { date: '1w ago', passes: 8420, businesses: 38 },
-          { date: '6d ago', passes: 9150, businesses: 39 },
-          { date: '5d ago', passes: 9890, businesses: 41 },
-          { date: '4d ago', passes: 10200, businesses: 42 },
-          { date: '3d ago', passes: 10850, businesses: 43 },
-          { date: '2d ago', passes: 11200, businesses: 45 },
-          { date: 'Yesterday', passes: 11750, businesses: 47 }
-        ],
-        
-        businessGrowthChart: [
-          { month: 'Jan', new: 8, churned: 2, net: 6 },
-          { month: 'Feb', new: 6, churned: 1, net: 5 },
-          { month: 'Mar', new: 7, churned: 2, net: 5 },
-          { month: 'Apr', new: 5, churned: 1, net: 4 },
-          { month: 'May', new: 9, churned: 2, net: 7 },
-          { month: 'Jun', new: 8, churned: 1, net: 7 }
-        ],
-        
-        topBusinesses: [
-          { name: 'Premium Coffee Co.', revenue: 450, passes: 8420, growth: 34.2 },
-          { name: 'Elite Fitness Club', revenue: 380, passes: 6890, growth: 28.7 },
-          { name: 'Luxury Spa Resort', revenue: 320, passes: 5240, growth: 22.1 },
-          { name: 'Gourmet Restaurant', revenue: 280, passes: 4120, growth: 19.8 },
-          { name: 'Fashion Boutique', revenue: 240, passes: 3890, growth: 15.3 }
-        ],
-        
-        topPrograms: [
-          { name: 'VIP Loyalty Program', business: 'Premium Coffee Co.', installs: 12400, engagement: 89.2 },
-          { name: 'Fitness Membership', business: 'Elite Fitness Club', installs: 9800, engagement: 84.7 },
-          { name: 'Spa Rewards', business: 'Luxury Spa Resort', installs: 7600, engagement: 91.5 },
-          { name: 'Dining Club', business: 'Gourmet Restaurant', installs: 6200, engagement: 76.3 },
-          { name: 'Style Points', business: 'Fashion Boutique', installs: 4800, engagement: 82.1 }
-        ],
-        
-        insights: [
-          {
-            type: 'success',
-            title: 'Revenue Milestone Achieved! 🎉',
-            description: 'Your MRR has crossed $3.8K! You\'re on track to hit $5K by Q4.',
-            action: 'View Revenue Forecast'
-          },
-          {
-            type: 'warning',
-            title: 'Pass Utilization Alert',
-            description: '3 businesses are approaching their pass limits. Consider upselling to higher tiers.',
-            action: 'Contact High-Usage Clients'
-          },
-          {
-            type: 'success',
-            title: 'Conversion Rate Excellence',
-            description: 'Your trial-to-paid conversion rate of 78.3% is 23% above industry average!',
-            action: 'Analyze Success Factors'
-          },
-          {
-            type: 'danger',
-            title: 'Churn Risk Detected',
-            description: '2 businesses haven\'t logged in for 14+ days. Proactive outreach recommended.',
-            action: 'View At-Risk Accounts'
-          }
-        ],
-        
-        revenueByRegion: [
-          { region: 'North America', revenue: 2310, businesses: 28 },
-          { region: 'Europe', revenue: 1000, businesses: 12 },
-          { region: 'Asia Pacific', revenue: 450, businesses: 5 },
-          { region: 'Latin America', revenue: 90, businesses: 2 }
-        ],
-        
-        packagePerformance: [
-          { package: 'Starter ($29)', businesses: 18, revenue: 522, satisfaction: 4.2 },
-          { package: 'Business ($69)', businesses: 21, revenue: 1449, satisfaction: 4.6 },
-          { package: 'Pro ($97)', businesses: 8, revenue: 776, satisfaction: 4.8 }
-        ]
-      })
+      // Show empty state instead of dummy data
+      setAnalyticsData(null)
     } finally {
       setIsLoading(false)
     }
@@ -244,7 +141,37 @@ export default function AgencyAnalyticsPage() {
     )
   }
 
-  if (!analyticsData) return null
+  // Provide default empty state if no data
+  const displayData = analyticsData || {
+    mrr: 0,
+    arr: 0,
+    potentialRevenue: 0,
+    revenueGrowth: 0,
+    totalBusinesses: 0,
+    activeBusinesses: 0,
+    trialBusinesses: 0,
+    churnRate: 0,
+    totalPassesUsed: 0,
+    passesRemaining: 0,
+    passUtilization: 0,
+    passGrowthRate: 0,
+    avgRevenuePerBusiness: 0,
+    customerLifetimeValue: 0,
+    conversionRate: 0,
+    revenueChart: [],
+    passUsageChart: [],
+    businessGrowthChart: [],
+    topBusinesses: [],
+    topPrograms: [],
+    insights: [{
+      type: 'info' as const,
+      title: 'Getting Started',
+      description: 'Welcome to your analytics dashboard! Data will appear here once you have active businesses.',
+      action: 'Add First Business'
+    }],
+    revenueByRegion: [],
+    packagePerformance: []
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
@@ -294,13 +221,13 @@ export default function AgencyAnalyticsPage() {
               </div>
               <div className="flex items-center text-green-600">
                 <ArrowUpIcon className="w-4 h-4 mr-1" />
-                <span className="text-sm font-medium">+{formatPercentage(analyticsData.revenueGrowth)}</span>
+                <span className="text-sm font-medium">+{formatPercentage(displayData.revenueGrowth)}</span>
               </div>
             </div>
             <div>
               <p className="text-sm font-medium text-slate-600 mb-1">Monthly Recurring Revenue</p>
-              <p className="text-3xl font-bold text-slate-900">{formatCurrency(analyticsData.mrr)}</p>
-              <p className="text-xs text-slate-500 mt-2">ARR: {formatCurrency(analyticsData.arr)}</p>
+              <p className="text-3xl font-bold text-slate-900">{formatCurrency(displayData.mrr)}</p>
+              <p className="text-xs text-slate-500 mt-2">ARR: {formatCurrency(displayData.arr)}</p>
             </div>
           </div>
 
@@ -317,9 +244,9 @@ export default function AgencyAnalyticsPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-600 mb-1">Revenue Potential</p>
-              <p className="text-3xl font-bold text-slate-900">{formatCurrency(analyticsData.potentialRevenue)}</p>
+              <p className="text-3xl font-bold text-slate-900">{formatCurrency(displayData.potentialRevenue)}</p>
               <p className="text-xs text-slate-500 mt-2">
-                +{formatCurrency(analyticsData.potentialRevenue - analyticsData.arr)} opportunity
+                +{formatCurrency(displayData.potentialRevenue - displayData.arr)} opportunity
               </p>
             </div>
           </div>
@@ -332,14 +259,14 @@ export default function AgencyAnalyticsPage() {
               </div>
               <div className="flex items-center text-blue-600">
                 <UserGroupIcon className="w-4 h-4 mr-1" />
-                <span className="text-sm font-medium">{analyticsData.totalBusinesses} Total</span>
+                <span className="text-sm font-medium">{displayData.totalBusinesses} Total</span>
               </div>
             </div>
             <div>
               <p className="text-sm font-medium text-slate-600 mb-1">Active Businesses</p>
-              <p className="text-3xl font-bold text-slate-900">{analyticsData.activeBusinesses}</p>
+              <p className="text-3xl font-bold text-slate-900">{displayData.activeBusinesses}</p>
               <p className="text-xs text-slate-500 mt-2">
-                {analyticsData.trialBusinesses} trials • {formatPercentage(analyticsData.churnRate)} churn
+                {displayData.trialBusinesses} trials • {formatPercentage(displayData.churnRate)} churn
               </p>
             </div>
           </div>
@@ -352,14 +279,14 @@ export default function AgencyAnalyticsPage() {
               </div>
               <div className="flex items-center text-orange-600">
                 <BoltIcon className="w-4 h-4 mr-1" />
-                <span className="text-sm font-medium">{formatPercentage(analyticsData.passUtilization)}</span>
+                <span className="text-sm font-medium">{formatPercentage(displayData.passUtilization)}</span>
               </div>
             </div>
             <div>
               <p className="text-sm font-medium text-slate-600 mb-1">Passes Used</p>
-              <p className="text-3xl font-bold text-slate-900">{formatNumber(analyticsData.totalPassesUsed)}</p>
+              <p className="text-3xl font-bold text-slate-900">{formatNumber(displayData.totalPassesUsed)}</p>
               <p className="text-xs text-slate-500 mt-2">
-                {formatNumber(analyticsData.passesRemaining)} remaining
+                {formatNumber(displayData.passesRemaining)} remaining
               </p>
             </div>
           </div>
@@ -375,7 +302,7 @@ export default function AgencyAnalyticsPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-600">Avg Revenue/Business</p>
-                <p className="text-2xl font-bold text-slate-900">{formatCurrency(analyticsData.avgRevenuePerBusiness)}</p>
+                <p className="text-2xl font-bold text-slate-900">{formatCurrency(displayData.avgRevenuePerBusiness)}</p>
               </div>
             </div>
           </div>
@@ -388,7 +315,7 @@ export default function AgencyAnalyticsPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-600">Customer LTV</p>
-                <p className="text-2xl font-bold text-slate-900">{formatCurrency(analyticsData.customerLifetimeValue)}</p>
+                <p className="text-2xl font-bold text-slate-900">{formatCurrency(displayData.customerLifetimeValue)}</p>
               </div>
             </div>
           </div>
@@ -401,7 +328,7 @@ export default function AgencyAnalyticsPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-600">Conversion Rate</p>
-                <p className="text-2xl font-bold text-slate-900">{formatPercentage(analyticsData.conversionRate)}</p>
+                <p className="text-2xl font-bold text-slate-900">{formatPercentage(displayData.conversionRate)}</p>
               </div>
             </div>
           </div>
@@ -415,11 +342,11 @@ export default function AgencyAnalyticsPage() {
               <h3 className="text-lg font-semibold text-slate-900">Revenue Growth</h3>
               <div className="flex items-center text-green-600">
                 <ArrowUpIcon className="w-4 h-4 mr-1" />
-                <span className="text-sm font-medium">+{formatPercentage(analyticsData.revenueGrowth)}</span>
+                <span className="text-sm font-medium">+{formatPercentage(displayData.revenueGrowth)}</span>
               </div>
             </div>
             <div className="space-y-4">
-              {analyticsData.revenueChart.map((item, index) => (
+              {displayData.revenueChart.map((item, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-12 text-sm text-slate-600">{item.month}</div>
@@ -427,7 +354,7 @@ export default function AgencyAnalyticsPage() {
                       <div className="bg-slate-200 rounded-full h-2">
                         <div 
                           className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full"
-                          style={{ width: `${(item.revenue / Math.max(...analyticsData.revenueChart.map(i => i.revenue))) * 100}%` }}
+                          style={{ width: `${(item.revenue / Math.max(...displayData.revenueChart.map(i => i.revenue))) * 100}%` }}
                         ></div>
                       </div>
                     </div>
@@ -447,11 +374,11 @@ export default function AgencyAnalyticsPage() {
               <h3 className="text-lg font-semibold text-slate-900">Pass Usage Trend</h3>
               <div className="flex items-center text-blue-600">
                 <ArrowUpIcon className="w-4 h-4 mr-1" />
-                <span className="text-sm font-medium">+{formatPercentage(analyticsData.passGrowthRate)}</span>
+                <span className="text-sm font-medium">+{formatPercentage(displayData.passGrowthRate)}</span>
               </div>
             </div>
             <div className="space-y-4">
-              {analyticsData.passUsageChart.map((item, index) => (
+              {displayData.passUsageChart.map((item, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-16 text-sm text-slate-600">{item.date}</div>
@@ -459,7 +386,7 @@ export default function AgencyAnalyticsPage() {
                       <div className="bg-slate-200 rounded-full h-2">
                         <div 
                           className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
-                          style={{ width: `${(item.passes / Math.max(...analyticsData.passUsageChart.map(i => i.passes))) * 100}%` }}
+                          style={{ width: `${(item.passes / Math.max(...displayData.passUsageChart.map(i => i.passes))) * 100}%` }}
                         ></div>
                       </div>
                     </div>
@@ -483,7 +410,7 @@ export default function AgencyAnalyticsPage() {
               <StarIcon className="w-5 h-5 text-yellow-500" />
             </div>
             <div className="space-y-4">
-              {analyticsData.topBusinesses.map((business, index) => (
+              {displayData.topBusinesses.map((business, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
@@ -510,7 +437,7 @@ export default function AgencyAnalyticsPage() {
               <FireIcon className="w-5 h-5 text-orange-500" />
             </div>
             <div className="space-y-4">
-              {analyticsData.topPrograms.map((program, index) => (
+              {displayData.topPrograms.map((program, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
@@ -538,7 +465,7 @@ export default function AgencyAnalyticsPage() {
             <SparklesIcon className="w-5 h-5 text-purple-500" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {analyticsData.insights.map((insight, index) => (
+            {displayData.insights.map((insight, index) => (
               <div key={index} className={`border-l-4 ${getInsightBorderColor(insight.type)} bg-slate-50 p-4 rounded-r-lg`}>
                 <div className="flex items-start">
                   <div className="mr-3 mt-0.5">
@@ -568,7 +495,7 @@ export default function AgencyAnalyticsPage() {
               <GlobeAltIcon className="w-5 h-5 text-blue-500" />
             </div>
             <div className="space-y-4">
-              {analyticsData.revenueByRegion.map((region, index) => (
+              {displayData.revenueByRegion.map((region, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-20 text-sm text-slate-600">{region.region}</div>
@@ -576,7 +503,7 @@ export default function AgencyAnalyticsPage() {
                       <div className="bg-slate-200 rounded-full h-2">
                         <div 
                           className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full"
-                          style={{ width: `${(region.revenue / Math.max(...analyticsData.revenueByRegion.map(r => r.revenue))) * 100}%` }}
+                          style={{ width: `${(region.revenue / Math.max(...displayData.revenueByRegion.map(r => r.revenue))) * 100}%` }}
                         ></div>
                       </div>
                     </div>
@@ -597,7 +524,7 @@ export default function AgencyAnalyticsPage() {
               <ShoppingBagIcon className="w-5 h-5 text-green-500" />
             </div>
             <div className="space-y-4">
-              {analyticsData.packagePerformance.map((pkg, index) => (
+              {displayData.packagePerformance.map((pkg, index) => (
                 <div key={index} className="p-4 bg-slate-50 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div className="font-medium text-slate-900">{pkg.package}</div>
@@ -614,7 +541,7 @@ export default function AgencyAnalyticsPage() {
                     <div className="bg-slate-200 rounded-full h-1.5">
                       <div 
                         className="bg-gradient-to-r from-green-500 to-emerald-500 h-1.5 rounded-full"
-                        style={{ width: `${(pkg.revenue / Math.max(...analyticsData.packagePerformance.map(p => p.revenue))) * 100}%` }}
+                        style={{ width: `${(pkg.revenue / Math.max(...displayData.packagePerformance.map(p => p.revenue))) * 100}%` }}
                       ></div>
                     </div>
                   </div>
@@ -644,7 +571,7 @@ export default function AgencyAnalyticsPage() {
             </div>
           </div>
           <div className="grid grid-cols-6 gap-4">
-            {analyticsData.businessGrowthChart.map((item, index) => (
+            {displayData.businessGrowthChart.map((item, index) => (
               <div key={index} className="text-center">
                 <div className="text-sm font-medium text-slate-600 mb-2">{item.month}</div>
                 <div className="flex flex-col items-center space-y-1">

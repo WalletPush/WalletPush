@@ -77,24 +77,7 @@ export default function AgencySettingsPage() {
   ]
   
   // Custom Domains State
-  const [customDomains, setCustomDomains] = useState<CustomDomain[]>([
-    {
-      id: '1',
-      domain: 'portal.myagency.com',
-      type: 'agency',
-      status: 'active',
-      sslStatus: 'active',
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2', 
-      domain: 'login.myagency.com',
-      type: 'agency',
-      status: 'pending',
-      sslStatus: 'pending',
-      createdAt: '2024-01-20'
-    }
-  ])
+  const [customDomains, setCustomDomains] = useState<CustomDomain[]>([])
   const [newDomain, setNewDomain] = useState('')
   const [newDomainType, setNewDomainType] = useState<'agency' | 'business'>('agency')
 
@@ -143,6 +126,7 @@ export default function AgencySettingsPage() {
   React.useEffect(() => {
     const loadSettings = async () => {
       try {
+        // Load OpenRouter settings
         const response = await fetch('/api/agency/settings?key=openrouter')
         const result = await response.json()
         
@@ -159,23 +143,104 @@ export default function AgencySettingsPage() {
       }
     }
 
+    const loadCustomDomains = async () => {
+      try {
+        // Get current user's agency account ID first
+        const userResponse = await fetch('/api/auth/user')
+        const userData = await userResponse.json()
+        
+        if (!userData.user) {
+          console.error('No user found')
+          return
+        }
+
+        // Get agency account ID
+        const agencyResponse = await fetch('/api/agency/account')
+        const agencyData = await agencyResponse.json()
+        
+        if (!agencyData.agency) {
+          console.error('No agency account found')
+          return
+        }
+
+        // Load custom domains for this agency
+        const domainsResponse = await fetch(`/api/custom-domains?agency_id=${agencyData.agency.id}`)
+        const domainsData = await domainsResponse.json()
+        
+        if (domainsData.domains) {
+          const formattedDomains = domainsData.domains.map((domain: any) => ({
+            id: domain.id,
+            domain: domain.domain,
+            type: domain.domain_type,
+            status: domain.status,
+            sslStatus: domain.ssl_status,
+            createdAt: domain.created_at?.split('T')[0] || ''
+          }))
+          setCustomDomains(formattedDomains)
+        }
+      } catch (error) {
+        console.error('Failed to load custom domains:', error)
+        // Show empty state instead of dummy data
+        setCustomDomains([])
+      }
+    }
+
     loadSettings()
+    loadCustomDomains()
   }, [])
 
   const addCustomDomain = async () => {
     if (!newDomain.trim()) return
 
-    const domain: CustomDomain = {
-      id: Date.now().toString(),
-      domain: newDomain.trim(),
-      type: newDomainType,
-      status: 'pending',
-      sslStatus: 'pending',
-      createdAt: new Date().toISOString().split('T')[0]
-    }
+    try {
+      setIsLoading(true)
+      
+      // Get agency account ID
+      const agencyResponse = await fetch('/api/agency/account')
+      const agencyData = await agencyResponse.json()
+      
+      if (!agencyData.agency) {
+        alert('No agency account found')
+        return
+      }
 
-    setCustomDomains([...customDomains, domain])
-    setNewDomain('')
+      // Add domain via API
+      const response = await fetch('/api/custom-domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain: newDomain.trim(),
+          domain_type: newDomainType,
+          agency_id: agencyData.agency.id
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        // Add to local state
+        const newDomainObj: CustomDomain = {
+          id: result.domain.id,
+          domain: result.domain.domain,
+          type: result.domain.domain_type,
+          status: result.domain.status,
+          sslStatus: result.domain.ssl_status,
+          createdAt: result.domain.created_at?.split('T')[0] || ''
+        }
+
+        setCustomDomains([...customDomains, newDomainObj])
+        setNewDomain('')
+        
+        alert(`Domain ${newDomain.trim()} added successfully! Check DNS settings to complete setup.`)
+      } else {
+        alert(`Failed to add domain: ${result.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Failed to add domain:', error)
+      alert('Failed to add domain. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const removeDomain = (id: string) => {

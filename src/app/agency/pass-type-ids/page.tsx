@@ -91,79 +91,8 @@ export default function AgencyPassTypeIDsPage() {
       
     } catch (error) {
       console.error('❌ Failed to load Pass Type IDs:', error)
-      // Fallback to mock data for development
-      setPassTypeIDs([
-        {
-          id: '1',
-          label: 'Agency Master Certificate',
-          passTypeIdentifier: 'pass.com.myagency.master',
-          teamId: 'ABC123DEF4',
-          isValidated: true,
-          isGlobal: false,
-          source: 'owned',
-          createdAt: '2024-01-10',
-          assignedTo: {
-            businessId: '1',
-            businessName: 'Coffee Shop Pro',
-            assignedAt: '2024-01-15'
-          },
-          certificateInfo: {
-            fileName: 'agency_master.p12',
-            expiresAt: '2025-01-10',
-            uploadedAt: '2024-01-10'
-          }
-        },
-        {
-          id: '2',
-          label: 'Premium Business Certificate',
-          passTypeIdentifier: 'pass.com.myagency.premium',
-          teamId: 'ABC123DEF4',
-          isValidated: true,
-          isGlobal: false,
-          source: 'owned',
-          createdAt: '2024-01-15',
-          certificateInfo: {
-            fileName: 'premium_cert.p12',
-            expiresAt: '2025-01-15',
-            uploadedAt: '2024-01-15'
-          }
-        },
-        {
-          id: '3',
-          label: 'Loyalty Program Certificate',
-          passTypeIdentifier: 'pass.com.myagency.loyalty',
-          teamId: 'ABC123DEF4',
-          isValidated: false,
-          isGlobal: false,
-          source: 'owned',
-          createdAt: '2024-01-20',
-          assignedTo: {
-            businessId: '3',
-            businessName: 'Restaurant Deluxe',
-            assignedAt: '2024-01-22'
-          },
-          certificateInfo: {
-            fileName: 'loyalty_cert.p12',
-            expiresAt: '2025-01-20',
-            uploadedAt: '2024-01-20'
-          }
-        },
-        {
-          id: 'global-1',
-          label: 'Global Certificate',
-          passTypeIdentifier: 'pass.com.walletpush.global',
-          teamId: 'PLATFORM1',
-          isValidated: true,
-          isGlobal: true,
-          source: 'global',
-          createdAt: '2024-01-01',
-          certificateInfo: {
-            fileName: 'global_cert.p12',
-            expiresAt: '2025-12-31',
-            uploadedAt: '2024-01-01'
-          }
-        }
-      ])
+      // Show empty state instead of dummy data
+      setPassTypeIDs([])
     } finally {
       setIsLoading(false)
     }
@@ -191,13 +120,8 @@ export default function AgencyPassTypeIDsPage() {
       
     } catch (error) {
       console.error('❌ Failed to load businesses:', error)
-      // Fallback to mock data
-      setBusinesses([
-        { id: '1', name: 'Coffee Shop Pro', email: 'admin@coffeeshoppro.com', status: 'active', hasPassTypeId: true },
-        { id: '2', name: 'Fitness First', email: 'owner@fitnessfirst.com', status: 'trial', hasPassTypeId: false },
-        { id: '3', name: 'Restaurant Deluxe', email: 'manager@restaurantdeluxe.com', status: 'active', hasPassTypeId: true },
-        { id: '4', name: 'Beauty Salon Elite', email: 'info@beautysalonelite.com', status: 'suspended', hasPassTypeId: false }
-      ])
+      // Show empty state instead of dummy data
+      setBusinesses([])
     }
   }
 
