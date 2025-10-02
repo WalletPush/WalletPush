@@ -139,7 +139,8 @@ const publicRoutes = [
     request.nextUrl.pathname.startsWith('/api/customer/complete-account') ||
     request.nextUrl.pathname.startsWith('/api/checkin/') ||
     request.nextUrl.pathname.startsWith('/api/ledger/') ||
-    request.nextUrl.pathname.startsWith('/api/scanner/')
+    request.nextUrl.pathname.startsWith('/api/scanner/') ||
+    request.nextUrl.pathname.startsWith('/api/branding')
   ) || isLandingPage
 
   // Debug authentication decisions
