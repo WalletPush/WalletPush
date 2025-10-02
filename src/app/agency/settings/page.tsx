@@ -145,30 +145,20 @@ export default function AgencySettingsPage() {
 
     const loadCustomDomains = async () => {
       try {
-        // Get current user's agency account ID first
-        const userResponse = await fetch('/api/auth/user')
-        const userData = await userResponse.json()
-        
-        if (!userData.user) {
-          console.error('No user found')
-          return
-        }
-
-        // Get agency account ID
+        // Get agency account and custom domains in one optimized call
         const agencyResponse = await fetch('/api/agency/account')
         const agencyData = await agencyResponse.json()
         
-        if (!agencyData.agency) {
-          console.error('No agency account found')
+        console.log('🏢 Agency Account API Response:', agencyData)
+        
+        if (!agencyData.success || !agencyData.agency) {
+          console.error('No agency account found', agencyData)
           return
         }
 
-        // Load custom domains for this agency
-        const domainsResponse = await fetch(`/api/custom-domains?agency_id=${agencyData.agency.id}`)
-        const domainsData = await domainsResponse.json()
-        
-        if (domainsData.domains) {
-          const formattedDomains = domainsData.domains.map((domain: any) => ({
+        // Format and set custom domains from the response
+        if (agencyData.customDomains && agencyData.customDomains.length > 0) {
+          const formattedDomains = agencyData.customDomains.map((domain: any) => ({
             id: domain.id,
             domain: domain.domain,
             type: domain.domain_type,
@@ -177,10 +167,13 @@ export default function AgencySettingsPage() {
             createdAt: domain.created_at?.split('T')[0] || ''
           }))
           setCustomDomains(formattedDomains)
+          console.log(`✅ Loaded ${formattedDomains.length} custom domains:`, formattedDomains)
+        } else {
+          console.log('📝 No custom domains found for this agency')
+          setCustomDomains([])
         }
       } catch (error) {
-        console.error('Failed to load custom domains:', error)
-        // Show empty state instead of dummy data
+        console.error('Failed to load agency account and custom domains:', error)
         setCustomDomains([])
       }
     }

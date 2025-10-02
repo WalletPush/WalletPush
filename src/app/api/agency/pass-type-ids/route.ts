@@ -15,45 +15,20 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Fetching Pass Type IDs for user:', user.email)
 
-    // Get current active account (should be agency or platform)
-    const { data: activeAccount } = await supabase
-      .from('user_active_account')
-      .select('active_account_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    // Get or create agency account using the same RPC function as other routes
+    const { data: agencyAccountId, error: agencyError } = await supabase
+      .rpc('get_or_create_agency_account')
 
-    // If no active account, get user's first agency account
-    let agencyAccountId = activeAccount?.active_account_id
-    
-    if (!agencyAccountId) {
-      const { data: userAccounts } = await supabase
-        .from('account_members')
-        .select(`
-          account_id,
-          role,
-          accounts!inner (
-            id,
-            type
-          )
-        `)
-        .eq('user_id', user.id)
-        .in('accounts.type', ['agency', 'platform'])
-        .in('role', ['owner', 'admin'])
-        .limit(1)
-        .single()
-
-      agencyAccountId = userAccounts?.account_id
-    }
-
-    if (!agencyAccountId) {
-      return NextResponse.json({ error: 'No agency account found' }, { status: 404 })
+    if (agencyError || !agencyAccountId) {
+      console.error('❌ Agency account error:', agencyError)
+      return NextResponse.json({ error: 'Failed to get agency account' }, { status: 500 })
     }
 
     console.log('🏢 Agency account:', agencyAccountId)
 
     // Query Pass Type IDs from database
-    // Only return Pass Type IDs associated with this specific agency account
-    // Exclude global certificates (is_global = false OR is_global IS NULL)
+    // Return Pass Type IDs associated with this specific agency account AND global certificates
+    // Include: agency-specific certificates (account_id = agencyAccountId) OR global certificates (is_global = true AND account_id IS NULL)
     const { data: passTypeIds, error: passTypeIdsError } = await supabase
       .from('pass_type_ids')
       .select(`
@@ -69,8 +44,8 @@ export async function GET(request: NextRequest) {
         cert_password,
         account_id
       `)
-      .eq('account_id', agencyAccountId)
-      .or('is_global.is.null,is_global.eq.false')
+      .or(`account_id.eq.${agencyAccountId},and(is_global.eq.true,account_id.is.null)`)
+      .order('is_global', { ascending: false })
       .order('created_at', { ascending: false })
 
     if (passTypeIdsError) {
@@ -86,7 +61,7 @@ export async function GET(request: NextRequest) {
       teamId: pt.team_id,
       isValidated: pt.is_validated || false,
       isGlobal: pt.is_global || false,
-      source: 'owned',
+      source: pt.is_global ? 'global' : 'owned',
       createdAt: pt.created_at?.split('T')[0] || '',
       certificateInfo: {
         fileName: pt.p12_path ? pt.p12_path.split('/').pop() || 'unknown.p12' : null,
@@ -138,38 +113,13 @@ export async function POST(request: NextRequest) {
 
     console.log('🔑 Creating Pass Type ID for user:', user.email, 'label:', label)
 
-    // Get current active account (should be agency or platform)
-    const { data: activeAccount } = await supabase
-      .from('user_active_account')
-      .select('active_account_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    // Get or create agency account using the same RPC function as other routes
+    const { data: agencyAccountId, error: agencyError } = await supabase
+      .rpc('get_or_create_agency_account')
 
-    // If no active account, get user's first agency account
-    let agencyAccountId = activeAccount?.active_account_id
-    
-    if (!agencyAccountId) {
-      const { data: userAccounts } = await supabase
-        .from('account_members')
-        .select(`
-          account_id,
-          role,
-          accounts!inner (
-            id,
-            type
-          )
-        `)
-        .eq('user_id', user.id)
-        .in('accounts.type', ['agency', 'platform'])
-        .in('role', ['owner', 'admin'])
-        .limit(1)
-        .single()
-
-      agencyAccountId = userAccounts?.account_id
-    }
-
-    if (!agencyAccountId) {
-      return NextResponse.json({ error: 'No agency account found' }, { status: 404 })
+    if (agencyError || !agencyAccountId) {
+      console.error('❌ Agency account error:', agencyError)
+      return NextResponse.json({ error: 'Failed to get agency account' }, { status: 500 })
     }
 
     console.log('🏢 Creating Pass Type ID for agency:', agencyAccountId)
