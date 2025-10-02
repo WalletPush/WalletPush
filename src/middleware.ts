@@ -27,6 +27,13 @@ export async function middleware(request: NextRequest) {
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js)$/)
   ) {
     console.log(`⏭️ SKIPPING: ${hostname}${pathname} (static/API route)`)
+    
+    // CRITICAL: Branding API must bypass ALL authentication
+    if (pathname === '/api/branding') {
+      console.log(`🎨 BYPASSING AUTH for branding API: ${hostname}${pathname}`)
+      return NextResponse.next()
+    }
+    
     return await updateSession(request)
   }
 
