@@ -306,8 +306,8 @@ async function handleCustomDomainAgencyRouting(request: NextRequest, hostname: s
       return null // Main platform domain, use normal routing
     }
     
-    // Check if this is an agency route
-    const isAgencyRoute = pathname.startsWith('/agency/')
+    // Check if this is an agency route OR root path for agency domain
+    const isAgencyRoute = pathname.startsWith('/agency/') || pathname === '/'
     
     if (!isAgencyRoute) {
       return null // Not an agency route
@@ -320,7 +320,7 @@ async function handleCustomDomainAgencyRouting(request: NextRequest, hostname: s
     
     // Check if this domain is registered for an agency
     const domainResponse = await fetch(
-      `${supabaseUrl}/rest/v1/custom_domains?select=domain,agency_id,status&domain=eq.${hostname}&status=eq.active&domain_type=eq.agency`,
+      `${supabaseUrl}/rest/v1/agency_accounts?select=id,custom_domain,custom_domain_status&custom_domain=eq.${hostname}&custom_domain_status=eq.active`,
       {
         headers: {
           'apikey': serviceRoleKey,
@@ -342,12 +342,12 @@ async function handleCustomDomainAgencyRouting(request: NextRequest, hostname: s
       return null
     }
 
-    const domain = domainData[0]
-    console.log(`✅ Found agency custom domain: ${hostname} → agency_id: ${domain.agency_id}`)
+    const agency = domainData[0]
+    console.log(`✅ Found agency custom domain: ${hostname} → agency_id: ${agency.id}`)
     
     // Store agency context in headers for the routed page
     const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-agency-id', domain.agency_id)
+    requestHeaders.set('x-agency-id', agency.id)
     requestHeaders.set('x-custom-domain', hostname)
     
     // Run authentication middleware first with the agency context
@@ -374,7 +374,7 @@ async function handleCustomDomainAgencyRouting(request: NextRequest, hostname: s
       response.cookies.set(cookie.name, cookie.value, cookie)
     })
     
-    console.log(`✅ Routed agency page: ${hostname}${pathname} → ${pathname} (agency: ${domain.agency_id})`)
+    console.log(`✅ Routed agency page: ${hostname}${pathname} → ${pathname} (agency: ${agency.id})`)
     return response
     
   } catch (error) {
