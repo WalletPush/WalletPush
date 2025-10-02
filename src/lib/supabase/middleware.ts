@@ -101,6 +101,7 @@ const publicRoutes = [
   '/api/customer-signup', // Customer signup for landing pages
   '/api/public/join', // Public form submission endpoint
   '/api/public/agency-packages', // Public agency packages for homepage pricing
+  '/api/branding', // Public branding API for custom domains
   '/admin/global-pass-type-id', // Admin page for global Pass Type ID management
   '/api/admin/global-pass-type-id', // API for global Pass Type ID management
   '/api/admin/wwdr-certificate', // API for WWDR certificate upload
