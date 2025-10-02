@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { DynamicLogo } from '@/components/branding/DynamicLogo'
 
 export default function HomePage() {
   const [isVisible, setIsVisible] = useState(false)
@@ -78,13 +79,12 @@ export default function HomePage() {
       <header className="relative z-50 bg-white/10 backdrop-blur-lg border-b border-white/20">
         <div className="container mx-auto flex items-center justify-between h-20 px-6">
           <Link href="/" className="flex items-center">
-            <Image
-              src="/images/logowhite.png"
-              alt="WalletPush Logo"
-              width={175}
-              height={56}
-              priority
-              className="h-14 w-auto object-contain"
+            <DynamicLogo 
+              width={175} 
+              height={56} 
+              className="h-14 w-auto object-contain" 
+              alt="Logo"
+              variant="white"
             />
           </Link>
           <nav className="flex items-center space-x-6">
@@ -476,12 +476,12 @@ export default function HomePage() {
         <div className="container mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-6">
-              <Image
-                src="/images/logowhite.png"
-                alt="WalletPush Logo White"
-                width={175}
-                height={56}
-                className="h-12 w-auto object-contain"
+              <DynamicLogo 
+                width={175} 
+                height={56} 
+                className="h-12 w-auto object-contain" 
+                alt="Logo"
+                variant="white"
               />
             </div>
             <p className="text-gray-400 text-lg mb-6">
