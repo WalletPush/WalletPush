@@ -88,7 +88,7 @@ export default function HomePage() {
             />
           </Link>
           <nav className="flex items-center space-x-6">
-            <Link href="/auth/login" className="text-white/80 hover:text-white transition-colors text-sm font-medium">
+            <Link href="/business/auth/login" className="text-white/80 hover:text-white transition-colors text-sm font-medium">
               Login
             </Link>
             <Button 

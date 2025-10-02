@@ -49,7 +49,7 @@ export function ModernForgotPasswordForm({ className }: ModernForgotPasswordForm
   }
 
   const handleBackToLogin = () => {
-    router.push('/auth/login')
+    router.push('/business/auth/login')
   }
 
   if (isEmailSent) {
