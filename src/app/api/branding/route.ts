@@ -30,38 +30,63 @@ export async function GET(request: NextRequest) {
       branding.account_name = accountData?.name
       branding.account_type = accountData?.type
     } else if (domain) {
-      // Get branding by custom domain (fallback)
-      const { data: domainData } = await supabase
-        .from('account_domains')
-        .select(`
-          accounts!inner (
-            id,
-            name,
-            type,
-            branding
-          )
-        `)
-        .eq('domain', domain)
+      console.log('🔍 Branding API - Looking up domain:', domain)
+      
+      // First, try to find agency branding by custom domain
+      const { data: agencyData, error: agencyError } = await supabase
+        .from('agency_accounts')
+        .select('id, name, logo_url, primary_color, secondary_color, custom_domain, custom_domain_status')
+        .eq('custom_domain', domain)
+        .eq('custom_domain_status', 'active')
         .single()
       
-      // BEFORE using domainData, bail if it's nullish
-      if (!domainData) {
-        return NextResponse.json({ branding: null }, { status: 200 });
-      }
+      if (!agencyError && agencyData) {
+        console.log('✅ Branding API - Found agency branding:', agencyData.name)
+        branding = {
+          logo_url: agencyData.logo_url,
+          primary_color: agencyData.primary_color,
+          secondary_color: agencyData.secondary_color,
+          agency_name: agencyData.name,
+          account_name: agencyData.name,
+          account_type: 'agency'
+        }
+      } else {
+        console.log('❌ Branding API - No agency found, trying account_domains')
+        
+        // Fallback: Get branding by custom domain from account_domains (legacy)
+        const { data: domainData } = await supabase
+          .from('account_domains')
+          .select(`
+            accounts!inner (
+              id,
+              name,
+              type,
+              branding
+            )
+          `)
+          .eq('domain', domain)
+          .single()
+        
+        // BEFORE using domainData, bail if it's nullish
+        if (!domainData) {
+          console.log('❌ Branding API - No domain found in account_domains')
+          return NextResponse.json({ branding: null }, { status: 200 });
+        }
 
-      // Safely grab accounts
-      const accounts = (domainData as any)?.accounts;
+        // Safely grab accounts
+        const accounts = (domainData as any)?.accounts;
 
-      if (Array.isArray(accounts)) {
-        branding = accounts?.[0]?.branding ?? null;
-      } else if (accounts && typeof accounts === 'object') {
-        branding = (accounts as any)?.branding ?? null;
-      }
-      
-      if (branding && domainData) {
-        const account = Array.isArray(accounts) ? accounts[0] : accounts
-        branding.account_name = account?.name
-        branding.account_type = account?.type
+        if (Array.isArray(accounts)) {
+          branding = accounts?.[0]?.branding ?? null;
+        } else if (accounts && typeof accounts === 'object') {
+          branding = (accounts as any)?.branding ?? null;
+        }
+        
+        if (branding && domainData) {
+          const account = Array.isArray(accounts) ? accounts[0] : accounts
+          branding.account_name = account?.name
+          branding.account_type = account?.type
+        }
       }
     } else {
       // Get branding for current active account
