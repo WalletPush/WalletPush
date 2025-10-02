@@ -45,8 +45,39 @@ export async function POST(request: NextRequest) {
     const trialEndDate = new Date()
     trialEndDate.setDate(trialEndDate.getDate() + 14)
 
-    // Get the WalletPush agency account ID (hardcoded for now)
+    // Resolve owning agency by request host (custom domain) or default to WalletPush
+    const host = new URL(request.url).host.split(':')[0].toLowerCase()
+    console.log('🔍 Business provision - Host extracted:', host)
+    console.log('🔍 Business provision - Full URL:', request.url)
+    
+    let owning_agency_id: string | undefined
     const walletPushAgencyId = 'a7d7baa2-0b71-453e-ab7f-0c19b9214be4'
+    
+    try {
+      const { data: agencyMatch, error: agencyError } = await serviceSupabase
+        .from('agency_accounts')
+        .select('id, custom_domain, custom_domain_status, name')
+        .eq('custom_domain', host)
+        .eq('custom_domain_status', 'active')
+        .limit(1)
+      
+      console.log('🔍 Business provision - Agency query result:', { agencyMatch, agencyError })
+      
+      owning_agency_id = agencyMatch && agencyMatch[0]?.id
+      
+      if (owning_agency_id) {
+        console.log('✅ Business provision - Found agency:', owning_agency_id, 'for domain:', host)
+      } else {
+        console.log('❌ Business provision - No agency found for domain:', host)
+      }
+    } catch (error) {
+      console.error('❌ Business provision - Agency lookup error:', error)
+    }
+    
+    if (!owning_agency_id) {
+      console.log('🏠 Business provision - Falling back to WalletPush agency:', walletPushAgencyId)
+      owning_agency_id = walletPushAgencyId
+    }
 
     // Create business account record
     const businessData = {
@@ -57,7 +88,7 @@ export async function POST(request: NextRequest) {
       status: 'active',
       subscription_status: 'trial',
       subscription_plan: selectedPackage?.package_name || 'starter',
-      agency_account_id: walletPushAgencyId,
+      agency_account_id: owning_agency_id,
       max_passes: selectedPackage?.pass_limit || 1000,
       max_members: selectedPackage?.pass_limit || 1000, // Same as passes for now
       monthly_cost: selectedPackage?.package_price || 29,
