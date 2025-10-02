@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Toaster } from 'react-hot-toast'
+import { DynamicLogo } from '@/components/branding/DynamicLogo'
 
 export default function BusinessLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -17,7 +18,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
       <aside className="dashboard-sidebar">
         <div className="p-6">
           <div className="flex items-center justify-center mb-8">
-            <img src="/images/walletpush-logo.png" alt="WalletPush" className="h-10 w-auto" />
+            <DynamicLogo className="h-10 w-auto" width={120} height={40} variant="white" />
           </div>
 
           <nav className="space-y-2">
