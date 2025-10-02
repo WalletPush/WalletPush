@@ -36,7 +36,16 @@ export async function middleware(request: NextRequest) {
   // Handle custom domain routing for production domains
   console.log(`🌐 Middleware processing: ${hostname}${pathname}`)
   
-  // Step 1: Check for custom domain business routing (dashboard, login, etc.)
+  // Step 1: Check for custom domain agency routing (dashboard, login, etc.)
+  console.log(`🏢 Checking custom domain agency routing for: ${pathname}`)
+  const agencyRouteResult = await handleCustomDomainAgencyRouting(request, hostname, pathname)
+  if (agencyRouteResult) {
+    console.log(`✅ Agency route handled, returning response with status: ${agencyRouteResult.status}`)
+    return agencyRouteResult
+  }
+  console.log(`📝 No agency route match for: ${pathname}`)
+  
+  // Step 2: Check for custom domain business routing (dashboard, login, etc.)
   console.log(`🏢 Checking custom domain business routing for: ${pathname}`)
   const businessRouteResult = await handleCustomDomainBusinessRouting(request, hostname, pathname)
   if (businessRouteResult) {
@@ -285,6 +294,91 @@ function extractTokenFromCookies(cookies: any): string | null {
     return null
   } catch (error) {
     console.error('❌ Error extracting token from cookies:', error)
+    return null
+  }
+}
+
+// Handle custom domain agency routing (dashboard, login, etc.)
+async function handleCustomDomainAgencyRouting(request: NextRequest, hostname: string, pathname: string) {
+  try {
+    // Skip custom domain routing for main platform domain
+    if (hostname === 'walletpush.io' || hostname === 'www.walletpush.io') {
+      return null // Main platform domain, use normal routing
+    }
+    
+    // Check if this is an agency route OR root path for agency domain
+    const isAgencyRoute = pathname.startsWith('/agency/') || pathname === '/'
+    
+    if (!isAgencyRoute) {
+      return null // Not an agency route
+    }
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    
+    console.log(`🏢 Custom domain agency route: ${hostname}${pathname}`)
+    
+    // Check if this domain is registered for an agency
+    const domainResponse = await fetch(
+      `${supabaseUrl}/rest/v1/agency_accounts?select=id,custom_domain,custom_domain_status&custom_domain=eq.${hostname}&custom_domain_status=eq.active`,
+      {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (!domainResponse.ok) {
+      console.log(`❌ Domain lookup failed for agency route ${hostname}: ${domainResponse.status}`)
+      return null
+    }
+
+    const domainData = await domainResponse.json()
+    
+    if (!domainData || domainData.length === 0) {
+      console.log(`📝 Domain ${hostname} not found for agency routing`)
+      return null
+    }
+
+    const agency = domainData[0]
+    console.log(`✅ Found agency custom domain: ${hostname} → agency_id: ${agency.id}`)
+    
+    // Store agency context in headers for the routed page
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-agency-id', agency.id)
+    requestHeaders.set('x-custom-domain', hostname)
+    
+    // Run authentication middleware first with the agency context
+    const authResponse = await updateSession(request)
+    
+    // If auth middleware redirected (e.g., to login), respect that
+    if (authResponse.status === 302 || authResponse.status === 307) {
+      console.log(`🔒 Auth redirect for agency custom domain: ${hostname}${pathname}`)
+      return authResponse
+    }
+    
+    // Otherwise, proceed with the rewrite and preserve auth cookies
+    const url = request.nextUrl.clone()
+    url.pathname = pathname // Keep the same path
+    
+    const response = NextResponse.rewrite(url, {
+      request: {
+        headers: requestHeaders,
+      },
+    })
+    
+    // Copy auth cookies from the auth response
+    authResponse.cookies.getAll().forEach(cookie => {
+      response.cookies.set(cookie.name, cookie.value, cookie)
+    })
+    
+    console.log(`✅ Routed agency page: ${hostname}${pathname} → ${pathname} (agency: ${agency.id})`)
+    return response
+    
+  } catch (error) {
+    console.error('❌ Custom domain agency routing error:', error)
     return null
   }
 }
