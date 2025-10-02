@@ -8,6 +8,12 @@ export async function middleware(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams.toString()
   const fullUrl = `${hostname}${pathname}${searchParams ? '?' + searchParams : ''}`
   
+  // CRITICAL: Branding API must completely bypass ALL middleware
+  if (pathname === '/api/branding') {
+    console.log(`🎨 COMPLETE BYPASS for branding API: ${hostname}${pathname}`)
+    return NextResponse.next()
+  }
+  
   // COMPREHENSIVE DEBUGGING: Log every request with full context
   console.log(`🚨 MIDDLEWARE START: ${fullUrl}`)
   console.log(`🔍 Request details:`, {
@@ -27,13 +33,6 @@ export async function middleware(request: NextRequest) {
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js)$/)
   ) {
     console.log(`⏭️ SKIPPING: ${hostname}${pathname} (static/API route)`)
-    
-    // CRITICAL: Branding API must bypass ALL authentication
-    if (pathname === '/api/branding') {
-      console.log(`🎨 BYPASSING AUTH for branding API: ${hostname}${pathname}`)
-      return NextResponse.next()
-    }
-    
     return await updateSession(request)
   }
 
