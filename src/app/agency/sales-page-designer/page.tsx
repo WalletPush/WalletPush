@@ -88,57 +88,49 @@ export default function SalesPageDesignerPage() {
       }
 
       if (existingHomePage) {
-        // Load existing home page
-        console.log('✅ Found existing home page:', existingHomePage.page_name)
+        // Use preview API to fetch full styled HTML (agency-specific)
+        const res = await fetch('/api/preview/get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agency_id: agencyAccountId })
+        })
+        const html = await res.text()
+        console.log('✅ Preview HTML loaded for agency')
         setHomePageData(existingHomePage)
-        setCurrentHtml(existingHomePage.html_content || '')
+        setCurrentHtml(html)
       } else {
-        // Load the main website's home page as starting point
-        console.log('📥 Loading main website home page as template...')
-        
-        try {
-          const homepageResponse = await fetch(`/api/agency/get-main-homepage?agency_account_id=${agencyAccountId}`)
-          const homepageResult = await homepageResponse.json()
-          
-          if (!homepageResult.success) {
-            throw new Error(homepageResult.error || 'Failed to load main homepage')
-          }
-          
-          console.log('✅ Successfully loaded main homepage HTML')
-          
-          // Set the processed HTML for preview and original for saving
-          setCurrentHtml(homepageResult.html) // Processed HTML with agency branding
-          setOriginalHtml(homepageResult.originalHtml) // Original dynamic HTML for saving
-          
-          // Create a temporary home page data object for the UI
-          const tempHomePageData = {
-            id: 'temp-main-homepage',
-            agency_account_id: agencyAccountId,
-            page_name: 'Main Website Home Page (Global Template)',
-            page_type: 'home',
-            page_slug: 'home',
-            page_title: 'Main Website Home Page',
-            page_subtitle: 'This is the global template. Changes will be saved as agency-specific when you edit.',
-            headline: 'Main Website Home Page',
-            subheadline: 'This is the global template. Changes will be saved as agency-specific when you edit.',
-            call_to_action: 'Edit This Page',
-            html_content: homepageResult.html,
-            is_published: false,
-            updated_at: new Date().toISOString(),
-            template_style: 'main-website',
-            primary_color: '#2563eb',
-            secondary_color: '#64748b',
-            accent_color: '#10b981',
-            font_family: 'Inter'
-          }
-          
-          setHomePageData(tempHomePageData)
-          return // Exit early, don't create default page
-          
-        } catch (homepageError) {
-          console.error('❌ Error loading main homepage:', homepageError)
-          console.log('🔄 Falling back to creating basic default page...')
+        // No agency page yet: load default preview HTML (golden row)
+        console.log('📥 Loading default preview (golden row)')
+        const res = await fetch('/api/preview/get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agency_id: null })
+        })
+        const html = await res.text()
+        setCurrentHtml(html)
+        const tempHomePageData = {
+          id: 'temp-main-homepage',
+          agency_account_id: agencyAccountId,
+          page_name: 'Main Website Home Page (Global Template)',
+          page_type: 'home',
+          page_slug: 'home',
+          page_title: 'Main Website Home Page',
+          page_subtitle: 'This is the global template. Changes will be saved as agency-specific when you edit.',
+          headline: 'Main Website Home Page',
+          subheadline: 'This is the global template. Changes will be saved as agency-specific when you edit.',
+          call_to_action: 'Edit This Page',
+          html_content: html,
+          is_published: false,
+          updated_at: new Date().toISOString(),
+          template_style: 'main-website',
+          primary_color: '#2563eb',
+          secondary_color: '#64748b',
+          accent_color: '#10b981',
+          font_family: 'Inter'
         }
+        setHomePageData(tempHomePageData)
+        return
+      }
         
         // Fallback: Create a basic default home page if main homepage fetch fails
         console.log('📝 Creating fallback default home page for agency:', agencyAccountId)
