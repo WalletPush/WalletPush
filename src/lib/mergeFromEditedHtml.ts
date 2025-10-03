@@ -1,3 +1,31 @@
+import * as cheerio from 'cheerio'
+import set from 'lodash.set'
+
+export function mergeFromEditedHtml(editedHtml: string, baselineModel: any) {
+  const $ = cheerio.load(editedHtml, { decodeEntities: false })
+
+  const updates: Record<string, string> = {}
+  $('[data-wp-bind]').each((_, el) => {
+    const path = $(el).attr('data-wp-bind')
+    if (!path) return
+    updates[path] = $(el).text().trim()
+  })
+
+  const content_model = structuredClone(baselineModel || {})
+  for (const [path, value] of Object.entries(updates)) set(content_model, path, value)
+
+  $('[data-wp-slot]').each((_, el) => {
+    const slot = $(el).attr('data-wp-slot')
+    $(el).replaceWith(`<div data-wp-slot="${slot}"></div>`)
+  })
+
+  $('[data-wp-bind]').removeAttr('data-wp-bind')
+  $('[data-wp-component]').removeAttr('data-wp-component')
+
+  const html_static = $.html()
+  return { html_static, content_model }
+}
+
 // Simple HTML parser implementation without external dependencies
 
 export interface ContentModel {
