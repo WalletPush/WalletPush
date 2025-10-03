@@ -131,53 +131,6 @@ export default function SalesPageDesignerPage() {
         setHomePageData(tempHomePageData)
         return
       }
-        
-        // Fallback: Create a basic default home page if main homepage fetch fails
-        console.log('📝 Creating fallback default home page for agency:', agencyAccountId)
-        const defaultHomePage = {
-          agency_account_id: agencyAccountId,
-          page_name: 'Agency Home Page',
-          page_type: 'home',
-          page_slug: 'home',
-          page_title: 'Welcome to Our Agency',
-          page_subtitle: 'Professional Digital Wallet Solutions',
-          headline: 'Transform Your Business with Digital Wallet Technology',
-          subheadline: 'We help businesses create engaging loyalty programs and digital experiences',
-          call_to_action: 'Get Started Today',
-          html_content: generateDefaultHomePageHTML(),
-          is_published: true,
-          meta_title: 'Welcome to Our Agency',
-          meta_description: 'Professional digital wallet solutions and loyalty program services',
-          template_style: 'modern',
-          primary_color: '#2563eb',
-          secondary_color: '#64748b',
-          accent_color: '#10b981',
-          font_family: 'Inter'
-        }
-
-        console.log('📝 Inserting home page data:', { 
-          agency_account_id: defaultHomePage.agency_account_id,
-          page_name: defaultHomePage.page_name,
-          page_type: defaultHomePage.page_type,
-          page_slug: defaultHomePage.page_slug
-        })
-
-        const { data: newHomePage, error: createError } = await supabase
-          .from('agency_sales_pages')
-          .insert(defaultHomePage)
-          .select()
-          .single()
-
-        if (createError) {
-          console.error('❌ Error creating default home page:', createError)
-          console.error('❌ Full error details:', JSON.stringify(createError, null, 2))
-          // Still show the error state but with more info
-        } else {
-          console.log('✅ Created default home page successfully:', newHomePage.id)
-          setHomePageData(newHomePage)
-          setCurrentHtml(newHomePage.html_content || '')
-        }
-      }
     } catch (error) {
       console.error('❌ CRITICAL ERROR in loadHomePage:', error)
       console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
