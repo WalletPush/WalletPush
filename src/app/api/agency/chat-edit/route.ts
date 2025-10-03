@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { 
+  optimizeHTMLForAI, 
+  restoreOptimizedHTML, 
+  identifyTargetSection,
+  mergeChangesIntoFullHTML,
+  isFullPageEdit
+} from '@/lib/html-optimizer'
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,41 +72,91 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Found OpenRouter API key, proceeding with chat...')
 
+    // Check if this is a full page edit or section-specific edit
+    const isFullPage = isFullPageEdit(message)
+    const targetSections = isFullPage ? [] : identifyTargetSection(message)
+    
+    console.log('🎯 Edit type analysis:', {
+      isFullPageEdit: isFullPage,
+      targetSections: targetSections,
+      message: message.substring(0, 100) + '...'
+    })
+
+    let htmlToSend: string
+    let optimization: any = null
+
+    if (isFullPage) {
+      // For full page edits, send the complete HTML but still extract CSS/scripts to reduce tokens
+      const cssRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi
+      const cssBlocks: string[] = []
+      htmlToSend = currentHtml
+      
+      // Extract CSS blocks to reduce token usage
+      let match
+      while ((match = cssRegex.exec(currentHtml)) !== null) {
+        cssBlocks.push(match[1])
+        htmlToSend = htmlToSend.replace(match[0], `<style>/* CSS_BLOCK_${cssBlocks.length - 1} */</style>`)
+      }
+      
+      // Extract external CSS links
+      const linkRegex = /<link[^>]*rel=["']stylesheet["'][^>]*>/gi
+      const cssLinks: string[] = []
+      htmlToSend = htmlToSend.replace(linkRegex, (match) => {
+        cssLinks.push(match)
+        return `<!-- CSS_LINK_${cssLinks.length - 1} -->`
+      })
+      
+      // Extract scripts
+      const scriptRegex = /<script[^>]*>[\s\S]*?<\/script>/gi
+      const scriptBlocks: string[] = []
+      htmlToSend = htmlToSend.replace(scriptRegex, (match) => {
+        scriptBlocks.push(match)
+        return `<!-- SCRIPT_BLOCK_${scriptBlocks.length - 1} -->`
+      })
+      
+      optimization = { cssBlocks, cssLinks, scriptBlocks }
+      
+      console.log('📄 Full page edit - HTML length:', {
+        original: currentHtml.length,
+        optimized: htmlToSend.length,
+        compressionRatio: Math.round((htmlToSend.length / currentHtml.length) * 100) + '%'
+      })
+    } else {
+      // For section-specific edits, use advanced optimization
+      optimization = optimizeHTMLForAI(currentHtml, targetSections)
+      htmlToSend = optimization.optimizedHtml
+      
+      console.log('📊 Section-specific edit - HTML optimization:', {
+        originalLength: currentHtml.length,
+        optimizedLength: optimization.optimizedHtml.length,
+        compressionRatio: optimization.compressionRatio + '%',
+        sectionsFound: optimization.sections.map(s => s.name),
+        targetSections
+      })
+    }
+
     // Prepare the prompt for Claude
     const prompt = `You are a professional HTML editor for sales pages. The user wants to make specific changes to their existing sales page.
 
-🚨 CRITICAL REQUIREMENTS - READ CAREFULLY:
+🚨 CRITICAL REQUIREMENTS:
+- You MUST respond ONLY in valid JSON format
 - You MUST return the COMPLETE, FULL HTML document with all changes applied
 - Do NOT return partial HTML or snippets - return the ENTIRE page from <!DOCTYPE html> to </html>
-- The response MUST include ALL sections: header, hero, features, pricing, footer, etc.
-- Preserve all existing styling, scripts, and functionality unless specifically asked to change them
-- Make ONLY the changes requested by the user
-- Ensure the returned HTML is ready to display in an iframe
-- DO NOT remove any attributes that start with data-wp- (data-wp-bind, data-wp-slot, data-wp-component)
-- DO NOT remove comment markers like <!-- WP:DYNAMIC-START --> and <!-- WP:DYNAMIC-END -->
-- You may change text inside elements with data-wp-bind, but leave the attributes in place
-
-❌ WRONG: Returning only the changed section
-✅ CORRECT: Returning the complete HTML document with changes applied
+- Make the requested changes to the HTML structure and content
+- Preserve all CSS placeholders (/* CSS_BLOCK_X */), CSS link placeholders (<!-- CSS_LINK_X -->), script placeholders (<!-- SCRIPT_BLOCK_X -->), and data-wp- attributes
+- Return the complete modified HTML document with all placeholders intact
+${isFullPage ? '- This is a FULL PAGE edit - make changes throughout the entire document' : `- Focus on the ${targetSections.join(', ')} section(s) based on the user's request`}
 
 User's request: "${message}"
 
-CURRENT COMPLETE HTML DOCUMENT:
-${currentHtml}
+${isFullPage ? 'COMPLETE HTML DOCUMENT' : 'OPTIMIZED HTML'} (CSS and scripts are preserved as placeholders):
+${htmlToSend}
 
-INSTRUCTIONS:
-1. Read the user's request carefully
-2. Make the requested changes to the HTML
-3. Return the COMPLETE modified HTML document (from <!DOCTYPE html> to </html>)
-4. Explain what you changed in a brief message
-
-You MUST respond in this exact JSON format:
+RESPOND ONLY IN THIS JSON FORMAT (no additional text):
 {
-  "message": "Brief explanation of what I changed",
-  "updatedHtml": "THE COMPLETE FULL HTML DOCUMENT WITH YOUR CHANGES APPLIED - STARTING WITH <!DOCTYPE html> AND ENDING WITH </html>"
-}
-
-🚨 FINAL WARNING: The "updatedHtml" field must contain the ENTIRE HTML document, not just the changed parts! If you return partial HTML, the website will break!`
+  "message": "Brief explanation of changes made",
+  "updatedHtml": "THE COMPLETE MODIFIED HTML DOCUMENT WITH ALL PLACEHOLDERS INTACT - MUST START WITH <!DOCTYPE html> AND END WITH </html>"
+}`
 
     // Try multiple models with fallback
     let openRouterData: any = null
@@ -120,8 +177,9 @@ You MUST respond in this exact JSON format:
           body: JSON.stringify({
             model: model,
             messages: [{ role: 'user', content: prompt }],
-            temperature: 0.3,
-            max_tokens: 16000
+            temperature: 0.1,
+            max_tokens: 32000,
+            response_format: { type: "json_object" }
           })
         })
 
@@ -171,29 +229,55 @@ You MUST respond in this exact JSON format:
     try {
       const response = JSON.parse(assistantMessage)
       
-      // Validate that we got a complete HTML document
-      if (response.updatedHtml && !response.updatedHtml.includes('<!DOCTYPE html>')) {
-        console.warn('⚠️ Claude returned incomplete HTML, requesting complete document...')
+      if (response.updatedHtml) {
+        // Restore CSS and scripts to the modified HTML
+        let restoredHtml = restoreOptimizedHTML(
+          response.updatedHtml,
+          optimization.cssBlocks,
+          optimization.cssLinks,
+          optimization.scriptBlocks
+        )
+        
+        // For section-specific edits, merge changes back into full HTML
+        if (!isFullPage && targetSections.length > 0 && optimization.sections && optimization.sections.length > 0) {
+          restoredHtml = mergeChangesIntoFullHTML(currentHtml, restoredHtml, targetSections)
+        }
+        
+        // Validate that we got a complete HTML document
+        if (!restoredHtml.includes('<!DOCTYPE html>') || !restoredHtml.includes('</html>')) {
+          console.warn('⚠️ Claude returned incomplete HTML document')
+          return NextResponse.json({
+            message: "I need to provide a complete HTML document. The response was incomplete. Please try again.",
+            updatedHtml: null
+          })
+        }
+        
+        console.log('✅ Returning response:', {
+          message: response.message?.substring(0, 100) + '...',
+          hasUpdatedHtml: !!restoredHtml,
+          htmlLength: restoredHtml?.length || 0,
+          originalLength: currentHtml.length,
+          editType: isFullPage ? 'full-page' : 'section-specific',
+          sectionsModified: targetSections
+        })
+        
         return NextResponse.json({
-          message: "I need to provide a complete HTML document. Let me try again with the full page.",
+          message: response.message,
+          updatedHtml: restoredHtml
+        })
+      } else {
+        return NextResponse.json({
+          message: response.message || "I made the changes but couldn't return the updated HTML. Please try again.",
           updatedHtml: null
         })
       }
-      
-      console.log('✅ Returning response:', {
-        message: response.message?.substring(0, 100) + '...',
-        hasUpdatedHtml: !!response.updatedHtml,
-        htmlLength: response.updatedHtml?.length || 0
-      })
-      
-      return NextResponse.json({
-        message: response.message,
-        updatedHtml: response.updatedHtml
-      })
     } catch (parseError) {
+      console.error('❌ Failed to parse Claude response as JSON:', parseError)
+      console.log('Raw response:', assistantMessage.substring(0, 500) + '...')
+      
       // If Claude didn't respond in JSON format, just return the message
       return NextResponse.json({
-        message: assistantMessage,
+        message: "I understand your request, but I had trouble formatting my response properly. Please try rephrasing your request.",
         updatedHtml: null
       })
     }
