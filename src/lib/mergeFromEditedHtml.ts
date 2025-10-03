@@ -35,7 +35,7 @@ export function mergeFromEditedHtml(
     const path = $(el).attr('data-wp-bind')
     if (!path) return
     // Prefer text content; if element is input/textarea, read value/placeholder
-    const tag = el.tagName?.toLowerCase()
+    const tag = (el as any).tagName?.toLowerCase()
     let text = ''
     if (tag === 'input' || tag === 'textarea') {
       text = ($(el).val() as string) ?? ''

@@ -12,7 +12,7 @@ type ComposeOpts = {
   inlineCss?: string | null // pass default inlined CSS (from your default row) here
 }
 
-function absolutizeUrls($: cheerio.CheerioAPI, base?: string | null) {
+function absolutizeUrls($: any, base?: string | null) {
   if (!base) return
   const toAbs = (url?: string | null) => {
     if (!url) return url
@@ -21,29 +21,29 @@ function absolutizeUrls($: cheerio.CheerioAPI, base?: string | null) {
     if (url.startsWith('/')) return base.replace(/\/+$/, '') + url
     return url // leave relative for now
   }
-  $('img[src]').each((_, el) => {
+  $('img[src]').each((_: any, el: any) => {
     const v = $(el).attr('src')
     $(el).attr('src', toAbs(v) || v!)
   })
-  $('a[href]').each((_, el) => {
+  $('a[href]').each((_: any, el: any) => {
     const v = $(el).attr('href')
     $(el).attr('href', toAbs(v) || v!)
   })
-  $('link[href]').each((_, el) => {
+  $('link[href]').each((_: any, el: any) => {
     const v = $(el).attr('href')
     $(el).attr('href', toAbs(v) || v!)
   })
-  $('[poster]').each((_, el) => {
+  $('[poster]').each((_: any, el: any) => {
     const v = $(el).attr('poster')
     $(el).attr('poster', toAbs(v) || v!)
   })
-  $('source[src], video[src]').each((_, el) => {
+  $('source[src], video[src]').each((_: any, el: any) => {
     const v = $(el).attr('src')
     $(el).attr('src', toAbs(v) || v!)
   })
 }
 
-function sanitizeDangerous($: cheerio.CheerioAPI) {
+function sanitizeDangerous($: any) {
   // Kill scripts and script-like preloads
   $('script').remove()
   $('link[rel="preload"][as="script"]').remove()
@@ -52,8 +52,8 @@ function sanitizeDangerous($: cheerio.CheerioAPI) {
 
   // Remove inline on* handlers
   $('[onload],[onclick],[onmouseover],[onerror],[onfocus],[onchange],[onsubmit],[oninput],[onunload],[onmouseenter],[onmouseleave]').each(
-    (_i, el) => {
-      const attrs = Object.keys(el.attribs || {}).filter((a) => a.toLowerCase().startsWith('on'))
+    (_i: any, el: any) => {
+      const attrs = Object.keys((el as any).attribs || {}).filter((a) => a.toLowerCase().startsWith('on'))
       for (const a of attrs) $(el).removeAttr(a)
     }
   )
@@ -168,7 +168,7 @@ export function composeFullPreview(opts: ComposeOpts): string {
   })
 
   // Replace slots with static markup from content_model
-  $('[data-wp-slot]').each((_i, el) => {
+  $('[data-wp-slot]').each((_i: any, el: any) => {
     const slot = $(el).attr('data-wp-slot')
     let replacement = ''
     if (slot === 'header') replacement = renderHeader(content_model)
