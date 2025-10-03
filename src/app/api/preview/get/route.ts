@@ -38,8 +38,12 @@ export async function POST(req: NextRequest) {
       return new Response('No preview available', { status: 404 })
     }
 
-    // Sanitize: strip all <script> tags to avoid CSP violations/hangs
-    const sanitized = html_full_preview.replace(/<script[\s\S]*?<\/script>/gi, '')
+    // Sanitize: strip scripts and script preloads to avoid CSP violations/hangs
+    const withoutScripts = html_full_preview.replace(/<script[\s\S]*?<\/script>/gi, '')
+    const withoutModulePreload = withoutScripts
+      .replace(/<link[^>]+rel=["']?modulepreload["']?[^>]*>/gi, '')
+      .replace(/<link[^>]+rel=["']?preload["']?[^>]+as=["']?script["']?[^>]*>/gi, '')
+    const sanitized = withoutModulePreload
 
     return new Response(sanitized, {
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
