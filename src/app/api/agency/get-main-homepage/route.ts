@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
       throw new Error(`Failed to fetch main homepage: ${homepageResponse.status}`)
     }
     
-    const html = await homepageResponse.text()
+    let html = await homepageResponse.text()
     console.log('✅ Fetched homepage HTML, length:', html.length)
     
     // Clean up the HTML to remove dynamic components that cause hydration issues
