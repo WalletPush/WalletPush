@@ -1,176 +1,85 @@
+// src/lib/mergeFromEditedHtml.ts
 import * as cheerio from 'cheerio'
-import set from 'lodash.set'
 
-export function mergeFromEditedHtml(editedHtml: string, baselineModel: any) {
+export type ContentModel = Record<string, any>
+
+function setDeep(obj: any, path: string, value: any) {
+  const parts = path
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean)
+
+  let cur = obj
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i]
+    if (cur[p] == null || typeof cur[p] !== 'object') {
+      // decide array vs object based on next token
+      const next = parts[i + 1]
+      cur[p] = /^\d+$/.test(next) ? [] : {}
+    }
+    cur = cur[p]
+  }
+  cur[parts[parts.length - 1]] = value
+}
+
+export function mergeFromEditedHtml(
+  editedHtml: string,
+  baselineModel: ContentModel | null | undefined
+): { html_static: string; content_model: ContentModel; updates: Record<string, string> } {
   const $ = cheerio.load(editedHtml, { decodeEntities: false })
 
   const updates: Record<string, string> = {}
+
+  // 1) Extract copy from data-wp-bind
   $('[data-wp-bind]').each((_, el) => {
     const path = $(el).attr('data-wp-bind')
     if (!path) return
-    updates[path] = $(el).text().trim()
-  })
-
-  const content_model = structuredClone(baselineModel || {})
-  for (const [path, value] of Object.entries(updates)) set(content_model, path, value)
-
-  $('[data-wp-slot]').each((_, el) => {
-    const slot = $(el).attr('data-wp-slot')
-    $(el).replaceWith(`<div data-wp-slot="${slot}"></div>`)
-  })
-
-  $('[data-wp-bind]').removeAttr('data-wp-bind')
-  $('[data-wp-component]').removeAttr('data-wp-component')
-
-  const html_static = $.html()
-  return { html_static, content_model }
-}
-
-// Simple HTML parser implementation without external dependencies
-
-export interface ContentModel {
-  header?: {
-    nav?: Array<{ label: string }>
-    cta?: { label: string }
-  }
-  pricing?: {
-    title?: string
-    subtitle?: string
-    footer?: string
-  }
-  footer?: {
-    company?: {
-      name?: string
-      description?: string
-    }
-    links?: Array<{
-      title?: string
-      items?: string[]
-    }>
-    copyright?: string
-  }
-}
-
-export function mergeFromEditedHtml(editedHtml: string, baselineModel?: ContentModel): {
-  html_static: string
-  content_model: ContentModel
-} {
-  console.log('🔄 Starting mergeFromEditedHtml...')
-  
-  const updates: Record<string, string> = {}
-  let html_static = editedHtml
-
-  // 1) Extract copy from data-wp-bind attributes using regex
-  const bindRegex = /data-wp-bind="([^"]+)"[^>]*>([^<]+)</g
-  let match
-  
-  while ((match = bindRegex.exec(editedHtml)) !== null) {
-    const path = match[1]
-    const text = match[2].trim()
-    updates[path] = text
-    console.log(`📝 Found binding: ${path} = "${text}"`)
-  }
-
-  // 2) Apply updates to a clone of the baseline content model
-  const contentModel: ContentModel = structuredClone(baselineModel || {})
-  
-  // Helper function to set nested object values
-  function setNestedValue(obj: any, path: string, value: string) {
-    const keys = path.split('.')
-    let current = obj
-    
-    for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i]
-      const arrayMatch = key.match(/^(\w+)\[(\d+)\]$/)
-      
-      if (arrayMatch) {
-        const arrayKey = arrayMatch[1]
-        const index = parseInt(arrayMatch[2])
-        
-        if (!current[arrayKey]) current[arrayKey] = []
-        if (!current[arrayKey][index]) current[arrayKey][index] = {}
-        current = current[arrayKey][index]
-      } else {
-        if (!current[key]) current[key] = {}
-        current = current[key]
-      }
-    }
-    
-    const lastKey = keys[keys.length - 1]
-    const arrayMatch = lastKey.match(/^(\w+)\[(\d+)\]$/)
-    
-    if (arrayMatch) {
-      const arrayKey = arrayMatch[1]
-      const index = parseInt(arrayMatch[2])
-      
-      if (!current[arrayKey]) current[arrayKey] = []
-      current[arrayKey][index] = value
+    // Prefer text content; if element is input/textarea, read value/placeholder
+    const tag = el.tagName?.toLowerCase()
+    let text = ''
+    if (tag === 'input' || tag === 'textarea') {
+      text = ($(el).val() as string) ?? ''
+      if (!text) text = $(el).attr('placeholder') ?? ''
     } else {
-      current[lastKey] = value
+      text = $(el).text()
     }
-  }
+    text = text.replace(/\s+/g, ' ').trim()
+    updates[path] = text
+  })
 
-  // Apply all updates
+  // 2) Apply updates to a clone of baseline content model
+  const content_model: ContentModel = baselineModel
+    ? JSON.parse(JSON.stringify(baselineModel))
+    : {}
+
   for (const [path, value] of Object.entries(updates)) {
-    setNestedValue(contentModel, path, value)
+    setDeep(content_model, path, value)
   }
 
   // 3) Replace dynamic blocks with slot placeholders
-  const slotRegex = /<[^>]+data-wp-slot="([^"]+)"[^>]*>[\s\S]*?<\/[^>]+>/g
-  html_static = html_static.replace(slotRegex, (match, slotName) => {
-    console.log(`🔌 Replaced slot: ${slotName}`)
+  // We support either explicit <div data-wp-slot="..."> in the edited HTML
+  // or wrappers annotated by comments (WP:DYNAMIC-START/END).
+  // If dynamic wrappers still exist, reduce them to plain slot placeholders.
+  $('[data-wp-slot]').each((_, el) => {
+    const slot = $(el).attr('data-wp-slot') || ''
+    $(el).replaceWith(`<div data-wp-slot="${slot}"></div>`)
+  })
+
+  // Also strip comment-wrapped regions down to a slot if found.
+  // Example:
+  // <!-- WP:DYNAMIC-START header --> ... <!-- WP:DYNAMIC-END header -->
+  const htmlStr = $.html()
+  const slotRe = /<!--\s*WP:DYNAMIC-START\s+([a-zA-Z0-9_-]+)\s*-->[\s\S]*?<!--\s*WP:DYNAMIC-END\s+\1\s*-->/g
+  const html_after_comment_simplify = htmlStr.replace(slotRe, (_m, slotName) => {
     return `<div data-wp-slot="${slotName}"></div>`
   })
+  const _$ = cheerio.load(html_after_comment_simplify, { decodeEntities: false })
 
-  // 4) Remove bind markers from static sections (optional cleanup)
-  html_static = html_static.replace(/data-wp-bind="[^"]*"/g, '')
-  html_static = html_static.replace(/data-wp-component="[^"]*"/g, '')
-  
-  console.log('✅ Merge complete:', {
-    updatesCount: Object.keys(updates).length,
-    contentModelKeys: Object.keys(contentModel),
-    htmlLength: html_static.length
-  })
-  
-  return { html_static, content_model: contentModel }
-}
+  // 4) Cleanup markers in the remaining static content
+  _$('[data-wp-bind]').removeAttr('data-wp-bind')
+  _$('[data-wp-component]').removeAttr('data-wp-component')
 
-// Default content model for new agencies
-export function getDefaultContentModel(): ContentModel {
-  return {
-    header: {
-      nav: [
-        { label: 'Home' },
-        { label: 'Features' },
-        { label: 'Pricing' }
-      ],
-      cta: { label: 'Get Started' }
-    },
-    pricing: {
-      title: 'Simple, Transparent Pricing',
-      subtitle: 'Choose the plan that fits your business. No hidden fees, no long-term contracts.',
-      footer: 'All plans include 14-day free trial • No setup fees • Cancel anytime'
-    },
-    footer: {
-      company: {
-        name: 'WalletPush',
-        description: 'Digital wallet solutions for modern businesses.'
-      },
-      links: [
-        {
-          title: 'Product',
-          items: ['Features', 'Pricing']
-        },
-        {
-          title: 'Support',
-          items: ['Help Center', 'Contact']
-        },
-        {
-          title: 'Legal',
-          items: ['Privacy', 'Terms']
-        }
-      ],
-      copyright: '© 2024 WalletPush. All rights reserved.'
-    }
-  }
+  const html_static = _$.html()
+
+  return { html_static, content_model, updates }
 }
