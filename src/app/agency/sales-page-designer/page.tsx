@@ -8,8 +8,7 @@ import {
   DocumentDuplicateIcon,
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline'
-import { createClient } from '@/lib/supabase/client'
-import { mergeFromEditedHtml, getDefaultContentModel } from '@/lib/mergeFromEditedHtml'
+import { getDefaultContentModel } from '@/lib/mergeFromEditedHtml'
 import { withPreviewCSS } from '@/lib/utils'
 
 interface HomePageData {
@@ -47,95 +46,44 @@ export default function SalesPageDesignerPage() {
     console.log('🏠 Starting loadHomePage function...')
     setIsLoading(true)
     try {
-      console.log('🔧 Creating Supabase client...')
-      const supabase = createClient()
-      
-      console.log('🔐 Getting session...')
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      console.log('🔐 Session result:', { hasSession: !!session, userEmail: session?.user?.email })
-      
-      if (!session) {
-        console.error('❌ Not authenticated')
-        setIsLoading(false)
-        return
-      }
+      // Fire-and-forget: ensure agency has homepage row (server handles auth)
+      fetch('/api/agency/ensure-homepage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => {}) // ignore errors, it's just a bootstrap
 
-      // Get the agency account ID first (may be null for owner)
-      console.log('🏢 Getting agency account...')
-      const { data: fetchedAgencyAccountId, error: agencyError } = await supabase.rpc('get_or_create_agency_account')
-      
-      console.log('🏢 Agency account result:', { agencyAccountId: fetchedAgencyAccountId, error: agencyError?.message })
-      
-      if (agencyError) {
-        console.error('❌ Failed to get agency account:', agencyError)
+      // Get agency account ID from server (handles auth internally)
+      const accountRes = await fetch('/api/agency/account')
+      if (!accountRes.ok) {
+        console.error('❌ Failed to get agency account')
         setIsLoading(false)
         return
       }
-      
-      // fetchedAgencyAccountId can be null for the owner - that's fine
+      const { agencyAccountId: fetchedAgencyAccountId } = await accountRes.json()
       setAgencyAccountId(fetchedAgencyAccountId)
 
-      // Look for existing home page (page_type = 'home' or page_slug = 'home' or 'index')
-      const { data: existingHomePage, error: fetchError } = await supabase
-        .from('agency_sales_pages')
-        .select('*')
-        .eq('agency_account_id', fetchedAgencyAccountId)
-        .or('page_type.eq.home,page_slug.eq.home,page_slug.eq.index')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single()
+      // Load preview HTML (server handles database lookup)
+      const previewRes = await fetch('/api/preview/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agency_id: fetchedAgencyAccountId })
+      })
+      const html = await previewRes.text()
+      setCurrentHtml(html)
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error fetching home page:', fetchError)
-        setIsLoading(false)
-        return
+      // Create temp homepage data for UI
+      const tempHomePageData = {
+        id: fetchedAgencyAccountId ? 'agency-homepage' : 'temp-main-homepage',
+        agency_account_id: fetchedAgencyAccountId,
+        page_name: fetchedAgencyAccountId ? 'Agency Home Page' : 'Main Website Home Page (Global Template)',
+        page_title: fetchedAgencyAccountId ? 'Agency Home Page' : 'Main Website Home Page',
+        page_subtitle: fetchedAgencyAccountId ? 'Your customized homepage' : 'This is the global template. Changes will be saved as agency-specific when you edit.',
+        html_content: html,
+        is_published: false,
+        updated_at: new Date().toISOString()
       }
-
-      if (existingHomePage) {
-        // Use preview API to fetch full styled HTML (agency-specific)
-        const res = await fetch('/api/preview/get', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agency_id: fetchedAgencyAccountId })
-        })
-        const html = await res.text()
-        console.log('✅ Preview HTML loaded for agency')
-        setHomePageData(existingHomePage)
-        setCurrentHtml(html)
-      } else {
-        // No agency page yet: load default preview HTML (golden row)
-        console.log('📥 Loading default preview (golden row)')
-        const res = await fetch('/api/preview/get', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agency_id: null })
-        })
-        const html = await res.text()
-        setCurrentHtml(html)
-        const tempHomePageData = {
-          id: 'temp-main-homepage',
-          agency_account_id: fetchedAgencyAccountId,
-          page_name: 'Main Website Home Page (Global Template)',
-          page_type: 'home',
-          page_slug: 'home',
-          page_title: 'Main Website Home Page',
-          page_subtitle: 'This is the global template. Changes will be saved as agency-specific when you edit.',
-          headline: 'Main Website Home Page',
-          subheadline: 'This is the global template. Changes will be saved as agency-specific when you edit.',
-          call_to_action: 'Edit This Page',
-          html_content: html,
-          is_published: false,
-          updated_at: new Date().toISOString(),
-          template_style: 'main-website',
-          primary_color: '#2563eb',
-          secondary_color: '#64748b',
-          accent_color: '#10b981',
-          font_family: 'Inter'
-        }
-        setHomePageData(tempHomePageData)
-        return
-      }
+      setHomePageData(tempHomePageData)
+      
     } catch (error) {
       console.error('❌ CRITICAL ERROR in loadHomePage:', error)
       console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
@@ -232,89 +180,26 @@ export default function SalesPageDesignerPage() {
 
     setIsSaving(true)
     try {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
+      // Use server-side save API (handles auth and database operations)
+      const saveRes = await fetch('/api/agency/sales-pages/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agency_account_id: agencyAccountId,
+          edited_html: currentHtml,
+          baseline_content_model: getDefaultContentModel()
+        })
+      })
+
+      if (!saveRes.ok) {
+        const errorData = await saveRes.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Save failed')
+      }
+
+      const result = await saveRes.json()
+      console.log('✅ Save successful:', result)
       
-      if (!session) {
-        alert('You must be logged in to save the home page.')
-        return
-      }
-
-      // Get the agency account ID
-      const { data: fetchedAgencyAccountId, error: agencyError } = await supabase.rpc('get_or_create_agency_account')
-      
-      if (agencyError || !fetchedAgencyAccountId) {
-        throw new Error('Failed to get agency account')
-      }
-
-      if (homePageData.id === 'temp-main-homepage') {
-        // This is the global template - create a new agency-specific page
-        console.log('💾 Creating new agency-specific home page from global template...')
-        
-        // Use merge function to extract content model from edited HTML
-        const { html_static, content_model } = mergeFromEditedHtml(currentHtml, getDefaultContentModel())
-        
-        const newAgencyHomePage = {
-          agency_account_id: fetchedAgencyAccountId,
-          page_name: 'Agency Home Page',
-          page_type: 'home',
-          page_slug: 'home',
-          page_title: 'Agency Home Page',
-          page_subtitle: 'Customized from main website',
-          headline: 'Agency Home Page',
-          subheadline: 'Customized version of the main website',
-          call_to_action: 'Get Started Today',
-          html_content: html_static, // Save the static HTML with slot placeholders
-          content_model: JSON.stringify(content_model), // Store extracted content model
-          is_published: true,
-          meta_title: 'Agency Home Page',
-          meta_description: 'Agency-specific home page',
-          template_style: 'agency-custom',
-          primary_color: '#2563eb',
-          secondary_color: '#64748b',
-          accent_color: '#10b981',
-          font_family: 'Inter'
-        }
-
-        const { data: newHomePage, error: insertError } = await supabase
-          .from('agency_sales_pages')
-          .insert([newAgencyHomePage])
-          .select()
-          .single()
-
-        if (insertError) {
-          console.error('Error creating agency home page:', insertError)
-          throw new Error(insertError.message)
-        }
-
-        console.log('✅ Created new agency home page:', newHomePage.id)
-        setHomePageData(newHomePage)
-        alert('Home page saved as agency-specific page and published successfully!')
-        
-      } else {
-        // Update the existing agency-specific home page
-        console.log('💾 Updating existing agency home page...')
-        
-        // Use merge function to extract content model from edited HTML
-        const { html_static, content_model } = mergeFromEditedHtml(currentHtml, getDefaultContentModel())
-        
-        const { error: updateError } = await supabase
-          .from('agency_sales_pages')
-          .update({
-            html_content: html_static, // Save the static HTML with slot placeholders
-            content_model: JSON.stringify(content_model), // Store extracted content model
-            is_published: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', homePageData.id)
-
-        if (updateError) {
-          console.error('Error updating home page:', updateError)
-          throw new Error(updateError.message)
-        }
-
-        alert('Home page updated and published successfully!')
-      }
+      alert('Home page saved and published successfully!')
       
       // Refresh the home page data
       await loadHomePage()
@@ -333,14 +218,6 @@ export default function SalesPageDesignerPage() {
     setIsChatting(true)
     
     try {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        alert('You must be logged in to chat with Claude.')
-        return
-      }
-
       // Add user message to chat history
       const userMessage = { role: 'user' as const, content: chatMessage }
       setChatHistory(prev => [...prev, userMessage])
@@ -350,8 +227,7 @@ export default function SalesPageDesignerPage() {
       const response = await fetch('/api/agency/chat-edit', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: messageToSend,
