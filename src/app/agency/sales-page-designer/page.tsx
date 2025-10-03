@@ -450,17 +450,11 @@ export default function SalesPageDesignerPage() {
               </div>
               
               <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
-                {currentHtml ? (
-                  <iframe
-                    srcDoc={currentHtml}
-                    className="w-full h-full rounded-lg"
-                    title="Home Page Preview"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-slate-500">
-                    Home page preview will appear here
-                  </div>
-                )}
+                <iframe
+                  src={`/api/preview/get?_=${Date.now()}`}
+                  className="w-full h-full rounded-lg"
+                  title="Home Page Preview"
+                />
               </div>
             </div>
 

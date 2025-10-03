@@ -1,10 +1,15 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import sanitizePreviewHtml from '@/lib/preview/sanitize'
 import { createClient } from '@supabase/supabase-js'
 
-export async function POST(req: NextRequest) {
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const runtime = 'nodejs'
+
+export async function GET(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({})) as { agency_id?: string | null }
-    const agencyId = body?.agency_id ?? null
+    const { searchParams } = new URL(req.url)
+    const agencyId = searchParams.get('agency_account_id')
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,32 +40,33 @@ export async function POST(req: NextRequest) {
     }
 
     if (!html_full_preview) {
-      return new Response('No preview available', { status: 404 })
+      return new NextResponse('<!doctype html><html><body>No preview available</body></html>', { status: 200, headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store'
+      }})
     }
 
-    // Sanitize aggressively to prevent any network/script loads in preview HTML
-    let sanitized = html_full_preview
-      // Remove any inline/external scripts
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
-      // Remove script-related preloads
-      .replace(/<link[^>]+rel=["']?modulepreload["']?[^>]*>/gi, '')
-      .replace(/<link[^>]+rel=["']?preload["']?[^>]+as=["']?script["']?[^>]*>/gi, '')
-      // Remove prefetch/prerender/dns-prefetch/preconnect which can pull external deps
-      .replace(/<link[^>]+rel=["']?(prefetch|prerender|dns-prefetch|preconnect)["']?[^>]*>/gi, '')
-      // Remove any link tags that point to Next.js chunks just in case
-      .replace(/<link[^>]+href=["'][^"']*_next\/static\/[^"']+["'][^>]*>/gi, '')
-      // Remove embeds that could load externals
-      .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
-      .replace(/<(object|embed|video|audio|source|track)[\s\S]*?<\/(object|video|audio)>/gi, '')
-      // Strip event handler attributes like onload, onclick, etc.
-      .replace(/ on[a-z]+="[^"]*"/gi, '')
-      .replace(/ on[a-z]+='[^']*'/gi, '')
+    const safe = sanitizePreviewHtml(html_full_preview)
 
-    return new Response(sanitized, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    return new NextResponse(safe, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': [
+          "default-src 'none'",
+          "img-src https: data:",
+          "style-src https: data: 'unsafe-inline'",
+          "font-src https: data:",
+          "frame-ancestors 'self'",
+          "base-uri 'self'",
+          "form-action 'none'",
+          "connect-src 'none'"
+        ].join('; ')
+      }
     })
   } catch (e) {
-    return new Response('Preview error', { status: 500 })
+    return new NextResponse('Preview error', { status: 500 })
   }
 }
 
