@@ -1,129 +1,122 @@
 // src/app/api/preview/get/route.ts
-import 'server-only'
-import { NextRequest, NextResponse } from 'next/server'
-import * as cheerio from 'cheerio'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { load as loadHtml } from 'cheerio'
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic' // don't prerender this
+export const dynamic = 'force-dynamic'
 
-function admin() {
+function supabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  if (!url || !key) throw new Error('Missing Supabase envs')
   return createClient(url, key, { auth: { persistSession: false } })
 }
 
-function sanitizePreview(html: string, assetsBase?: string) {
-  const $ = cheerio.load(html, { decodeEntities: false })
+function cspHeader() {
+  // allow Tailwind CDN + Google Fonts so preview matches live exactly
+  const csp =
+    "default-src 'self'; " +
+    "img-src * data: blob:; " +
+    "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com data:; " +
+    "font-src 'self' data: https://fonts.gstatic.com; " +
+    "script-src 'none'; connect-src 'none'; frame-ancestors 'self'; base-uri 'self'"
+  return csp
+}
 
-  // Nuke all scripts + script preloads
+function sanitizePreview(html: string) {
+  const $ = loadHtml(html, { decodeEntities: false })
+
+  // strip all scripts so iframe never hangs or spams console
   $('script').remove()
   $('link[rel="modulepreload"]').remove()
   $('link[rel="preload"][as="script"]').remove()
 
-  // Remove inline handlers (onclick, onload, etc.)
-  $('*').each((_, el) => {
-    const attribs = (el as any).attribs || {}
-    for (const name of Object.keys(attribs)) {
-      if (name.toLowerCase().startsWith('on')) {
-        $(el).removeAttr(name)
-      }
-    }
-  })
-
-  // Remove <base> (avoids CSP base-uri errors)
+  // base tags sometimes trip base-uri; remove to be safe
   $('base').remove()
 
-  // Absolutize relative asset URLs if we have a base
-  if (assetsBase) {
-    $('*[src], *[href], *[poster]').each((_, el) => {
-      const $el = $(el)
-      const attr = $el.attr('src') !== undefined ? 'src'
-        : $el.attr('href') !== undefined ? 'href'
-        : 'poster'
-      const val = $el.attr(attr)
-      if (!val) return
-      if (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:') || val.startsWith('blob:') || val.startsWith('#')) return
-      if (val.startsWith('/')) $el.attr(attr, assetsBase + val)
-    })
-  }
+  // keep Google Fonts; CSP allows them above
+  // (if you want to hard-remove external fonts, nuke lines below instead)
+  // $('link[rel="stylesheet"][href*="fonts.googleapis.com"]').remove()
+  // $('link[href*="fonts.gstatic.com"]').remove()
+
+  // kill inline handlers
+  $('[onclick],[onload],[onerror],[onmouseover],[onfocus],[onblur]').each((_, el) => {
+    const attribs = Object.keys(el.attribs || {})
+    for (const a of attribs) if (a.startsWith('on')) $(el).removeAttr(a)
+  })
 
   return $.html()
 }
 
+async function getPreviewHtml(agency_account_id?: string | null) {
+  const sb = supabaseAdmin()
+
+  // choose row:
+  // 1) agency's latest home/index (if agency provided)
+  // 2) else default row (is_default=true)
+  if (agency_account_id) {
+    const { data, error } = await sb
+      .from('agency_sales_pages')
+      .select(
+        'id, html_full_preview, html_static, content_model, page_slug, page_title'
+      )
+      .eq('agency_account_id', agency_account_id)
+      .or('page_type.eq.home,page_slug.eq.home,page_slug.eq.index')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+    if (error) throw error
+    if (data && data[0]?.html_full_preview) return data[0].html_full_preview as string
+  }
+
+  // fallback: default row
+  const { data: d2, error: e2 } = await sb
+    .from('agency_sales_pages')
+    .select('id, html_full_preview')
+    .eq('is_default', true)
+    .limit(1)
+  if (e2) throw e2
+  const html = d2?.[0]?.html_full_preview
+  if (html) return html as string
+
+  // last resort: minimal banner so iframe never "hangs"
+  return `<!doctype html><html><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.tailwindcss.com">
+<title>WalletPush Preview</title>
+</head><body class="p-8">
+<div class="rounded-md border border-amber-200 bg-amber-50 p-4">
+  <div class="font-semibold text-amber-900">No preview found</div>
+  <div class="text-amber-800 text-sm">Save once in the designer to generate a styled preview.</div>
+</div>
+</body></html>`
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const supabase = admin()
     const { searchParams } = new URL(req.url)
-    const agencyId = searchParams.get('agency_account_id') || null
+    const agency_account_id = searchParams.get('agency_account_id')
 
-    let row: any = null
+    const raw = await getPreviewHtml(agency_account_id)
+    const html = sanitizePreview(raw)
 
-    if (agencyId) {
-      // Try agency row first
-      const { data, error } = await supabase
-        .from('agency_sales_pages')
-        .select('id, html_full_preview, html_static, content_model, assets_base, updated_at')
-        .eq('agency_account_id', agencyId)
-        .or('page_type.eq.home,page_slug.eq.home,page_slug.eq.index')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (error) throw error
-      row = data
-    }
-
-    if (!row) {
-      // Fallback to default row for owner / new agencies
-      const { data, error } = await supabase
-        .from('agency_sales_pages')
-        .select('id, html_full_preview, html_static, content_model, assets_base, updated_at')
-        .eq('is_default', true)
-        .maybeSingle()
-      if (error) throw error
-      row = data
-    }
-
-    if (!row) {
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>No preview</title>
-      <style>body{font-family:system-ui,Arial;padding:24px;color:#0f172a}</style></head>
-      <body><h1>No preview available</h1><p>Add a default row in <code>agency_sales_pages</code> with <code>is_default=true</code>.</p></body></html>`
-      return new NextResponse(html, {
-        status: 404,
-        headers: {
-          'content-type': 'text/html; charset=utf-8',
-          'x-preview': 'missing'
-        }
-      })
-    }
-
-    // Prefer full preview; fallback to static if needed
-    const rawHtml: string =
-      row.html_full_preview || row.html_static || '<!doctype html><html><body>Empty</body></html>'
-
-    const sanitized = sanitizePreview(rawHtml, row.assets_base || undefined)
-
-    // Lock the iframe: allow CSS/images, block scripts/connect
-    const csp =
-      "default-src 'self'; img-src * data: blob:; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com data:; " +
-      "font-src * data:; script-src 'none'; connect-src 'none'; frame-ancestors 'self'; base-uri 'self'"
-
-    return new NextResponse(sanitized, {
+    const res = new NextResponse(html, {
       status: 200,
       headers: {
-        'content-type': 'text/html; charset=utf-8',
-        'content-security-policy': csp,
-        'x-preview': row.id
-      }
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Security-Policy': cspHeader(),
+        'X-Robots-Tag': 'noindex, nofollow',
+      },
     })
+    return res
   } catch (e: any) {
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Preview error</title></head>
-    <body><pre>${(e?.message || 'Preview error').toString()}</pre></body></html>`
-    return new NextResponse(html, {
-      status: 500,
-      headers: { 'content-type': 'text/html; charset=utf-8' }
-    })
+    return new NextResponse(
+      `<!doctype html><html><body><pre>${e?.message || 'Preview error'}</pre></body></html>`,
+      { status: 200, headers: { 'Content-Type': 'text/html' } }
+    )
   }
+}
+
+// kill 405: treat POST like GET
+export async function POST(req: NextRequest) {
+  return GET(req)
 }

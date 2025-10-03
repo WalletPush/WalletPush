@@ -20,6 +20,7 @@ interface HomePageData {
   html_content: string
   is_published: boolean
   updated_at: string
+  agency_account_id?: string | null
 }
 
 export default function SalesPageDesignerPage() {
@@ -455,16 +456,19 @@ export default function SalesPageDesignerPage() {
               
               <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
                 {(() => {
-                  // Build preview URL — only include agency param if we have one
-                  const agencyIdParam = agencyAccountId ?? ''
                   const qs = new URLSearchParams()
-                  if (agencyIdParam) qs.set('agency_account_id', agencyIdParam)
-                  qs.set('_', String(Date.now())) // bust cache
-                  const previewUrl = `/api/preview/get${qs.toString() ? `?${qs.toString()}` : ''}`
-                  
+                  // prefer the row's agency id; else use whatever you already had in state
+                  const aid =
+                    homePageData?.agency_account_id ??
+                    agencyAccountId ?? // your existing var if you have one
+                    ''
+                  if (aid) qs.set('agency_account_id', aid)
+                  // cache-bust
+                  qs.set('_', String(Date.now()))
+                  const src = `/api/preview/get?${qs.toString()}`
                   return (
                     <iframe
-                      src={previewUrl}
+                      src={src}
                       className="w-full h-full rounded-lg"
                       title="Home Page Preview"
                     />
