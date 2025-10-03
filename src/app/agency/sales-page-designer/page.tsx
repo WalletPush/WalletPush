@@ -456,7 +456,7 @@ export default function SalesPageDesignerPage() {
               <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
                 {(() => {
                   // Build preview URL — only include agency param if we have one
-                  const agencyIdParam = homePageData?.agency_account_id ?? agencyAccountId ?? ''
+                  const agencyIdParam = agencyAccountId ?? ''
                   const qs = new URLSearchParams()
                   if (agencyIdParam) qs.set('agency_account_id', agencyIdParam)
                   qs.set('_', String(Date.now())) // bust cache

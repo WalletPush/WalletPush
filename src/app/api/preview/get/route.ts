@@ -1,7 +1,7 @@
 // src/app/api/preview/get/route.ts
 import 'server-only'
 import { NextRequest, NextResponse } from 'next/server'
-import cheerio from 'cheerio'
+import * as cheerio from 'cheerio'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
