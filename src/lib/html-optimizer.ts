@@ -108,7 +108,7 @@ export function extractHTMLSections(html: string): HTMLSection[] {
     { name: 'pricing', regex: /<section[^>]*>[\s\S]*?\$\d+[\s\S]*?<\/section>/gi }
   ]
   
-  [...sectionPatterns, ...contentPatterns].forEach(pattern => {
+  sectionPatterns.concat(contentPatterns).forEach(pattern => {
     let match
     while ((match = pattern.regex.exec(html)) !== null) {
       // Avoid duplicates
