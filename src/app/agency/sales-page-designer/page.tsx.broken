@@ -9,7 +9,6 @@ import {
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline'
 import { createClient } from '@/lib/supabase/client'
-import { mergeFromEditedHtml, getDefaultContentModel } from '@/lib/mergeFromEditedHtml'
 
 interface HomePageData {
   id: string
@@ -29,11 +28,6 @@ export default function SalesPageDesignerPage() {
   const [chatHistory, setChatHistory] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
   const [isChatting, setIsChatting] = useState(false)
   const [currentHtml, setCurrentHtml] = useState('')
-  const [originalHtml, setOriginalHtml] = useState('') // Store the original dynamic HTML
-
-  // For now, let's use a simpler approach: save the edited HTML as-is
-  // This means the first agency to edit will "own" the template, 
-  // but other agencies will still get the dynamic version until they edit it
 
   // Load the current home page on component mount
   useEffect(() => {
@@ -105,9 +99,9 @@ export default function SalesPageDesignerPage() {
           
           console.log('✅ Successfully loaded main homepage HTML')
           
-          // Set the processed HTML for preview and original for saving
-          setCurrentHtml(homepageResult.html) // Processed HTML with agency branding
-          setOriginalHtml(homepageResult.originalHtml) // Original dynamic HTML for saving
+          // Set the HTML directly without saving to database yet
+          // This becomes agency-specific only when they save changes
+          setCurrentHtml(homepageResult.html)
           
           // Create a temporary home page data object for the UI
           const tempHomePageData = {
@@ -298,9 +292,6 @@ export default function SalesPageDesignerPage() {
         // This is the global template - create a new agency-specific page
         console.log('💾 Creating new agency-specific home page from global template...')
         
-        // Use merge function to extract content model from edited HTML
-        const { html_static, content_model } = mergeFromEditedHtml(currentHtml, getDefaultContentModel())
-        
         const newAgencyHomePage = {
           agency_account_id: agencyAccountId,
           page_name: 'Agency Home Page',
@@ -311,8 +302,7 @@ export default function SalesPageDesignerPage() {
           headline: 'Agency Home Page',
           subheadline: 'Customized version of the main website',
           call_to_action: 'Get Started Today',
-          html_content: html_static, // Save the static HTML with slot placeholders
-          content_model: JSON.stringify(content_model), // Store extracted content model
+          html_content: currentHtml,
           is_published: true,
           meta_title: 'Agency Home Page',
           meta_description: 'Agency-specific home page',
@@ -342,14 +332,10 @@ export default function SalesPageDesignerPage() {
         // Update the existing agency-specific home page
         console.log('💾 Updating existing agency home page...')
         
-        // Use merge function to extract content model from edited HTML
-        const { html_static, content_model } = mergeFromEditedHtml(currentHtml, getDefaultContentModel())
-        
         const { error: updateError } = await supabase
           .from('agency_sales_pages')
           .update({
-            html_content: html_static, // Save the static HTML with slot placeholders
-            content_model: JSON.stringify(content_model), // Store extracted content model
+            html_content: currentHtml,
             is_published: true,
             updated_at: new Date().toISOString()
           })
@@ -420,11 +406,7 @@ export default function SalesPageDesignerPage() {
       
       // Update the HTML if Claude provided an updated version
       if (data.updatedHtml) {
-        console.log('🔄 Updating HTML with Claude response:', data.updatedHtml.substring(0, 200) + '...')
         setCurrentHtml(data.updatedHtml)
-        console.log('✅ HTML updated successfully')
-      } else {
-        console.log('⚠️ No updatedHtml in response:', data)
       }
       
     } catch (error) {
@@ -591,6 +573,7 @@ export default function SalesPageDesignerPage() {
             </button>
           </div>
         )}
+          </div>
         </div>
       </div>
     </div>

@@ -9,7 +9,8 @@ import {
   UserGroupIcon,
   CogIcon,
   SparklesIcon,
-  UserIcon
+  UserIcon,
+  HomeIcon
 } from '@heroicons/react/24/outline'
 import { DynamicLogo } from '@/components/branding/DynamicLogo'
 

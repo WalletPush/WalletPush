@@ -25,16 +25,45 @@ import {
 import Link from 'next/link'
 import Image from 'next/image'
 import { DynamicLogo } from '@/components/branding/DynamicLogo'
+import AgencyHomepageRenderer from '@/components/AgencyHomepageRenderer'
 
 export default function HomePage() {
   const [isVisible, setIsVisible] = useState(false)
   const [packages, setPackages] = useState<any[]>([])
   const [loadingPackages, setLoadingPackages] = useState(true)
+  const [agencyHomepage, setAgencyHomepage] = useState<any>(null)
+  const [loadingAgency, setLoadingAgency] = useState(true)
 
   useEffect(() => {
     setIsVisible(true)
     loadPackages()
+    loadAgencyHomepage()
   }, [])
+
+  const loadAgencyHomepage = async () => {
+    try {
+      // Check if there's an agency context (from URL params or domain)
+      const urlParams = new URLSearchParams(window.location.search)
+      const agencyId = urlParams.get('agency_id')
+      
+      if (!agencyId) {
+        setLoadingAgency(false)
+        return
+      }
+
+      const response = await fetch(`/api/agency/resolve-homepage?agency_id=${agencyId}`)
+      const data = await response.json()
+
+      if (data.success) {
+        console.log('✅ Agency homepage loaded:', data)
+        setAgencyHomepage(data)
+      }
+    } catch (error) {
+      console.error('Error loading agency homepage:', error)
+    } finally {
+      setLoadingAgency(false)
+    }
+  }
 
   const scrollToPricing = () => {
     const pricingSection = document.getElementById('pricing-section')
@@ -65,6 +94,24 @@ export default function HomePage() {
       setLoadingPackages(false)
       console.log('🏁 Package loading finished')
     }
+  }
+
+  // If we have an agency homepage, render it instead of the default
+  if (agencyHomepage && !loadingAgency) {
+    console.log('🎯 Rendering AgencyHomepageRenderer with:', agencyHomepage)
+    return <AgencyHomepageRenderer homepage={agencyHomepage} />
+  }
+
+  // Show loading while checking for agency homepage
+  if (loadingAgency) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading homepage...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
