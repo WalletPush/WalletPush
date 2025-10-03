@@ -28,8 +28,40 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (error || !salesPage) {
-      console.log('📥 No custom homepage found, serving default')
-      // Serve default homepage
+      console.log('📥 No custom homepage found, serving branded fallback template')
+      
+      // 🚀 RESTORE WORKING SYSTEM: Get main homepage with agency branding
+      try {
+        const protocol = request.headers.get('x-forwarded-proto') || 'http'
+        const host = request.headers.get('host') || 'localhost:3000'
+        const baseUrl = `${protocol}://${host}`
+        
+        console.log('🌐 Fetching branded homepage from get-main-homepage API...')
+        const homepageResponse = await fetch(`${baseUrl}/api/agency/get-main-homepage?agency_account_id=${agencyId}`, {
+          headers: {
+            'User-Agent': 'WalletPush-Agency-Serve'
+          }
+        })
+        
+        if (homepageResponse.ok) {
+          const homepageData = await homepageResponse.json()
+          if (homepageData.success && homepageData.html) {
+            console.log('✅ Serving branded fallback homepage')
+            return new NextResponse(homepageData.html, {
+              headers: {
+                'Content-Type': 'text/html',
+                'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+              },
+            })
+          }
+        }
+        
+        console.log('⚠️ Fallback API failed, using basic template')
+      } catch (fallbackError) {
+        console.error('❌ Error fetching branded fallback:', fallbackError)
+      }
+      
+      // Final fallback - basic template
       return new NextResponse(`
         <!DOCTYPE html>
         <html>
@@ -41,8 +73,8 @@ export async function GET(request: NextRequest) {
         <body class="bg-gray-50">
           <div class="min-h-screen flex items-center justify-center">
             <div class="text-center">
-              <h1 class="text-4xl font-bold text-gray-900 mb-4">Welcome to our agency</h1>
-              <p class="text-xl text-gray-600">Custom homepage coming soon...</p>
+              <h1 class="text-4xl font-bold text-gray-900 mb-4">Welcome</h1>
+              <p class="text-xl text-gray-600">Loading your branded homepage...</p>
             </div>
           </div>
         </body>
