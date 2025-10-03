@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         originalLength: currentHtml.length,
         optimizedLength: optimization.optimizedHtml.length,
         compressionRatio: optimization.compressionRatio + '%',
-        sectionsFound: optimization.sections.map(s => s.name),
+        sectionsFound: optimization.sections.map((s: any) => s.name),
         targetSections
       })
     }
