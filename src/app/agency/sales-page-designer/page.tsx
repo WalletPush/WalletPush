@@ -24,6 +24,7 @@ interface HomePageData {
 
 export default function SalesPageDesignerPage() {
   const [homePageData, setHomePageData] = useState<HomePageData | null>(null)
+  const [agencyAccountId, setAgencyAccountId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [chatMessage, setChatMessage] = useState('')
@@ -61,21 +62,23 @@ export default function SalesPageDesignerPage() {
 
       // Get the agency account ID first
       console.log('🏢 Getting agency account...')
-      const { data: agencyAccountId, error: agencyError } = await supabase.rpc('get_or_create_agency_account')
+      const { data: fetchedAgencyAccountId, error: agencyError } = await supabase.rpc('get_or_create_agency_account')
       
-      console.log('🏢 Agency account result:', { agencyAccountId, error: agencyError?.message })
+      console.log('🏢 Agency account result:', { agencyAccountId: fetchedAgencyAccountId, error: agencyError?.message })
       
-      if (agencyError || !agencyAccountId) {
+      if (agencyError || !fetchedAgencyAccountId) {
         console.error('❌ Failed to get agency account:', agencyError)
         setIsLoading(false)
         return
       }
+      
+      setAgencyAccountId(fetchedAgencyAccountId)
 
       // Look for existing home page (page_type = 'home' or page_slug = 'home' or 'index')
       const { data: existingHomePage, error: fetchError } = await supabase
         .from('agency_sales_pages')
         .select('*')
-        .eq('agency_account_id', agencyAccountId)
+        .eq('agency_account_id', fetchedAgencyAccountId)
         .or('page_type.eq.home,page_slug.eq.home,page_slug.eq.index')
         .order('updated_at', { ascending: false })
         .limit(1)
@@ -92,7 +95,7 @@ export default function SalesPageDesignerPage() {
         const res = await fetch('/api/preview/get', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agency_id: agencyAccountId })
+          body: JSON.stringify({ agency_id: fetchedAgencyAccountId })
         })
         const html = await res.text()
         console.log('✅ Preview HTML loaded for agency')
@@ -110,7 +113,7 @@ export default function SalesPageDesignerPage() {
         setCurrentHtml(html)
         const tempHomePageData = {
           id: 'temp-main-homepage',
-          agency_account_id: agencyAccountId,
+          agency_account_id: fetchedAgencyAccountId,
           page_name: 'Main Website Home Page (Global Template)',
           page_type: 'home',
           page_slug: 'home',
@@ -236,9 +239,9 @@ export default function SalesPageDesignerPage() {
       }
 
       // Get the agency account ID
-      const { data: agencyAccountId, error: agencyError } = await supabase.rpc('get_or_create_agency_account')
+      const { data: fetchedAgencyAccountId, error: agencyError } = await supabase.rpc('get_or_create_agency_account')
       
-      if (agencyError || !agencyAccountId) {
+      if (agencyError || !fetchedAgencyAccountId) {
         throw new Error('Failed to get agency account')
       }
 
@@ -250,7 +253,7 @@ export default function SalesPageDesignerPage() {
         const { html_static, content_model } = mergeFromEditedHtml(currentHtml, getDefaultContentModel())
         
         const newAgencyHomePage = {
-          agency_account_id: agencyAccountId,
+          agency_account_id: fetchedAgencyAccountId,
           page_name: 'Agency Home Page',
           page_type: 'home',
           page_slug: 'home',
@@ -451,7 +454,7 @@ export default function SalesPageDesignerPage() {
               
               <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
                 <iframe
-                  src={`/api/preview/get?agency_account_id=${encodeURIComponent(String(homePageData?.agency_account_id || ''))}&_=${Date.now()}`}
+                  src={`/api/preview/get?agency_account_id=${encodeURIComponent(String(agencyAccountId || ''))}&_=${Date.now()}`}
                   className="w-full h-full rounded-lg"
                   title="Home Page Preview"
                 />
