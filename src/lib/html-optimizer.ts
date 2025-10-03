@@ -109,10 +109,10 @@ export function extractHTMLSections(html: string): HTMLSection[] {
   ]
   
   sectionPatterns.concat(contentPatterns).forEach(pattern => {
-    let match
+    let match: RegExpExecArray | null
     while ((match = pattern.regex.exec(html)) !== null) {
       // Avoid duplicates
-      if (!sections.find(s => s.name === pattern.name && s.startIndex === match.index)) {
+      if (!sections.find(s => s.name === pattern.name && s.startIndex === match!.index)) {
         sections.push({
           name: pattern.name,
           content: match[0],
