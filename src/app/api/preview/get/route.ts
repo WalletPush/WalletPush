@@ -38,12 +38,23 @@ export async function POST(req: NextRequest) {
       return new Response('No preview available', { status: 404 })
     }
 
-    // Sanitize: strip scripts and script preloads to avoid CSP violations/hangs
-    const withoutScripts = html_full_preview.replace(/<script[\s\S]*?<\/script>/gi, '')
-    const withoutModulePreload = withoutScripts
+    // Sanitize aggressively to prevent any network/script loads in preview HTML
+    let sanitized = html_full_preview
+      // Remove any inline/external scripts
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      // Remove script-related preloads
       .replace(/<link[^>]+rel=["']?modulepreload["']?[^>]*>/gi, '')
       .replace(/<link[^>]+rel=["']?preload["']?[^>]+as=["']?script["']?[^>]*>/gi, '')
-    const sanitized = withoutModulePreload
+      // Remove prefetch/prerender/dns-prefetch/preconnect which can pull external deps
+      .replace(/<link[^>]+rel=["']?(prefetch|prerender|dns-prefetch|preconnect)["']?[^>]*>/gi, '')
+      // Remove any link tags that point to Next.js chunks just in case
+      .replace(/<link[^>]+href=["'][^"']*_next\/static\/[^"']+["'][^>]*>/gi, '')
+      // Remove embeds that could load externals
+      .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+      .replace(/<(object|embed|video|audio|source|track)[\s\S]*?<\/(object|video|audio)>/gi, '')
+      // Strip event handler attributes like onload, onclick, etc.
+      .replace(/ on[a-z]+="[^"]*"/gi, '')
+      .replace(/ on[a-z]+='[^']*'/gi, '')
 
     return new Response(sanitized, {
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
