@@ -52,9 +52,9 @@ async function getPreviewHtml(agency_account_id?: string | null) {
   const sb = supabaseAdmin()
 
   // choose row:
-  // 1) agency's latest home/index (if agency provided)
+  // 1) agency's latest home/index (if agency provided and not empty)
   // 2) else default row (is_default=true)
-  if (agency_account_id) {
+  if (agency_account_id && agency_account_id.trim() !== '') {
     const { data, error } = await sb
       .from('agency_sales_pages')
       .select(

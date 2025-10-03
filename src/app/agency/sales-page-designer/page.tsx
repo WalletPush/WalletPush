@@ -340,8 +340,9 @@ export default function SalesPageDesignerPage() {
                   const aid =
                     homePageData?.agency_account_id ??
                     agencyAccountId ?? // your existing var if you have one
-                    ''
-                  if (aid) qs.set('agency_account_id', aid)
+                    null
+                  // Always include agency_account_id parameter (even if null for owner)
+                  qs.set('agency_account_id', aid || '')
                   // cache-bust
                   qs.set('_', String(Date.now()))
                   const src = `/api/preview/get?${qs.toString()}`
