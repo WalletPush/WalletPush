@@ -1,3 +1,4 @@
+import 'server-only'
 import { JSDOM } from 'jsdom'
 import { renderToString } from 'react-dom/server'
 import React from 'react'
