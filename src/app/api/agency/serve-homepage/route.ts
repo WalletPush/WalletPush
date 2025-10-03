@@ -32,9 +32,8 @@ export async function GET(request: NextRequest) {
       
       // 🚀 RESTORE WORKING SYSTEM: Get main homepage with agency branding
       try {
-        const protocol = request.headers.get('x-forwarded-proto') || 'http'
-        const host = request.headers.get('host') || 'localhost:3000'
-        const baseUrl = `${protocol}://${host}`
+        // Use walletpush.io to avoid infinite loops with custom domains
+        const baseUrl = 'https://walletpush.io'
         
         console.log('🌐 Fetching branded homepage from get-main-homepage API...')
         const homepageResponse = await fetch(`${baseUrl}/api/agency/get-main-homepage?agency_account_id=${agencyId}`, {

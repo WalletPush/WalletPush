@@ -100,13 +100,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const agencyAccountId = searchParams.get('agency_account_id')
     
-    // Fetch the actual main homepage from the system
-    const protocol = request.headers.get('x-forwarded-proto') || 'http'
-    const host = request.headers.get('host') || 'localhost:3000'
-    const baseUrl = `${protocol}://${host}`
+    // Fetch the actual main homepage from WalletPush (not the current domain to avoid loops)
+    const walletpushUrl = 'https://walletpush.io'
     
-    console.log('🌐 Fetching main homepage from:', `${baseUrl}/`)
-    const homepageResponse = await fetch(`${baseUrl}/`, {
+    console.log('🌐 Fetching main homepage from WalletPush:', walletpushUrl)
+    const homepageResponse = await fetch(walletpushUrl, {
       headers: {
         'User-Agent': 'WalletPush-Agency-Homepage'
       }

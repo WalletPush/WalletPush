@@ -56,9 +56,8 @@ export async function GET(request: NextRequest) {
     console.log('📥 No custom homepage found, loading main website with agency branding...')
     
     // Get the main homepage HTML with agency-specific processing
-    const protocol = request.headers.get('x-forwarded-proto') || 'http'
-    const host = request.headers.get('host') || 'localhost:3000'
-    const baseUrl = `${protocol}://${host}`
+    // Use walletpush.io to avoid infinite loops with custom domains
+    const baseUrl = 'https://walletpush.io'
     
     const homepageResponse = await fetch(`${baseUrl}/api/agency/get-main-homepage?agency_account_id=${agencyAccountId}`, {
       headers: {
