@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
       return new Response('No preview available', { status: 404 })
     }
 
-    return new Response(html_full_preview, {
+    // Sanitize: strip all <script> tags to avoid CSP violations/hangs
+    const sanitized = html_full_preview.replace(/<script[\s\S]*?<\/script>/gi, '')
+
+    return new Response(sanitized, {
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
     })
   } catch (e) {

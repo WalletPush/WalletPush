@@ -59,7 +59,13 @@ async function main() {
   const res = await fetch(ORIGIN, { headers: { 'user-agent': 'WP-Snapshot/1.0' } })
   if (!res.ok) throw new Error(`Fetch failed: ${res.status}`)
   let html = await res.text()
-  const html_full_preview = await inlineCss(html, ORIGIN)
+  let html_full_preview = await inlineCss(html, ORIGIN)
+  // Remove all scripts to satisfy CSP and keep preview static
+  {
+    const $ = cheerio.load(html_full_preview, { decodeEntities: false })
+    $('script').remove()
+    html_full_preview = $.html()
+  }
   const html_static = makeSlottedHtml(html_full_preview)
 
   const content_model = {
@@ -68,27 +74,50 @@ async function main() {
     footer: { company: { name: 'WalletPush', description: '' }, links: [], copyright: '© WalletPush' }
   }
 
-  // Upsert default row – ensure only one default
-  // Clear existing default flag if needed (optional; unique partial index should enforce one)
-  await supabase.from('agency_sales_pages').update({ is_default: false }).eq('is_default', true)
+  // Update existing default row if present; otherwise insert
+  const { data: existingDefault, error: fetchErr } = await supabase
+    .from('agency_sales_pages')
+    .select('id')
+    .eq('is_default', true)
+    .single()
 
-  const { error } = await supabase.from('agency_sales_pages').insert({
-    is_default: true,
-    page_name: 'DEFAULT',
-    page_type: 'home',
-    page_slug: 'home',
-    page_title: 'WalletPush — Loyalty & Wallet Passes',
-    headline: 'Turn customers into loyal members',
-    call_to_action: 'Get Started',
-    is_published: true,
-    html_full_preview,
-    html_static,
-    content_model,
-    assets_base: ORIGIN
-  })
-
-  if (error) throw error
-  console.log('✅ Inserted default preview row successfully')
+  if (fetchErr == null && existingDefault) {
+    const { error: updErr } = await supabase
+      .from('agency_sales_pages')
+      .update({
+        page_name: 'DEFAULT',
+        page_type: 'home',
+        page_slug: 'home',
+        page_title: 'WalletPush — Loyalty & Wallet Passes',
+        headline: 'Turn customers into loyal members',
+        call_to_action: 'Get Started',
+        is_published: true,
+        html_full_preview,
+        html_static,
+        content_model,
+        assets_base: ORIGIN
+      })
+      .eq('id', existingDefault.id)
+    if (updErr) throw updErr
+    console.log('✅ Updated default preview row successfully')
+  } else {
+    const { error: insErr } = await supabase.from('agency_sales_pages').insert({
+      is_default: true,
+      page_name: 'DEFAULT',
+      page_type: 'home',
+      page_slug: 'home',
+      page_title: 'WalletPush — Loyalty & Wallet Passes',
+      headline: 'Turn customers into loyal members',
+      call_to_action: 'Get Started',
+      is_published: true,
+      html_full_preview,
+      html_static,
+      content_model,
+      assets_base: ORIGIN
+    })
+    if (insErr) throw insErr
+    console.log('✅ Inserted default preview row successfully')
+  }
 }
 
 main().catch((e) => {
