@@ -452,7 +452,7 @@ export default function SalesPageDesignerPage() {
               <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
                 {currentHtml ? (
                   <iframe
-                    srcDoc={withPreviewCSS(currentHtml)}
+                    srcDoc={currentHtml}
                     className="w-full h-full rounded-lg"
                     title="Home Page Preview"
                   />
