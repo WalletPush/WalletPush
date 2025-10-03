@@ -454,11 +454,22 @@ export default function SalesPageDesignerPage() {
               </div>
               
               <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
-                <iframe
-                  src={agencyAccountId ? `/api/preview/get?agency_account_id=${encodeURIComponent(agencyAccountId)}&_=${Date.now()}` : `/api/preview/get?_=${Date.now()}`}
-                  className="w-full h-full rounded-lg"
-                  title="Home Page Preview"
-                />
+                {(() => {
+                  // Build preview URL — only include agency param if we have one
+                  const agencyIdParam = homePageData?.agency_account_id ?? agencyAccountId ?? ''
+                  const qs = new URLSearchParams()
+                  if (agencyIdParam) qs.set('agency_account_id', agencyIdParam)
+                  qs.set('_', String(Date.now())) // bust cache
+                  const previewUrl = `/api/preview/get${qs.toString() ? `?${qs.toString()}` : ''}`
+                  
+                  return (
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-full rounded-lg"
+                      title="Home Page Preview"
+                    />
+                  )
+                })()}
               </div>
             </div>
 
