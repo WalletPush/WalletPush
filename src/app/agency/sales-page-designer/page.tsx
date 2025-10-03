@@ -60,18 +60,19 @@ export default function SalesPageDesignerPage() {
         return
       }
 
-      // Get the agency account ID first
+      // Get the agency account ID first (may be null for owner)
       console.log('🏢 Getting agency account...')
       const { data: fetchedAgencyAccountId, error: agencyError } = await supabase.rpc('get_or_create_agency_account')
       
       console.log('🏢 Agency account result:', { agencyAccountId: fetchedAgencyAccountId, error: agencyError?.message })
       
-      if (agencyError || !fetchedAgencyAccountId) {
+      if (agencyError) {
         console.error('❌ Failed to get agency account:', agencyError)
         setIsLoading(false)
         return
       }
       
+      // fetchedAgencyAccountId can be null for the owner - that's fine
       setAgencyAccountId(fetchedAgencyAccountId)
 
       // Look for existing home page (page_type = 'home' or page_slug = 'home' or 'index')
@@ -454,7 +455,7 @@ export default function SalesPageDesignerPage() {
               
               <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
                 <iframe
-                  src={`/api/preview/get?agency_account_id=${encodeURIComponent(String(agencyAccountId || ''))}&_=${Date.now()}`}
+                  src={agencyAccountId ? `/api/preview/get?agency_account_id=${encodeURIComponent(agencyAccountId)}&_=${Date.now()}` : `/api/preview/get?_=${Date.now()}`}
                   className="w-full h-full rounded-lg"
                   title="Home Page Preview"
                 />
