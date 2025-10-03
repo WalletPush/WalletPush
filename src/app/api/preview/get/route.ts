@@ -41,7 +41,7 @@ function sanitizePreview(html: string) {
 
   // kill inline handlers
   $('[onclick],[onload],[onerror],[onmouseover],[onfocus],[onblur]').each((_, el) => {
-    const attribs = Object.keys(el.attribs || {})
+    const attribs = Object.keys((el as any).attribs || {})
     for (const a of attribs) if (a.startsWith('on')) $(el).removeAttr(a)
   })
 
