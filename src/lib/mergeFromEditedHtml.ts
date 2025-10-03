@@ -1,6 +1,24 @@
 // src/lib/mergeFromEditedHtml.ts
 import { load as loadHtml } from 'cheerio'
-import set from 'lodash.set'
+
+function setDeep(obj: any, path: string, value: any) {
+  const parts = path
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean)
+
+  let cur = obj
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i]
+    if (cur[p] == null || typeof cur[p] !== 'object') {
+      // decide array vs object based on next token
+      const next = parts[i + 1]
+      cur[p] = /^\d+$/.test(next) ? [] : {}
+    }
+    cur = cur[p]
+  }
+  cur[parts[parts.length - 1]] = value
+}
 
 export type ContentModel = {
   header?: {
@@ -65,7 +83,7 @@ export function mergeFromEditedHtml(editedHtml: string, baselineModel?: ContentM
   const model: ContentModel = JSON.parse(
     JSON.stringify(baselineModel ?? getDefaultContentModel())
   )
-  for (const [path, value] of Object.entries(updates)) set(model, path, value)
+  for (const [path, value] of Object.entries(updates)) setDeep(model, path, value)
 
   // 3) turn dynamic regions into slot placeholders
   $('[data-wp-slot]').each((_, el) => {
