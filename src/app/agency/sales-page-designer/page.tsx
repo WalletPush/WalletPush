@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { createClient } from '@/lib/supabase/client'
 import { mergeFromEditedHtml, getDefaultContentModel } from '@/lib/mergeFromEditedHtml'
+import { withPreviewCSS } from '@/lib/utils'
 
 interface HomePageData {
   id: string
@@ -265,7 +266,7 @@ export default function SalesPageDesignerPage() {
     if (currentHtml) {
       const newWindow = window.open('', '_blank')
       if (newWindow) {
-        newWindow.document.write(currentHtml)
+        newWindow.document.write(withPreviewCSS(currentHtml))
         newWindow.document.close()
       }
     }
@@ -504,7 +505,7 @@ export default function SalesPageDesignerPage() {
               <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
                 {currentHtml ? (
                   <iframe
-                    srcDoc={currentHtml}
+                    srcDoc={withPreviewCSS(currentHtml)}
                     className="w-full h-full rounded-lg"
                     title="Home Page Preview"
                   />

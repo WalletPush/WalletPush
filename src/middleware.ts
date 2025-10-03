@@ -350,6 +350,15 @@ async function handleCustomDomainAgencyRouting(request: NextRequest, hostname: s
     requestHeaders.set('x-agency-id', agency.id)
     requestHeaders.set('x-custom-domain', hostname)
     
+    // For root path on agency domain, serve the agency sales page
+    if (pathname === '/') {
+      return NextResponse.rewrite(new URL('/api/agency/serve-homepage', request.url), {
+        request: {
+          headers: requestHeaders
+        }
+      })
+    }
+    
     // Run authentication middleware first with the agency context
     const authResponse = await updateSession(request)
     
