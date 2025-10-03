@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentBusinessId } from '@/lib/business-context'
+import { 
+  optimizeHTMLForAI, 
+  restoreOptimizedHTML, 
+  identifyTargetSection,
+  mergeChangesIntoFullHTML
+} from '@/lib/html-optimizer'
 
 export async function POST(request: NextRequest) {
   console.log('🚀 Chat-edit API called')

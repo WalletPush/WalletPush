@@ -56,327 +56,55 @@ async function main() {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-  console.log('📸 Creating beautiful default WalletPush homepage...')
+  console.log('📸 Using actual WalletPush HTML content...')
   
-  // Create a beautiful static HTML template instead of scraping the dynamic one
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WalletPush - Modern Wallet Membership & Loyalty Platform</title>
-    <meta name="description" content="Create and manage Apple Wallet and Google Wallet membership, loyalty, and store card programs for your business.">
-    <link rel="shortcut icon" href="/images/favicon.ico">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6; 
-            color: #1e293b; 
-            background: #f8fafc;
-        }
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-        
-        /* Header */
-        .header { background: white; border-bottom: 1px solid #e2e8f0; padding: 1rem 0; }
-        .nav { display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-size: 1.5rem; font-weight: 700; color: #2563eb; }
-        .nav-links { display: flex; gap: 2rem; list-style: none; }
-        .nav-links a { text-decoration: none; color: #64748b; font-weight: 500; }
-        .nav-links a:hover { color: #2563eb; }
-        .cta-button { 
-            background: linear-gradient(135deg, #2563eb, #7c3aed); 
-            color: white; 
-            padding: 0.75rem 1.5rem; 
-            border-radius: 0.5rem; 
-            text-decoration: none; 
-            font-weight: 600;
-            transition: transform 0.2s;
-        }
-        .cta-button:hover { transform: translateY(-1px); }
-        
-        /* Hero Section */
-        .hero { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
-            padding: 100px 0; 
-            text-align: center; 
-        }
-        .hero h1 { 
-            font-size: 3.5rem; 
-            font-weight: 700; 
-            margin-bottom: 1.5rem; 
-            line-height: 1.1;
-        }
-        .hero p { 
-            font-size: 1.25rem; 
-            margin-bottom: 2rem; 
-            opacity: 0.9; 
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .hero-cta { 
-            background: #ff6b6b; 
-            color: white; 
-            padding: 1rem 2rem; 
-            border-radius: 50px; 
-            text-decoration: none; 
-            font-weight: 600; 
-            font-size: 1.1rem;
-            display: inline-block;
-            transition: all 0.3s;
-        }
-        .hero-cta:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3);
-        }
-        
-        /* Features Section */
-        .features { padding: 100px 0; background: white; }
-        .features h2 { 
-            text-align: center; 
-            font-size: 2.5rem; 
-            margin-bottom: 3rem; 
-            color: #1e293b;
-        }
-        .feature-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
-            gap: 3rem; 
-        }
-        .feature-card { 
-            background: #f8fafc; 
-            padding: 2.5rem; 
-            border-radius: 1rem; 
-            text-align: center;
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s;
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
-        .feature-icon { 
-            font-size: 3rem; 
-            margin-bottom: 1.5rem; 
-            display: block;
-        }
-        .feature-card h3 { 
-            font-size: 1.5rem; 
-            margin-bottom: 1rem; 
-            color: #2563eb; 
-        }
-        .feature-card p {
-            color: #64748b;
-            line-height: 1.6;
-        }
-        
-        /* Stats Section */
-        .stats { 
-            background: linear-gradient(135deg, #2563eb, #7c3aed); 
-            color: white; 
-            padding: 80px 0; 
-            text-align: center; 
-        }
-        .stats-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 2rem; 
-        }
-        .stat-item h3 { 
-            font-size: 3rem; 
-            font-weight: 700; 
-            margin-bottom: 0.5rem; 
-        }
-        .stat-item p { 
-            font-size: 1.1rem; 
-            opacity: 0.9; 
-        }
-        
-        /* CTA Section */
-        .cta-section { 
-            background: #1e293b; 
-            color: white; 
-            padding: 100px 0; 
-            text-align: center; 
-        }
-        .cta-section h2 { 
-            font-size: 2.5rem; 
-            margin-bottom: 1rem; 
-        }
-        .cta-section p { 
-            font-size: 1.2rem; 
-            margin-bottom: 2rem; 
-            opacity: 0.8; 
-        }
-        
-        /* Footer */
-        .footer { 
-            background: #0f172a; 
-            color: #94a3b8; 
-            padding: 60px 0 30px; 
-        }
-        .footer-content { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-            gap: 2rem; 
-            margin-bottom: 2rem; 
-        }
-        .footer h4 { 
-            color: white; 
-            margin-bottom: 1rem; 
-            font-size: 1.1rem; 
-        }
-        .footer ul { 
-            list-style: none; 
-        }
-        .footer ul li { 
-            margin-bottom: 0.5rem; 
-        }
-        .footer ul li a { 
-            color: #94a3b8; 
-            text-decoration: none; 
-        }
-        .footer ul li a:hover { 
-            color: white; 
-        }
-        .footer-bottom { 
-            border-top: 1px solid #334155; 
-            padding-top: 2rem; 
-            text-align: center; 
-        }
-        
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 2.5rem; }
-            .hero p { font-size: 1.1rem; }
-            .feature-grid { grid-template-columns: 1fr; }
-            .nav-links { display: none; }
-        }
-    </style>
-</head>
-<body>
-    <header class="header">
-        <div class="container">
-            <nav class="nav">
-                <div class="logo">WalletPush</div>
-                <ul class="nav-links">
-                    <li><a href="#features">Features</a></li>
-                    <li><a href="#pricing">Pricing</a></li>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#contact">Contact</a></li>
-                </ul>
-                <a href="#get-started" class="cta-button">Get Started</a>
-            </nav>
-        </div>
-    </header>
+  // Using the real HTML content from walletpush.io
+  const html = `<html lang="en" class="font-inter"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/_next/static/css/1d7b1fadf2d0fb3e.css?dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3" data-precedence="next"><link rel="stylesheet" href="/_next/static/css/e1cef0b85d8e6f14.css?dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3" data-precedence="next"><title>WalletPush - Modern Wallet Membership &amp; Loyalty Platform</title><meta name="description" content="Create and manage Apple Wallet and Google Wallet membership, loyalty, and store card programs for your business."><link rel="shortcut icon" href="/images/favicon.ico"><link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="32x32"><link rel="icon" href="/images/favicon.ico"><link rel="apple-touch-icon" href="/images/favicon.ico"><style>
+    .fc-progress-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .fc-progress-bar-striped {
+      background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+      background-size: 2.5rem 2.5rem;
+    }
+    .fc-progress-bar-animated {
+      animation: progress-bar-stripes 1s linear infinite;
+    }
+    @keyframes progress-bar-stripes {
+      from { background-position: 2.5rem 0; }
+      to { background-position: 0 0; }
+    }
+      
+    .fc-fadeEffect {
+    animation: fadeInOut 2s ease-in-out infinite;
+    }
 
-    <section class="hero">
-        <div class="container">
-            <h1>Transform Your Business with Digital Wallet Technology</h1>
-            <p>Create engaging Apple Wallet and Google Wallet membership, loyalty, and store card programs that drive customer retention and boost revenue.</p>
-            <a href="#get-started" class="hero-cta">Start Your Free Trial</a>
-        </div>
-    </section>
+    .fc-mb-2 {
+    margin-bottom: 12px;
+    }
 
-    <section class="features" id="features">
-        <div class="container">
-            <h2>Why Choose WalletPush?</h2>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <span class="feature-icon">🎯</span>
-                    <h3>Expert Strategy</h3>
-                    <p>Our team of digital marketing experts will craft the perfect loyalty program strategy tailored to your business goals and customer needs.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">🚀</span>
-                    <h3>Fast Implementation</h3>
-                    <p>Get your digital wallet program up and running in days, not months, with our streamlined setup process and intuitive dashboard.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">📈</span>
-                    <h3>Proven Results</h3>
-                    <p>Our clients see an average 40% increase in customer retention and 25% boost in repeat purchases within the first 90 days.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="stats">
-        <div class="container">
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <h3>10M+</h3>
-                    <p>Wallet Passes Created</p>
-                </div>
-                <div class="stat-item">
-                    <h3>500+</h3>
-                    <p>Happy Businesses</p>
-                </div>
-                <div class="stat-item">
-                    <h3>40%</h3>
-                    <p>Average Retention Increase</p>
-                </div>
-                <div class="stat-item">
-                    <h3>99.9%</h3>
-                    <p>Uptime Guarantee</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="cta-section" id="get-started">
-        <div class="container">
-            <h2>Ready to Transform Your Customer Experience?</h2>
-            <p>Join hundreds of businesses already using WalletPush to drive customer loyalty and increase revenue.</p>
-            <a href="#contact" class="hero-cta">Start Your Free Trial Today</a>
-        </div>
-    </section>
-
-    <footer class="footer" id="contact">
-        <div class="container">
-            <div class="footer-content">
-                <div>
-                    <h4>WalletPush</h4>
-                    <p>The modern platform for creating Apple Wallet and Google Wallet membership, loyalty, and store card programs.</p>
-                </div>
-                <div>
-                    <h4>Product</h4>
-                    <ul>
-                        <li><a href="#">Features</a></li>
-                        <li><a href="#">Pricing</a></li>
-                        <li><a href="#">API Documentation</a></li>
-                        <li><a href="#">Integrations</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4>Company</h4>
-                    <ul>
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="#">Blog</a></li>
-                        <li><a href="#">Careers</a></li>
-                        <li><a href="#">Contact</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4>Support</h4>
-                    <ul>
-                        <li><a href="#">Help Center</a></li>
-                        <li><a href="#">Community</a></li>
-                        <li><a href="#">Status</a></li>
-                        <li><a href="#">Security</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 WalletPush. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-</body>
-</html>`
+    @keyframes fadeInOut {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+    }
+</style><style id="_goober"> @keyframes go2264125279{from{transform:scale(0) rotate(45deg);opacity:0;}to{transform:scale(1) rotate(45deg);opacity:1;}}@keyframes go3020080000{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}@keyframes go463499852{from{transform:scale(0) rotate(90deg);opacity:0;}to{transform:scale(1) rotate(90deg);opacity:1;}}@keyframes go1268368563{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}@keyframes go1310225428{from{transform:scale(0) rotate(45deg);opacity:0;}to{transform:scale(1) rotate(45deg);opacity:1;}}@keyframes go651618207{0%{height:0;width:0;opacity:0;}40%{height:0;width:6px;opacity:1;}100%{opacity:1;height:10px;}}@keyframes go901347462{from{transform:scale(0.6);opacity:0.4;}to{transform:scale(1);opacity:1;}}.go4109123758{z-index:9999;}.go4109123758 > *{pointer-events:auto;}</style></head><body class="font-inter antialiased"><div class="min-h-screen relative overflow-hidden"><div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900"><div class="absolute inset-0 bg-[url('/images/bgimg.png')] bg-cover bg-center opacity-10"></div><div class="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-indigo-600/20"></div></div><header class="relative z-50 bg-white/10 backdrop-blur-lg border-b border-white/20"><div class="container mx-auto flex items-center justify-between h-20 px-6"><a class="flex items-center" href="/"><img alt="Logo" fetchpriority="high" width="175" height="56" decoding="async" data-nimg="1" class="h-14 w-auto object-contain" srcset="/_next/image?url=%2Fimages%2Flogowhite.png&amp;w=256&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 1x, /_next/image?url=%2Fimages%2Flogowhite.png&amp;w=384&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 2x" src="https://www.walletpush.io/_next/image?url=%2Fimages%2Flogowhite.png&amp;w=384&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3" style="color: transparent;"></a><nav class="flex items-center space-x-6"><a class="text-white/80 hover:text-white transition-colors text-sm font-medium" href="/business/auth/login">Login</a><button class="inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-9 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-full text-sm font-semibold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-white/20">Get Started Free</button></nav></div></header><section class="relative z-10 pt-20 pb-32 px-6"><div class="container mx-auto max-w-7xl"><div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center justify-items-center"><div class="flex flex-col items-center text-center max-w-2xl mx-auto lg:mx-0"><div class="mb-8 inline-flex items-center rounded-full bg-blue-600/30 text-white border border-blue-400 px-6 py-3 text-sm font-semibold backdrop-blur-sm"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles w-5 h-5 mr-3 text-yellow-400" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>Customer Loyalty &amp; Retention Made Easy</div><h1 class="text-5xl md:text-6xl font-bold mb-8 text-white leading-tight">Turn One-Time Shoppers Into<span class="block text-yellow-400 font-extrabold">Lifelong Customers</span></h1><p class="text-lg text-white mb-10 leading-relaxed max-w-xl">Acquiring a new customer costs 5× more than retaining existing ones. A 5% boost in retention can increase profits by 25-95%. WalletPush makes customer loyalty effortless.</p><div class="flex flex-col sm:flex-row gap-4"><button class="inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-9 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-10 py-4 rounded-full text-lg font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-white/20">Start Free Trial <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right ml-3 w-6 h-6" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button><button class="inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border shadow-sm hover:text-accent-foreground h-9 bg-white/10 border-white/30 text-white hover:bg-white/20 px-8 py-4 rounded-full text-lg font-semibold backdrop-blur-sm">Watch Demo <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smartphone ml-3 w-5 h-5" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path></svg></button></div><div class="mt-16 grid grid-cols-3 gap-8 text-center"><div><div class="text-3xl font-bold text-white mb-2">95%</div><div class="text-blue-200 text-sm">Retention Boost</div></div><div><div class="text-3xl font-bold text-white mb-2">10×</div><div class="text-blue-200 text-sm">Higher Redemption</div></div><div><div class="text-3xl font-bold text-white mb-2">31%</div><div class="text-blue-200 text-sm">More Spending</div></div></div></div><div class="relative lg:text-right opacity-100 translate-x-0"><div class="relative"><img alt="Digital Wallet Interface" fetchpriority="high" width="640" height="452" decoding="async" data-nimg="1" class="rounded-2xl shadow-2xl border border-white/20" srcset="/_next/image?url=%2Fimages%2FWallet02.png&amp;w=640&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 1x, /_next/image?url=%2Fimages%2FWallet02.png&amp;w=1920&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 2x" src="/_next/image?url=%2Fimages%2FWallet02.png&amp;w=1920&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3" style="color: transparent;"><div class="absolute -bottom-6 -left-6 bg-gradient-to-r from-green-400 to-blue-500 rounded-2xl p-4 shadow-2xl border border-white/20"><div class="flex items-center space-x-3"><div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up w-6 h-6 text-white" aria-hidden="true"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg></div><div><div class="text-xl font-bold text-white">$12M+</div><div class="text-white/80 text-xs">Extra Revenue</div></div></div></div></div></div></div></div></section><section class="relative z-10 py-32 px-6"><div class="absolute inset-0 bg-white"></div><div class="container mx-auto relative z-10"><div class="text-center mb-20"><h2 class="text-5xl font-bold text-gray-900 mb-6">Meet WalletPush</h2><p class="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">Your all-in-one SaaS platform for digital loyalty cards, VIP memberships, and mobile wallet marketing.<span class="font-semibold text-blue-600"> 10× faster than building an app</span>, with zero coding required.</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20"><div class="rounded-xl text-card-foreground p-8 text-center shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border-0 bg-gradient-to-br from-blue-50 to-indigo-50"><div class="flex flex-col space-y-1.5 p-6"><div class="flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl mb-6 mx-auto shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-credit-card w-10 h-10 text-white" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg></div><h3 class="tracking-tight text-2xl font-bold text-gray-900 mb-4">Digital Loyalty Cards</h3></div><div class="p-6 pt-0"><p class="text-gray-600 text-lg leading-relaxed">Ditch punch cards forever. Issue digital loyalty cards that live on customers' phones with automatic point tracking and instant rewards.</p></div></div><div class="rounded-xl text-card-foreground p-8 text-center shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border-0 bg-gradient-to-br from-purple-50 to-pink-50"><div class="flex flex-col space-y-1.5 p-6"><div class="flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl mb-6 mx-auto shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-crown w-10 h-10 text-white" aria-hidden="true"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"></path><path d="M5 21h14"></path></svg></div><h3 class="tracking-tight text-2xl font-bold text-gray-900 mb-4">VIP Memberships</h3></div><div class="p-6 pt-0"><p class="text-gray-600 text-lg leading-relaxed">Create exclusive membership tiers with special perks. 93% retention rate like Amazon Prime - turn customers into loyal members.</p></div></div><div class="rounded-xl text-card-foreground p-8 text-center shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border-0 bg-gradient-to-br from-green-50 to-emerald-50"><div class="flex flex-col space-y-1.5 p-6"><div class="flex items-center justify-center w-20 h-20 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl mb-6 mx-auto shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-gift w-10 h-10 text-white" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"></rect><path d="M12 8v13"></path><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"></path><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"></path></svg></div><h3 class="tracking-tight text-2xl font-bold text-gray-900 mb-4">Smart Offers</h3></div><div class="p-6 pt-0"><p class="text-gray-600 text-lg leading-relaxed">Send targeted offers directly to mobile wallets. 10× higher redemption rates than paper coupons with lock-screen notifications.</p></div></div></div><div class="text-center mb-20"><h3 class="text-4xl font-bold text-gray-900 mb-8">Beautiful Mobile Wallet Experiences</h3><div class="relative max-w-4xl mx-auto"><img alt="Digital Membership Cards" loading="lazy" width="800" height="500" decoding="async" data-nimg="1" class="rounded-2xl shadow-2xl" srcset="/_next/image?url=%2Fimages%2FMemberships.webp&amp;w=828&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 1x, /_next/image?url=%2Fimages%2FMemberships.webp&amp;w=1920&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 2x" src="/_next/image?url=%2Fimages%2FMemberships.webp&amp;w=1920&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3" style="color: transparent;"><div class="absolute -top-6 -right-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-4 shadow-xl"><div class="font-bold text-lg text-white">Mobile Wallet Ready</div></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><div class="text-center p-6 bg-white rounded-xl shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell w-12 h-12 text-blue-600 mx-auto mb-4" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg><h4 class="font-bold text-gray-900 mb-2">Unlimited Push Notifications</h4><p class="text-gray-600 text-sm">Free push messages to customers' lock screens</p></div><div class="text-center p-6 bg-white rounded-xl shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap w-12 h-12 text-purple-600 mx-auto mb-4" aria-hidden="true"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg><h4 class="font-bold text-gray-900 mb-2">Instant Setup</h4><p class="text-gray-600 text-sm">Go live in minutes, not months</p></div><div class="text-center p-6 bg-white rounded-xl shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-column w-12 h-12 text-green-600 mx-auto mb-4" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg><h4 class="font-bold text-gray-900 mb-2">Real-Time Analytics</h4><p class="text-gray-600 text-sm">Track performance and optimize campaigns</p></div><div class="text-center p-6 bg-white rounded-xl shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield w-12 h-12 text-red-600 mx-auto mb-4" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg><h4 class="font-bold text-gray-900 mb-2">Enterprise Security</h4><p class="text-gray-600 text-sm">Bank-level security for all customer data</p></div></div><div class="mt-32 mx-auto px-4 md:px-8 max-w-7xl"><div class="text-center mb-12 md:mb-20"><h3 class="text-3xl md:text-5xl font-bold text-gray-900 mb-4 md:mb-6 leading-tight px-2">Your Program, Your Style</h3><div class="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto"></div></div><div class="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl md:rounded-3xl p-6 md:p-12 lg:p-16 shadow-2xl border border-gray-100"><div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-center max-w-6xl mx-auto"><div class="order-2 lg:order-1 space-y-6 md:space-y-8"><p class="text-xl md:text-2xl font-semibold text-gray-800 leading-relaxed">With us, you're in full control.</p><div class="space-y-4 md:space-y-6"><p class="text-base md:text-lg text-gray-600 leading-relaxed">Whether you want to reward customer check-ins, launch a refer-a-friend campaign, encourage social shares, or create something entirely your own - our flexible <span class="font-semibold text-blue-600">Program Configurator</span> makes it effortless.</p><p class="text-base md:text-lg text-gray-600 leading-relaxed">Design loyalty, membership, or store card programs that reflect your brand and engage your customers the way you want. No cookie-cutter templates - just your vision, powered by our smart tools.</p></div><div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0 pt-4"><div class="flex items-center space-x-2"><div class="w-3 h-3 bg-green-500 rounded-full"></div><span class="text-sm font-medium text-gray-700">Fully Customizable</span></div><div class="flex items-center space-x-2"><div class="w-3 h-3 bg-blue-500 rounded-full"></div><span class="text-sm font-medium text-gray-700">No Coding Required</span></div><div class="flex items-center space-x-2"><div class="w-3 h-3 bg-purple-500 rounded-full"></div><span class="text-sm font-medium text-gray-700">Live in Minutes</span></div></div></div><div class="order-1 lg:order-2"><div class="relative group"><div class="absolute -inset-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div><div class="relative"><img alt="Your Program, Your Style" loading="lazy" width="600" height="400" decoding="async" data-nimg="1" class="rounded-2xl shadow-2xl w-full h-auto transform group-hover:scale-105 transition-transform duration-500" srcset="/_next/image?url=%2Fimages%2Fyourstyle.png&amp;w=640&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 1x, /_next/image?url=%2Fimages%2Fyourstyle.png&amp;w=1200&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 2x" src="/_next/image?url=%2Fimages%2Fyourstyle.png&amp;w=1200&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3" style="color: transparent;"><div class="absolute -bottom-4 md:-bottom-6 -right-4 md:-right-6 bg-gradient-to-r from-green-400 to-blue-500 rounded-2xl p-3 md:p-4 shadow-xl"><div class="flex items-center space-x-2 md:space-x-3"><div class="w-8 md:w-10 h-8 md:h-10 bg-white/20 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-target w-4 md:w-5 h-4 md:h-5 text-white" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div><div><div class="text-sm md:text-lg font-bold text-white">Your Brand</div><div class="text-white/80 text-xs">Your Rules</div></div></div></div></div></div></div></div></div></div></div></section><section id="pricing-section" class="relative z-10 py-32 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900"><div class="container mx-auto"><div class="text-center mb-16"><h2 class="text-5xl font-bold text-white mb-6">Simple, Transparent Pricing</h2><p class="text-xl text-white max-w-3xl mx-auto">Choose the plan that fits your business. No hidden fees, no long-term contracts.</p></div><div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"><div class="p-8 rounded-xl relative bg-white/10 backdrop-blur-lg border border-white/20"><div class="text-center text-white"><h3 class="text-2xl font-bold mb-4 text-white">Starter</h3><div class="mb-6"><span class="text-4xl font-bold text-white">$49</span><span class="text-white">/month</span></div><p class="text-white mb-8">Perfect for small businesses getting started</p></div><div class="space-y-4 text-white"><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Up to 500 active passes</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Push Notifications</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Advanced Analytics</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Custom Branding</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Email Support</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">White-label Domain</span></div><div class="pt-6"><a href="/business/auth/sign-up?package=8d3b7c8c-aa39-4fe6-8789-d939ae4ed519"><button class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow hover:bg-primary/90 h-9 px-4 w-full py-3 rounded-full font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white">Start Free Trial</button></a></div></div></div><div class="p-8 rounded-xl relative bg-gradient-to-br from-blue-600 to-purple-600 transform scale-105 border-2 border-yellow-400"><div class="absolute -top-4 left-1/2 transform -translate-x-1/2"><div class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-full text-sm font-bold">MOST POPULAR</div></div><div class="text-center text-white"><h3 class="text-2xl font-bold mb-4 text-white">Business</h3><div class="mb-6"><span class="text-4xl font-bold text-white">$97</span><span class="text-white">/month</span></div><p class="text-white mb-8">Ideal for growing businesses with multiple programs</p></div><div class="space-y-4 text-white"><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-300" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Up to 1000 active passes</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-300" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Push Notifications</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-300" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Advanced Analytics</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-300" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">API Access</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-300" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Custom Branding</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-300" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Priority Support</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-300" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">White-label Domain</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-300" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">SMTP Configuration</span></div><div class="pt-6"><a href="/business/auth/sign-up?package=b6a7f6b2-7bdc-43c2-b0a3-eaf227e13617"><button class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow h-9 px-4 w-full py-3 rounded-full bg-white text-blue-600 hover:bg-gray-100 font-bold">Start Free Trial</button></a></div></div></div><div class="p-8 rounded-xl relative bg-white/10 backdrop-blur-lg border border-white/20"><div class="text-center text-white"><h3 class="text-2xl font-bold mb-4 text-white">Pro</h3><div class="mb-6"><span class="text-4xl font-bold text-white">$197</span><span class="text-white">/month</span></div><p class="text-white mb-8">Full-featured solution for enterprise businesses</p></div><div class="space-y-4 text-white"><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Up to 3000 active passes</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Push Notifications</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Advanced Analytics</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">API Access</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Custom Branding</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Webhook Support</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Priority Support</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">White-label Domain</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">SMTP Configuration</span></div><div class="flex items-center space-x-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big w-5 h-5 text-green-400" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><span class="text-white">Multi-location Support</span></div><div class="pt-6"><a href="/business/auth/sign-up?package=9adb55bf-c2e6-4f39-bad2-361f16756a28"><button class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow hover:bg-primary/90 h-9 px-4 w-full py-3 rounded-full font-semibold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white">Start Free Trial</button></a></div></div></div></div><div class="text-center mt-12"><p class="text-white mb-4">All plans include 14-day free trial • No setup fees • Cancel anytime</p><div class="flex justify-center items-center space-x-8 text-sm text-white"><div class="flex items-center text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield w-4 h-4 mr-2 text-white" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg><span class="text-white">Enterprise Security</span></div><div class="flex items-center text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap w-4 h-4 mr-2 text-white" aria-hidden="true"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg><span class="text-white">99.9% Uptime SLA</span></div><div class="flex items-center text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users w-4 h-4 mr-2 text-white" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg><span class="text-white">24/7 Support</span></div></div></div></div></section><section class="relative z-10 py-20 px-6 bg-gradient-to-r from-gray-50 to-blue-50"><div class="container mx-auto text-center"><h3 class="text-3xl font-bold text-gray-900 mb-12">Trusted by Businesses Worldwide</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-8"><div class="bg-white p-8 rounded-xl shadow-lg"><div class="text-4xl font-bold text-blue-600 mb-2">$12M+</div><div class="text-gray-600">Extra Revenue Generated</div></div><div class="bg-white p-8 rounded-xl shadow-lg"><div class="text-4xl font-bold text-purple-600 mb-2">500K+</div><div class="text-gray-600">Loyalty Members</div></div><div class="bg-white p-8 rounded-xl shadow-lg"><div class="text-4xl font-bold text-green-600 mb-2">98%</div><div class="text-gray-600">Customer Satisfaction</div></div></div></div></section><section class="relative z-10 py-32 px-6"><div class="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900"><div class="absolute inset-0 bg-[url('/images/bgimg.png')] bg-cover bg-center opacity-10"></div></div><div class="container mx-auto text-center relative z-10"><h2 class="text-5xl md:text-6xl font-bold text-white mb-8 leading-tight">Ready to <span class="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Transform</span> Your Business?</h2><p class="text-xl text-blue-100/90 mb-12 max-w-3xl mx-auto leading-relaxed">Join thousands of businesses using WalletPush to create loyal customers and drive repeat sales. No contracts, no setup fees - start your free trial today.</p><div class="flex flex-col sm:flex-row gap-6 justify-center items-center"><button class="inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-9 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-12 py-5 rounded-full text-xl font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-white/20">Start Free Trial <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right ml-3 w-6 h-6" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></button><div class="text-blue-200 text-sm">✓ No credit card required  ✓ 14-day free trial  ✓ Cancel anytime</div></div></div></section><footer class="relative z-10 bg-gray-900 text-white py-16 px-6"><div class="container mx-auto"><div class="text-center mb-8"><div class="flex items-center justify-center mb-6"><img alt="Logo" fetchpriority="high" width="175" height="56" decoding="async" data-nimg="1" class="h-12 w-auto object-contain" srcset="/_next/image?url=%2Fimages%2Flogowhite.png&amp;w=256&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 1x, /_next/image?url=%2Fimages%2Flogowhite.png&amp;w=384&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3 2x" src="https://www.walletpush.io/_next/image?url=%2Fimages%2Flogowhite.png&amp;w=384&amp;q=75&amp;dpl=dpl_BxYACq5PD8ec7rrBinh3tVcw7Px3" style="color: transparent;"></div><p class="text-gray-400 text-lg mb-6">The future of customer loyalty is digital</p><div class="flex justify-center space-x-8 text-sm"><a class="text-gray-400 hover:text-white transition-colors" href="/privacy">Privacy Policy</a><a class="text-gray-400 hover:text-white transition-colors" href="/terms">Terms of Service</a><a class="text-gray-400 hover:text-white transition-colors" href="/contact">Contact</a></div></div><div class="border-t border-gray-800 pt-8 text-center"><p class="text-gray-500 text-sm">© 2025 WalletPush. All rights reserved. Built with 💜 for businesses that care about their customers.</p></div></div></footer></div></body></html>`
   
-  let html_full_preview = html // Already has inline CSS, no scripts to remove
+  // Process the HTML: inline CSS and remove scripts
+  console.log('🔧 Processing HTML: inlining CSS and removing scripts...')
+  let html_full_preview = await inlineCss(html, ORIGIN)
+  
+  // Remove all scripts to prevent CSP issues
+  html_full_preview = html_full_preview.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+  html_full_preview = html_full_preview.replace(/<script[^>]*\/>/gi, '')
+  html_full_preview = html_full_preview.replace(/<link[^>]+rel=["']preload["'][^>]*as=["']script["'][^>]*>/gi, '')
+  html_full_preview = html_full_preview.replace(/<link[^>]+rel=["']modulepreload["'][^>]*>/gi, '')
+  
+  console.log('✅ HTML processed successfully')
   const html_static = makeSlottedHtml(html_full_preview)
 
   const content_model = {
