@@ -83,3 +83,52 @@ export function mergeFromEditedHtml(
 
   return { html_static, content_model, updates }
 }
+
+export function getDefaultContentModel(): ContentModel {
+  return {
+    header: {
+      logoUrl: '/placeholder-logo.png',
+      nav: [
+        { label: 'Home', href: '#' },
+        { label: 'Pricing', href: '#pricing' },
+        { label: 'Features', href: '#features' }
+      ],
+      cta: { label: 'Get Started', href: '#get-started' }
+    },
+    pricing: {
+      title: 'Simple pricing',
+      plans: [
+        {
+          name: 'Starter',
+          priceText: '$9/mo',
+          features: ['1 team member', 'Basic analytics', 'Email support'],
+          ctaLabel: 'Choose Starter',
+          ctaHref: '#'
+        },
+        {
+          name: 'Growth',
+          priceText: '$29/mo',
+          features: ['5 team members', 'Advanced analytics', 'Priority support'],
+          ctaLabel: 'Choose Growth',
+          ctaHref: '#'
+        },
+        {
+          name: 'Scale',
+          priceText: '$99/mo',
+          features: ['Unlimited team', 'Custom reports', 'SLAs'],
+          ctaLabel: 'Choose Scale',
+          ctaHref: '#'
+        }
+      ]
+    },
+    footer: {
+      company: { name: 'WalletPush' },
+      year: new Date().getFullYear(),
+      links: [
+        { label: 'Privacy', href: '/privacy' },
+        { label: 'Terms', href: '/terms' },
+        { label: 'Contact', href: '/contact' }
+      ]
+    }
+  }
+}
