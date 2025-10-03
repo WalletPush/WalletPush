@@ -46,12 +46,6 @@ export default function SalesPageDesignerPage() {
     console.log('🏠 Starting loadHomePage function...')
     setIsLoading(true)
     try {
-      // Fire-and-forget: ensure agency has homepage row (server handles auth)
-      fetch('/api/agency/ensure-homepage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      }).catch(() => {}) // ignore errors, it's just a bootstrap
-
       // Get agency account ID from server (handles auth internally)
       const accountRes = await fetch('/api/agency/account')
       if (!accountRes.ok) {
@@ -59,8 +53,17 @@ export default function SalesPageDesignerPage() {
         setIsLoading(false)
         return
       }
-      const { agencyAccountId: fetchedAgencyAccountId } = await accountRes.json()
+      const accountData = await accountRes.json()
+      const fetchedAgencyAccountId = accountData.agency?.id || null
       setAgencyAccountId(fetchedAgencyAccountId)
+
+      // Fire-and-forget: ensure agency has homepage row (server handles auth)
+      if (fetchedAgencyAccountId) {
+        fetch(`/api/agency/ensure-homepage?agency_account_id=${fetchedAgencyAccountId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }).catch(() => {}) // ignore errors, it's just a bootstrap
+      }
 
       // Load preview HTML (server handles database lookup)
       const previewRes = await fetch('/api/preview/get', {
