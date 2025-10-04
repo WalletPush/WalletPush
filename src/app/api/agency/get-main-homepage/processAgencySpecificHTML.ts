@@ -62,21 +62,19 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
     if (packages && packages.length > 0) {
       const pricingHTML = generatePricingHTML(packages)
       
-      // 🚀 FIX DUPLICATE PRICING: Only replace the main pricing grid, not multiple sections
-      // First try to replace just the pricing grid within a section
-      const gridReplaced = html.replace(
-        /<div class="grid grid-cols-1 md:grid-cols-[23] gap-8[^>]*>[\s\S]*?<\/div>/gi,
+      // 🚀 CONSERVATIVE FIX: Only replace ONE specific pricing pattern to avoid duplicates
+      // Look for the exact 3-column pricing grid pattern and replace it ONCE
+      const originalLength = html.length
+      
+      html = html.replace(
+        /<div class="grid grid-cols-1 md:grid-cols-3 gap-8[^>]*>[\s\S]*?<\/div>/i,
         pricingHTML
       )
       
-      // If the grid replacement worked, use that
-      if (gridReplaced !== html) {
-        html = gridReplaced
-        console.log('✅ Replaced pricing grid within existing section')
-      } else {
-        // Otherwise, replace the entire pricing section (fallback)
+      // If that didn't work, try the section-level replacement ONCE
+      if (html.length === originalLength) {
         html = html.replace(
-          /<section[^>]*id="pricing[^"]*"[^>]*>[\s\S]*?<\/section>/gi,
+          /<section[^>]*(?:id="pricing|class="[^"]*pricing)[^>]*>[\s\S]*?<\/section>/i,
           `<section id="pricing-section" class="relative z-10 py-32 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
             <div class="container mx-auto">
               <div class="text-center mb-16">
@@ -87,7 +85,9 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
             </div>
           </section>`
         )
-        console.log('✅ Replaced entire pricing section as fallback')
+        console.log('✅ Replaced entire pricing section (fallback)')
+      } else {
+        console.log('✅ Replaced pricing grid within existing section')
       }
     }
     
