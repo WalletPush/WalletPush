@@ -32,6 +32,7 @@ export default function SalesPageDesignerPage() {
   const [isChatting, setIsChatting] = useState(false)
   const [currentHtml, setCurrentHtml] = useState('')
   const [originalHtml, setOriginalHtml] = useState('') // Store the original dynamic HTML
+  const [hasClaudeEdited, setHasClaudeEdited] = useState(false) // Track if Claude has made edits
 
   // For now, let's use a simpler approach: save the edited HTML as-is
   // This means the first agency to edit will "own" the template, 
@@ -41,6 +42,135 @@ export default function SalesPageDesignerPage() {
   useEffect(() => {
     loadHomePage()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 🚀 CLICK-TO-EDIT: Listen for text edit requests from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'EDIT_TEXT_REQUEST') {
+        const { text, elementId } = event.data
+        
+        // Show a simple prompt for editing
+        const newText = prompt('Edit this text:', text)
+        
+        if (newText !== null && newText !== text) {
+          // Send the updated text back to the iframe
+          const iframe = document.querySelector('iframe[title="Home Page Preview"]') as HTMLIFrameElement
+          if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'UPDATE_TEXT',
+              elementId,
+              newText
+            }, '*')
+          }
+          
+          // Update the HTML state with the new text
+          setCurrentHtml(prevHtml => {
+            const updatedHtml = prevHtml.replace(
+              new RegExp(`data-edit-id="${elementId}"[^>]*>([^<]*)<`, 'g'),
+              `data-edit-id="${elementId}">${newText}<`
+            )
+            return updatedHtml
+          })
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
+
+  // 🚀 CLICK-TO-EDIT: Inject JavaScript to make text editable
+  const injectClickToEditScript = (html: string): string => {
+    if (!hasClaudeEdited) return html // Only enable after Claude has made edits
+    
+    const script = `
+    <script>
+      (function() {
+        let editCounter = 0;
+        
+        function makeTextEditable() {
+          const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+            {
+              acceptNode: function(node) {
+                // Skip script tags, style tags, and very short text
+                const parent = node.parentElement;
+                if (!parent || 
+                    parent.tagName === 'SCRIPT' || 
+                    parent.tagName === 'STYLE' ||
+                    parent.tagName === 'NOSCRIPT' ||
+                    node.textContent.trim().length < 3) {
+                  return NodeFilter.FILTER_REJECT;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+              }
+            }
+          );
+          
+          const textNodes = [];
+          let node;
+          while (node = walker.nextNode()) {
+            textNodes.push(node);
+          }
+          
+          textNodes.forEach(textNode => {
+            const parent = textNode.parentElement;
+            if (parent && !parent.hasAttribute('data-edit-id')) {
+              const editId = 'edit-' + (++editCounter);
+              parent.setAttribute('data-edit-id', editId);
+              parent.style.cursor = 'pointer';
+              parent.style.outline = '1px dashed transparent';
+              parent.title = 'Click to edit this text';
+              
+              parent.addEventListener('mouseenter', () => {
+                parent.style.outline = '1px dashed #3b82f6';
+                parent.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+              });
+              
+              parent.addEventListener('mouseleave', () => {
+                parent.style.outline = '1px dashed transparent';
+                parent.style.backgroundColor = 'transparent';
+              });
+              
+              parent.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const text = parent.textContent || '';
+                window.parent.postMessage({
+                  type: 'EDIT_TEXT_REQUEST',
+                  text: text,
+                  elementId: editId
+                }, '*');
+              });
+            }
+          });
+        }
+        
+        // Listen for text updates from parent
+        window.addEventListener('message', (event) => {
+          if (event.data.type === 'UPDATE_TEXT') {
+            const element = document.querySelector('[data-edit-id="' + event.data.elementId + '"]');
+            if (element) {
+              element.textContent = event.data.newText;
+            }
+          }
+        });
+        
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', makeTextEditable);
+        } else {
+          makeTextEditable();
+        }
+      })();
+    </script>
+    `;
+    
+    // Inject the script before the closing </body> tag
+    return html.replace('</body>', script + '</body>');
+  };
 
   const loadHomePage = async () => {
     console.log('🏠 Starting loadHomePage function...')
@@ -254,7 +384,8 @@ export default function SalesPageDesignerPage() {
       if (data.updatedHtml) {
         console.log('🔄 Updating HTML with Claude response:', data.updatedHtml.substring(0, 200) + '...')
         setCurrentHtml(data.updatedHtml)
-        console.log('✅ HTML updated successfully')
+        setHasClaudeEdited(true) // 🚀 Enable click-to-edit after Claude edits
+        console.log('✅ HTML updated successfully, click-to-edit enabled')
       } else {
         console.log('⚠️ No updatedHtml in response:', data)
       }
@@ -334,26 +465,20 @@ export default function SalesPageDesignerPage() {
               </div>
               
               <div className="border border-slate-200 rounded-lg h-[600px] bg-white">
-                {(() => {
-                  const qs = new URLSearchParams()
-                  // prefer the row's agency id; else use whatever you already had in state
-                  const aid =
-                    homePageData?.agency_account_id ??
-                    agencyAccountId ?? // your existing var if you have one
-                    null
-                  // Always include agency_account_id parameter (even if null for owner)
-                  qs.set('agency_account_id', aid || '')
-                  // cache-bust
-                  qs.set('_', String(Date.now()))
-                  const src = `/api/preview/get?${qs.toString()}`
-                  return (
-                    <iframe
-                      src={src}
-                      className="w-full h-full rounded-lg"
-                      title="Home Page Preview"
-                    />
-                  )
-                })()}
+                {currentHtml ? (
+                  <iframe
+                    srcDoc={injectClickToEditScript(currentHtml)}
+                    className="w-full h-full rounded-lg"
+                    title="Home Page Preview"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-500">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      Loading preview...
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

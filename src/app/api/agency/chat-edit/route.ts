@@ -225,59 +225,93 @@ RESPOND ONLY IN THIS JSON FORMAT (no additional text):
       })
     }
 
-    // Try to parse JSON response from Claude
+    // 🚀 ROBUST JSON EXTRACTION - Handle Claude responses even when not perfect JSON
+    let response: any = null
+    
     try {
-      const response = JSON.parse(assistantMessage)
+      // First try direct JSON parsing
+      response = JSON.parse(assistantMessage)
+    } catch (parseError) {
+      console.log('⚠️ Direct JSON parse failed, trying extraction...', parseError instanceof Error ? parseError.message : String(parseError))
       
-      if (response.updatedHtml) {
-        // Restore CSS and scripts to the modified HTML
-        let restoredHtml = restoreOptimizedHTML(
-          response.updatedHtml,
-          optimization.cssBlocks,
-          optimization.cssLinks,
-          optimization.scriptBlocks
-        )
-        
-        // For section-specific edits, merge changes back into full HTML
-        if (!isFullPage && targetSections.length > 0 && optimization.sections && optimization.sections.length > 0) {
-          restoredHtml = mergeChangesIntoFullHTML(currentHtml, restoredHtml, targetSections)
+      // Try to extract JSON from Claude's response using regex
+      const jsonMatch = assistantMessage.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        try {
+          response = JSON.parse(jsonMatch[0])
+          console.log('✅ Successfully extracted JSON from Claude response')
+        } catch (extractError) {
+          console.error('❌ Failed to parse extracted JSON:', extractError instanceof Error ? extractError.message : String(extractError))
         }
-        
-        // Validate that we got a complete HTML document
-        if (!restoredHtml.includes('<!DOCTYPE html>') || !restoredHtml.includes('</html>')) {
-          console.warn('⚠️ Claude returned incomplete HTML document')
-          return NextResponse.json({
-            message: "I need to provide a complete HTML document. The response was incomplete. Please try again.",
-            updatedHtml: null
-          })
+      }
+      
+      // If still no valid JSON, try to find HTML in the response
+      if (!response) {
+        const htmlMatch = assistantMessage.match(/<!DOCTYPE html>[\s\S]*<\/html>/i)
+        if (htmlMatch) {
+          response = {
+            message: "I've made the requested changes to your sales page.",
+            updatedHtml: htmlMatch[0]
+          }
+          console.log('✅ Extracted HTML directly from Claude response')
         }
-        
-        console.log('✅ Returning response:', {
-          message: response.message?.substring(0, 100) + '...',
-          hasUpdatedHtml: !!restoredHtml,
-          htmlLength: restoredHtml?.length || 0,
-          originalLength: currentHtml.length,
-          editType: isFullPage ? 'full-page' : 'section-specific',
-          sectionsModified: targetSections
-        })
-        
+      }
+    }
+    
+    if (!response) {
+      console.error('❌ Could not extract valid response from Claude')
+      console.log('Raw response:', assistantMessage.substring(0, 1000) + '...')
+      
+      return NextResponse.json({
+        message: "I understand your request, but I had trouble formatting my response properly. Please try rephrasing your request.",
+        updatedHtml: null,
+        debug: {
+          responseLength: assistantMessage.length,
+          hasJsonPattern: !!assistantMessage.match(/\{[\s\S]*\}/),
+          hasHtmlPattern: !!assistantMessage.match(/<!DOCTYPE html>/i)
+        }
+      })
+    }
+    
+    if (response.updatedHtml) {
+      // Restore CSS and scripts to the modified HTML
+      let restoredHtml = restoreOptimizedHTML(
+        response.updatedHtml,
+        optimization.cssBlocks,
+        optimization.cssLinks,
+        optimization.scriptBlocks
+      )
+      
+      // For section-specific edits, merge changes back into full HTML
+      if (!isFullPage && targetSections.length > 0 && optimization.sections && optimization.sections.length > 0) {
+        restoredHtml = mergeChangesIntoFullHTML(currentHtml, restoredHtml, targetSections)
+      }
+      
+      // Validate that we got a complete HTML document
+      if (!restoredHtml.includes('<!DOCTYPE html>') || !restoredHtml.includes('</html>')) {
+        console.warn('⚠️ Claude returned incomplete HTML document')
         return NextResponse.json({
-          message: response.message,
-          updatedHtml: restoredHtml
-        })
-      } else {
-        return NextResponse.json({
-          message: response.message || "I made the changes but couldn't return the updated HTML. Please try again.",
+          message: "I need to provide a complete HTML document. The response was incomplete. Please try again.",
           updatedHtml: null
         })
       }
-    } catch (parseError) {
-      console.error('❌ Failed to parse Claude response as JSON:', parseError)
-      console.log('Raw response:', assistantMessage.substring(0, 500) + '...')
       
-      // If Claude didn't respond in JSON format, just return the message
+      console.log('✅ Returning response:', {
+        message: response.message?.substring(0, 100) + '...',
+        hasUpdatedHtml: !!restoredHtml,
+        htmlLength: restoredHtml?.length || 0,
+        originalLength: currentHtml.length,
+        editType: isFullPage ? 'full-page' : 'section-specific',
+        sectionsModified: targetSections
+      })
+      
       return NextResponse.json({
-        message: "I understand your request, but I had trouble formatting my response properly. Please try rephrasing your request.",
+        message: response.message,
+        updatedHtml: restoredHtml
+      })
+    } else {
+      return NextResponse.json({
+        message: response.message || "I made the changes but couldn't return the updated HTML. Please try again.",
         updatedHtml: null
       })
     }
