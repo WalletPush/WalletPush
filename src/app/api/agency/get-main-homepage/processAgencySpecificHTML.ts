@@ -34,7 +34,6 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
     console.log('🏢 Agency data:', { 
       agencyName: agencyAccount?.name,
       logoUrl: agencyAccount?.logo_url,
-      customDomain: agencyAccount?.custom_domain,
       packagesCount: packages?.length || 0
     })
     
@@ -66,12 +65,6 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
       const agencyDomain = agencyAccount?.custom_domain ? `https://${agencyAccount.custom_domain}` : ''
       const agencyName = agencyAccount?.name || ''
       
-      console.log('🔗 Pricing URL generation:', {
-        customDomain: agencyAccount?.custom_domain,
-        agencyDomain,
-        agencyName,
-        packagesCount: packages.length
-      })
       
       const pricingHTML = generatePricingHTML(packages, agencyDomain, agencyName)
       
@@ -185,7 +178,6 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
       '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
     )
     
-    console.log('✅ Added smooth scroll functionality to CTA buttons')
     console.log('✅ Processed agency-specific HTML')
     return html
     
@@ -205,12 +197,6 @@ function generatePricingHTML(packages: any[], agencyDomain?: string, agencyName?
           ? `${agencyDomain}/business/auth/sign-up?package=${pkg.id}`
           : `/business/auth/sign-up?package=${pkg.id}`
         
-        console.log(`🎯 Package ${index + 1} URL:`, {
-          packageId: pkg.id,
-          packageName: pkg.package_name,
-          agencyDomain,
-          signupUrl
-        })
         
         return `
         <div class="p-8 rounded-xl relative bg-white/10 backdrop-blur-lg border border-white/20 ${index === 1 ? 'bg-gradient-to-br from-blue-600 to-purple-600 transform scale-105 border-2 border-yellow-400' : ''}">
