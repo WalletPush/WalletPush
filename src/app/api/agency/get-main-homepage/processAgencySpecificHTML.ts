@@ -173,27 +173,10 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
       '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Get Started Free</button>'
     )
     
-    html = html.replace(
-      /<button([^>]*?)>Launch Free Trial([^<]*?)<\/button>/gi,
-      '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
-    )
-    
-    // 🚀 CATCH ALL VARIATIONS: Also target buttons that might have different spacing or content
+    // 🚀 COMPREHENSIVE FIX: Target ALL "Launch Free Trial" buttons (hero + bottom)
+    // This single pattern will catch both buttons regardless of their classes or content
     html = html.replace(
       /<button([^>]*?)>\s*Launch Free Trial\s*([^<]*?)<\/button>/gi,
-      '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
-    )
-    
-    // 🚀 PRECISION TARGETING: Target bottom CTA button by its unique class signature
-    // Match the exact button with px-12 py-5 and other unique classes in any order
-    html = html.replace(
-      /<button([^>]*?px-12[^>]*?py-5[^>]*?rounded-full[^>]*?text-xl[^>]*?font-bold[^>]*?shadow-2xl[^>]*?)>Launch Free Trial([^<]*?)<\/button>/gi,
-      '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
-    )
-    
-    // 🚀 BACKUP PATTERN: Also try different class order
-    html = html.replace(
-      /<button([^>]*?shadow-2xl[^>]*?px-12[^>]*?py-5[^>]*?rounded-full[^>]*?text-xl[^>]*?font-bold[^>]*?)>Launch Free Trial([^<]*?)<\/button>/gi,
       '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
     )
     
