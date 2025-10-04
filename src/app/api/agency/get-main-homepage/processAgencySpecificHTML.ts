@@ -19,7 +19,7 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
     // Get agency account details for logo
     const { data: agencyAccount } = await supabase
       .from('agency_accounts')
-      .select('logo_url, name')
+      .select('logo_url, name, custom_domain')
       .eq('id', agencyAccountId)
       .single()
     
@@ -61,7 +61,11 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
     
     // Replace pricing section with agency packages
     if (packages && packages.length > 0) {
-      const pricingHTML = generatePricingHTML(packages)
+      // 🚀 REUSE AGENCY DATA: Use already fetched agency account data for pricing links
+      const agencyDomain = agencyAccount?.custom_domain ? `https://${agencyAccount.custom_domain}` : ''
+      const agencyName = agencyAccount?.name || ''
+      
+      const pricingHTML = generatePricingHTML(packages, agencyDomain, agencyName)
       
       // 🚀 SURGICAL FIX: Use Cheerio to target ONLY the pricing section
       try {
@@ -171,10 +175,17 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
   }
 }
 
-function generatePricingHTML(packages: any[]) {
+function generatePricingHTML(packages: any[], agencyDomain?: string, agencyName?: string) {
   return `
     <div class="grid grid-cols-1 md:grid-cols-${Math.min(packages.length, 3)} gap-8 max-w-6xl mx-auto">
-      ${packages.map((pkg, index) => `
+      ${packages.map((pkg, index) => {
+        // 🚀 DYNAMIC PRICING LINKS: Create agency-specific signup URL with package info
+        const packageSlug = pkg.package_name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'starter'
+        const signupUrl = agencyDomain 
+          ? `${agencyDomain}/business/auth/sign-up?plan=${packageSlug}&package_id=${pkg.id}&agency=${encodeURIComponent(agencyName || '')}&price=${pkg.monthly_price}`
+          : `/business/auth/sign-up?plan=${packageSlug}&package_id=${pkg.id}&price=${pkg.monthly_price}`
+        
+        return `
         <div class="p-8 rounded-xl relative bg-white/10 backdrop-blur-lg border border-white/20 ${index === 1 ? 'bg-gradient-to-br from-blue-600 to-purple-600 transform scale-105 border-2 border-yellow-400' : ''}">
           ${index === 1 ? '<div class="absolute -top-4 left-1/2 transform -translate-x-1/2"><div class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-full text-sm font-bold">MOST POPULAR</div></div>' : ''}
           <div class="text-center text-white">
@@ -201,11 +212,12 @@ function generatePricingHTML(packages: any[]) {
               <span class="text-white">${pkg.program_limit || 'Unlimited'} program${(pkg.program_limit || 0) > 1 ? 's' : ''}</span>
             </div>
             <div class="pt-6">
-              <button class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow hover:bg-primary/90 h-9 px-4 w-full py-3 rounded-full font-semibold ${index === 1 ? 'bg-white text-blue-600 hover:bg-gray-100 font-bold' : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'}">Start Free Trial</button>
+              <a href="${signupUrl}" class="inline-flex items-center justify-center whitespace-nowrap text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow hover:bg-primary/90 h-9 px-4 w-full py-3 rounded-full font-semibold text-center no-underline ${index === 1 ? 'bg-white text-blue-600 hover:bg-gray-100 font-bold' : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'}">Start Free Trial</a>
             </div>
           </div>
         </div>
-      `).join('')}
+        `
+      }).join('')}
     </div>
   `
 }
