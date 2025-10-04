@@ -287,11 +287,19 @@ RESPOND ONLY IN THIS JSON FORMAT (no additional text):
         restoredHtml = mergeChangesIntoFullHTML(currentHtml, restoredHtml, targetSections)
       }
       
-      // Validate that we got a complete HTML document
-      if (!restoredHtml.includes('<!DOCTYPE html>') || !restoredHtml.includes('</html>')) {
-        console.warn('⚠️ Claude returned incomplete HTML document')
+      // 🚀 SMART VALIDATION: Check if HTML is reasonable, not just complete
+      const hasBasicStructure = restoredHtml.includes('<html') && restoredHtml.includes('</html>')
+      const hasContent = restoredHtml.length > 1000 // Reasonable content length
+      
+      if (!hasBasicStructure || !hasContent) {
+        console.warn('⚠️ Claude returned insufficient HTML content:', {
+          hasBasicStructure,
+          hasContent,
+          length: restoredHtml.length,
+          preview: restoredHtml.substring(0, 200) + '...'
+        })
         return NextResponse.json({
-          message: "I need to provide a complete HTML document. The response was incomplete. Please try again.",
+          message: "The response seems incomplete. Let me try again with a different approach.",
           updatedHtml: null
         })
       }
