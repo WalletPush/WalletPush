@@ -174,6 +174,18 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
       }
     }
     
+    // 🚀 ADD SMOOTH SCROLL TO CTA BUTTONS: Make "Get Started" and "Launch Free Trial" buttons scroll to pricing
+    html = html.replace(
+      /<button([^>]*?)>Get Started Free<\/button>/gi,
+      '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Get Started Free</button>'
+    )
+    
+    html = html.replace(
+      /<button([^>]*?)>Launch Free Trial([^<]*?)<\/button>/gi,
+      '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
+    )
+    
+    console.log('✅ Added smooth scroll functionality to CTA buttons')
     console.log('✅ Processed agency-specific HTML')
     return html
     
