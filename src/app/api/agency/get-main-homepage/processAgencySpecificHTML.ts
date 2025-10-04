@@ -67,17 +67,36 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
       try {
         const $ = cheerio.load(html)
         
-        // Look for the specific pricing section by ID
-        const pricingSection = $('#pricing-section')
+        // Look for the specific pricing section with ULTRA PRECISE targeting
+        // Try multiple patterns based on the actual DOM structure
+        let pricingSection = $('#pricing-section')
+        
+        // If the section itself has the container class
+        if (pricingSection.hasClass('container') && pricingSection.hasClass('mx-auto')) {
+          console.log('🎯 Found pricing section with container classes on section element')
+        } 
+        // Or if there's a container div inside the section
+        else if (pricingSection.find('.container.mx-auto').length > 0) {
+          pricingSection = pricingSection.find('.container.mx-auto').first()
+          console.log('🎯 Found pricing section with container div inside')
+        }
+        // Or try the combined selector
+        else {
+          pricingSection = $('#pricing-section.container.mx-auto')
+          if (pricingSection.length > 0) {
+            console.log('🎯 Found pricing section using combined selector')
+          }
+        }
+        
         if (pricingSection.length > 0) {
           // Find the pricing grid within the section and replace it
           const pricingGrid = pricingSection.find('.grid.grid-cols-1.md\\:grid-cols-3.gap-8')
           if (pricingGrid.length > 0) {
             pricingGrid.replaceWith(pricingHTML)
             html = $.html()
-            console.log('✅ Replaced pricing grid within #pricing-section using Cheerio')
+            console.log('✅ ULTRA PRECISE: Replaced pricing grid using exact DOM structure targeting')
           } else {
-            console.log('⚠️ No pricing grid found within #pricing-section')
+            console.log('⚠️ No pricing grid found within the targeted pricing section')
           }
         } else {
           // Fallback: Look for any section with pricing-related content
