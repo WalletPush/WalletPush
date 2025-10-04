@@ -62,23 +62,33 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
     if (packages && packages.length > 0) {
       const pricingHTML = generatePricingHTML(packages)
       
-      // Try multiple patterns to find and replace pricing sections
-      html = html.replace(
-        /<div class="grid grid-cols-1 md:grid-cols-3 gap-8[^>]*>[\s\S]*?<\/div>/gi,
+      // 🚀 FIX DUPLICATE PRICING: Only replace the main pricing grid, not multiple sections
+      // First try to replace just the pricing grid within a section
+      const gridReplaced = html.replace(
+        /<div class="grid grid-cols-1 md:grid-cols-[23] gap-8[^>]*>[\s\S]*?<\/div>/gi,
         pricingHTML
       )
-      html = html.replace(
-        /<section[^>]*id="pricing-section"[^>]*>[\s\S]*?<\/section>/gi,
-        `<section id="pricing-section" class="relative z-10 py-32 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-          <div class="container mx-auto">
-            <div class="text-center mb-16">
-              <h2 class="text-5xl font-bold text-white mb-6">Simple, Transparent Pricing</h2>
-              <p class="text-xl text-white max-w-3xl mx-auto">Choose the plan that fits your business. No hidden fees, no long-term contracts.</p>
+      
+      // If the grid replacement worked, use that
+      if (gridReplaced !== html) {
+        html = gridReplaced
+        console.log('✅ Replaced pricing grid within existing section')
+      } else {
+        // Otherwise, replace the entire pricing section (fallback)
+        html = html.replace(
+          /<section[^>]*id="pricing[^"]*"[^>]*>[\s\S]*?<\/section>/gi,
+          `<section id="pricing-section" class="relative z-10 py-32 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+            <div class="container mx-auto">
+              <div class="text-center mb-16">
+                <h2 class="text-5xl font-bold text-white mb-6">Simple, Transparent Pricing</h2>
+                <p class="text-xl text-white max-w-3xl mx-auto">Choose the plan that fits your business. No hidden fees, no long-term contracts.</p>
+              </div>
+              ${pricingHTML}
             </div>
-            ${pricingHTML}
-          </div>
-        </section>`
-      )
+          </section>`
+        )
+        console.log('✅ Replaced entire pricing section as fallback')
+      }
     }
     
     console.log('✅ Processed agency-specific HTML')
