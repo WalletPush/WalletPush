@@ -179,11 +179,11 @@ function generatePricingHTML(packages: any[], agencyDomain?: string, agencyName?
   return `
     <div class="grid grid-cols-1 md:grid-cols-${Math.min(packages.length, 3)} gap-8 max-w-6xl mx-auto">
       ${packages.map((pkg, index) => {
-        // 🚀 DYNAMIC PRICING LINKS: Create agency-specific signup URL with package info
-        const packageSlug = pkg.package_name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'starter'
+        // 🚀 DYNAMIC PRICING LINKS: Create agency-specific signup URL with CORRECT parameter structure
+        // Use same format as WalletPush: ?package=UUID (not package_id, plan, agency, price)
         const signupUrl = agencyDomain 
-          ? `${agencyDomain}/business/auth/sign-up?plan=${packageSlug}&package_id=${pkg.id}&agency=${encodeURIComponent(agencyName || '')}&price=${pkg.monthly_price}`
-          : `/business/auth/sign-up?plan=${packageSlug}&package_id=${pkg.id}&price=${pkg.monthly_price}`
+          ? `${agencyDomain}/business/auth/sign-up?package=${pkg.id}`
+          : `/business/auth/sign-up?package=${pkg.id}`
         
         return `
         <div class="p-8 rounded-xl relative bg-white/10 backdrop-blur-lg border border-white/20 ${index === 1 ? 'bg-gradient-to-br from-blue-600 to-purple-600 transform scale-105 border-2 border-yellow-400' : ''}">
