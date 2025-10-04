@@ -151,11 +151,12 @@ export async function POST(req: Request) {
     const headline = body.headline ?? existing?.headline ?? 'Grow with WalletPush'
     const call_to_action = body.call_to_action ?? existing?.call_to_action ?? 'Get Started'
 
+    // 🚀 CRITICAL FIX: Save as homepage so serve-homepage can find it!
     const payload = {
       agency_account_id,
-      page_name,
-      page_type: existing?.page_type ?? 'home',
-      page_slug,
+      page_name: page_name || 'Agency Homepage',
+      page_type: 'home', // 🎯 MUST be 'home' for serve-homepage to find it
+      page_slug: 'home', // 🎯 MUST be 'home' for serve-homepage to find it  
       page_title,
       headline,
       call_to_action,
