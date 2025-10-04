@@ -91,8 +91,60 @@ export async function POST(req: Request) {
     const html_static = edited_html
     const html_full_preview = edited_html
     
-    // Keep the baseline content model (we'll inject branding at serve time)
-    const content_model = baseline_model
+    // 🚀 EXTRACT AGENCY BRANDING: Update content_model with agency-specific data
+    let content_model = baseline_model
+    
+    if (agency_account_id) {
+      try {
+        // Get agency data to update content_model
+        const { data: agencyAccount } = await supabase
+          .from('agency_accounts')
+          .select('logo_url, name')
+          .eq('id', agency_account_id)
+          .single()
+        
+        const { data: packages } = await supabase
+          .from('agency_packages')
+          .select('*')
+          .eq('agency_account_id', agency_account_id)
+          .eq('is_active', true)
+          .order('display_order')
+        
+        if (agencyAccount) {
+          // Update content_model with agency branding
+          content_model = {
+            ...baseline_model,
+            header: {
+              ...baseline_model.header,
+              company: {
+                name: agencyAccount.name || 'Agency',
+                logo_url: agencyAccount.logo_url
+              }
+            },
+            footer: {
+              ...baseline_model.footer,
+              company: {
+                name: agencyAccount.name || 'Agency',
+                description: `Professional digital wallet solutions by ${agencyAccount.name || 'Agency'}`
+              },
+              copyright: `© ${agencyAccount.name || 'Agency'}`
+            },
+            pricing: {
+              ...baseline_model.pricing,
+              packages: packages || []
+            }
+          }
+          
+          console.log('✅ Updated content_model with agency branding:', {
+            agencyName: agencyAccount.name,
+            logoUrl: agencyAccount.logo_url,
+            packagesCount: packages?.length || 0
+          })
+        }
+      } catch (brandingError) {
+        console.error('⚠️ Failed to update content_model with agency branding:', brandingError)
+      }
+    }
 
     // 4) Upsert into agency_sales_pages (respect not-null columns)
     const page_title = body.page_title ?? existing?.page_title ?? 'WalletPush'

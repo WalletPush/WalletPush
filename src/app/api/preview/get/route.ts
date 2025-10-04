@@ -128,7 +128,27 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// kill 405: treat POST like GET
+// Handle POST requests with agency_id in body
 export async function POST(req: NextRequest) {
-  return GET(req)
+  try {
+    const body = await req.json()
+    const agency_id = body.agency_id || body.agency_account_id
+    
+    // Create a new URL with the agency_account_id as query parameter
+    const url = new URL(req.url)
+    if (agency_id) {
+      url.searchParams.set('agency_account_id', agency_id)
+    }
+    
+    // Create a new request with the modified URL
+    const newReq = new NextRequest(url, {
+      method: 'GET',
+      headers: req.headers
+    })
+    
+    return GET(newReq)
+  } catch (error) {
+    // If JSON parsing fails, just treat as GET
+    return GET(req)
+  }
 }

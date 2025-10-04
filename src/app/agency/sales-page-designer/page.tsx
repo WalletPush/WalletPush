@@ -195,14 +195,11 @@ export default function SalesPageDesignerPage() {
         }).catch(() => {}) // ignore errors, it's just a bootstrap
       }
 
-      // Load preview HTML (server handles database lookup)
-      const previewRes = await fetch('/api/preview/get', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agency_id: fetchedAgencyAccountId })
-      })
-      const html = await previewRes.text()
-      setCurrentHtml(html)
+    // Load preview HTML with correct agency_account_id parameter
+    const previewUrl = `/api/preview/get?agency_account_id=${encodeURIComponent(fetchedAgencyAccountId || '')}&_=${Date.now()}`
+    const previewRes = await fetch(previewUrl)
+    const html = await previewRes.text()
+    setCurrentHtml(html)
 
       // Create temp homepage data for UI
       const tempHomePageData = {
