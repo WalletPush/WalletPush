@@ -101,6 +101,23 @@ export async function GET(req: NextRequest) {
     // 🚀 STEP 2: Apply agency branding to preview HTML
     if (agency_account_id) {
       try {
+        // 🚀 FORCE REGENERATION: If HTML contains old URL format, regenerate it
+        const hasOldUrlFormat = raw.includes('package_id=') || raw.includes('plan=') || raw.includes('&agency=')
+        
+        if (hasOldUrlFormat) {
+          console.log('🔄 Detected old URL format in preview HTML, regenerating with new format...')
+          
+          // Fetch fresh HTML from WalletPush and apply branding
+          const walletpushResponse = await fetch('https://walletpush.io', {
+            headers: { 'User-Agent': 'WalletPush-Agency-Preview' }
+          })
+          
+          if (walletpushResponse.ok) {
+            raw = await walletpushResponse.text()
+            console.log('✅ Fetched fresh HTML for preview regeneration')
+          }
+        }
+        
         const { processAgencySpecificHTML } = await import('@/app/api/agency/get-main-homepage/processAgencySpecificHTML')
         raw = await processAgencySpecificHTML(raw, agency_account_id)
         console.log('✅ Applied agency branding to preview HTML')

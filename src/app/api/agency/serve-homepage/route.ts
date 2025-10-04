@@ -90,13 +90,47 @@ export async function GET(request: NextRequest) {
     // 🚀 STEP 2: Apply agency branding to saved HTML before serving
     let html = salesPage.html_content || salesPage.html_full_preview || ''
     
-    try {
-      // Import and use the same processAgencySpecificHTML from get-main-homepage
-      const { processAgencySpecificHTML } = await import('@/app/api/agency/get-main-homepage/processAgencySpecificHTML')
-      html = await processAgencySpecificHTML(html, agencyId)
-      console.log('✅ Applied agency branding to saved homepage')
-    } catch (brandingError) {
-      console.error('⚠️ Failed to apply branding, serving original HTML:', brandingError)
+    // 🚀 FORCE REGENERATION: If HTML contains old URL format, regenerate it
+    const hasOldUrlFormat = html.includes('package_id=') || html.includes('plan=') || html.includes('&agency=')
+    
+    if (hasOldUrlFormat) {
+      console.log('🔄 Detected old URL format in saved HTML, regenerating with new format...')
+      
+      try {
+        // Get fresh HTML from main homepage and apply branding
+        const { processAgencySpecificHTML } = await import('@/app/api/agency/get-main-homepage/processAgencySpecificHTML')
+        
+        // Fetch fresh HTML from WalletPush
+        const walletpushResponse = await fetch('https://walletpush.io', {
+          headers: { 'User-Agent': 'WalletPush-Agency-Homepage' }
+        })
+        
+        if (walletpushResponse.ok) {
+          const freshHtml = await walletpushResponse.text()
+          html = await processAgencySpecificHTML(freshHtml, agencyId)
+          console.log('✅ Regenerated homepage with fresh HTML and new URL format')
+        } else {
+          throw new Error('Failed to fetch fresh HTML')
+        }
+      } catch (regenerationError) {
+        console.error('⚠️ Failed to regenerate HTML, falling back to processing saved HTML:', regenerationError)
+        // Fallback: still try to process the saved HTML
+        try {
+          const { processAgencySpecificHTML } = await import('@/app/api/agency/get-main-homepage/processAgencySpecificHTML')
+          html = await processAgencySpecificHTML(html, agencyId)
+        } catch (fallbackError) {
+          console.error('⚠️ Fallback processing also failed:', fallbackError)
+        }
+      }
+    } else {
+      // Normal processing for HTML that already has correct format
+      try {
+        const { processAgencySpecificHTML } = await import('@/app/api/agency/get-main-homepage/processAgencySpecificHTML')
+        html = await processAgencySpecificHTML(html, agencyId)
+        console.log('✅ Applied agency branding to saved homepage')
+      } catch (brandingError) {
+        console.error('⚠️ Failed to apply branding, serving original HTML:', brandingError)
+      }
     }
     
     // Return the branded HTML content
