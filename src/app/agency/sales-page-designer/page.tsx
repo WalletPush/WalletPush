@@ -46,32 +46,22 @@ export default function SalesPageDesignerPage() {
   // 🚀 CLICK-TO-EDIT: Listen for text edit requests from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'EDIT_TEXT_REQUEST') {
-        const { text, elementId } = event.data
+      if (event.data.type === 'TEXT_UPDATED') {
+        const { elementId, newText } = event.data
         
-        // Show a simple prompt for editing
-        const newText = prompt('Edit this text:', text)
+        console.log('✅ Cool in-preview popup updated text:', {
+          elementId,
+          newText: newText.substring(0, 50) + (newText.length > 50 ? '...' : '')
+        })
         
-        if (newText !== null && newText !== text) {
-          // Send the updated text back to the iframe
-          const iframe = document.querySelector('iframe[title="Home Page Preview"]') as HTMLIFrameElement
-          if (iframe?.contentWindow) {
-            iframe.contentWindow.postMessage({
-              type: 'UPDATE_TEXT',
-              elementId,
-              newText
-            }, '*')
-          }
-          
-          // Update the HTML state with the new text
-          setCurrentHtml(prevHtml => {
-            const updatedHtml = prevHtml.replace(
-              new RegExp(`data-edit-id="${elementId}"[^>]*>([^<]*)<`, 'g'),
-              `data-edit-id="${elementId}">${newText}<`
-            )
-            return updatedHtml
-          })
-        }
+        // Update the HTML state with the new text
+        setCurrentHtml(prevHtml => {
+          const updatedHtml = prevHtml.replace(
+            new RegExp(`data-edit-id="${elementId}"[^>]*>([^<]*)<`, 'g'),
+            `data-edit-id="${elementId}">${newText}<`
+          )
+          return updatedHtml
+        })
       }
     }
 
@@ -133,30 +123,148 @@ export default function SalesPageDesignerPage() {
                 parent.style.backgroundColor = 'transparent';
               });
               
-              parent.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const text = parent.textContent || '';
-                window.parent.postMessage({
-                  type: 'EDIT_TEXT_REQUEST',
-                  text: text,
-                  elementId: editId
-                }, '*');
-              });
+                    parent.addEventListener('click', (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      
+                      const text = parent.textContent || '';
+                      
+                      // 🚀 COOL IN-PREVIEW POPUP: Create custom popup in iframe
+                      const popup = document.createElement('div');
+                      popup.style.cssText = \`
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: white;
+                        border: 2px solid #3b82f6;
+                        border-radius: 12px;
+                        padding: 20px;
+                        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                        z-index: 10000;
+                        min-width: 400px;
+                        max-width: 600px;
+                        font-family: system-ui, -apple-system, sans-serif;
+                      \`;
+                      
+                      popup.innerHTML = \`
+                        <div style="margin-bottom: 15px;">
+                          <h3 style="margin: 0 0 10px 0; color: #1f2937; font-size: 18px; font-weight: 600;">Edit Text</h3>
+                          <p style="margin: 0; color: #6b7280; font-size: 14px;">Make your changes and click Save to update the text.</p>
+                        </div>
+                        <textarea 
+                          id="edit-textarea-\${editId}" 
+                          style="
+                            width: 100%; 
+                            height: 120px; 
+                            padding: 12px; 
+                            border: 1px solid #d1d5db; 
+                            border-radius: 8px; 
+                            font-size: 14px; 
+                            font-family: inherit;
+                            resize: vertical;
+                            outline: none;
+                            transition: border-color 0.2s;
+                          "
+                          placeholder="Enter your text here..."
+                        >\${text}</textarea>
+                        <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: flex-end;">
+                          <button 
+                            id="cancel-btn-\${editId}"
+                            style="
+                              padding: 8px 16px; 
+                              background: #f3f4f6; 
+                              color: #374151; 
+                              border: none; 
+                              border-radius: 6px; 
+                              cursor: pointer; 
+                              font-size: 14px;
+                              font-weight: 500;
+                              transition: background-color 0.2s;
+                            "
+                          >Cancel</button>
+                          <button 
+                            id="save-btn-\${editId}"
+                            style="
+                              padding: 8px 16px; 
+                              background: #3b82f6; 
+                              color: white; 
+                              border: none; 
+                              border-radius: 6px; 
+                              cursor: pointer; 
+                              font-size: 14px;
+                              font-weight: 500;
+                              transition: background-color 0.2s;
+                            "
+                          >Save Changes</button>
+                        </div>
+                      \`;
+                      
+                      // Add hover effects
+                      const textarea = popup.querySelector('textarea');
+                      textarea.addEventListener('focus', () => {
+                        textarea.style.borderColor = '#3b82f6';
+                        textarea.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                      });
+                      textarea.addEventListener('blur', () => {
+                        textarea.style.borderColor = '#d1d5db';
+                        textarea.style.boxShadow = 'none';
+                      });
+                      
+                      const saveBtn = popup.querySelector('#save-btn-' + editId);
+                      const cancelBtn = popup.querySelector('#cancel-btn-' + editId);
+                      
+                      saveBtn.addEventListener('mouseenter', () => {
+                        saveBtn.style.backgroundColor = '#2563eb';
+                      });
+                      saveBtn.addEventListener('mouseleave', () => {
+                        saveBtn.style.backgroundColor = '#3b82f6';
+                      });
+                      
+                      cancelBtn.addEventListener('mouseenter', () => {
+                        cancelBtn.style.backgroundColor = '#e5e7eb';
+                      });
+                      cancelBtn.addEventListener('mouseleave', () => {
+                        cancelBtn.style.backgroundColor = '#f3f4f6';
+                      });
+                      
+                      // Handle save
+                      saveBtn.addEventListener('click', () => {
+                        const newText = textarea.value;
+                        parent.textContent = newText;
+                        document.body.removeChild(popup);
+                        
+                        // Notify parent window of the change
+                        window.parent.postMessage({
+                          type: 'TEXT_UPDATED',
+                          elementId: editId,
+                          newText: newText
+                        }, '*');
+                      });
+                      
+                      // Handle cancel
+                      cancelBtn.addEventListener('click', () => {
+                        document.body.removeChild(popup);
+                      });
+                      
+                      // Handle escape key
+                      document.addEventListener('keydown', function escapeHandler(e) {
+                        if (e.key === 'Escape') {
+                          document.body.removeChild(popup);
+                          document.removeEventListener('keydown', escapeHandler);
+                        }
+                      });
+                      
+                      document.body.appendChild(popup);
+                      textarea.focus();
+                      textarea.select();
+                    });
             }
           });
         }
         
-        // Listen for text updates from parent
-        window.addEventListener('message', (event) => {
-          if (event.data.type === 'UPDATE_TEXT') {
-            const element = document.querySelector('[data-edit-id="' + event.data.elementId + '"]');
-            if (element) {
-              element.textContent = event.data.newText;
-            }
-          }
-        });
+        // Note: Text updates are now handled directly by the in-preview popup
+        // No need for message passing since the popup updates the DOM directly
         
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {
