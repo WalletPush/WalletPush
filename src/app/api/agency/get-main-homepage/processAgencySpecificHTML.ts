@@ -1,5 +1,6 @@
 // Extracted processAgencySpecificHTML function for reuse
 import { createClient } from '@supabase/supabase-js'
+import * as cheerio from 'cheerio'
 
 export async function processAgencySpecificHTML(html: string, agencyAccountId?: string) {
   if (!agencyAccountId) {
@@ -62,32 +63,50 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
     if (packages && packages.length > 0) {
       const pricingHTML = generatePricingHTML(packages)
       
-      // 🚀 CONSERVATIVE FIX: Only replace ONE specific pricing pattern to avoid duplicates
-      // Look for the exact 3-column pricing grid pattern and replace it ONCE
-      const originalLength = html.length
-      
-      html = html.replace(
-        /<div class="grid grid-cols-1 md:grid-cols-3 gap-8[^>]*>[\s\S]*?<\/div>/i,
-        pricingHTML
-      )
-      
-      // If that didn't work, try the section-level replacement ONCE
-      if (html.length === originalLength) {
-        html = html.replace(
-          /<section[^>]*(?:id="pricing|class="[^"]*pricing)[^>]*>[\s\S]*?<\/section>/i,
-          `<section id="pricing-section" class="relative z-10 py-32 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-            <div class="container mx-auto">
-              <div class="text-center mb-16">
-                <h2 class="text-5xl font-bold text-white mb-6">Simple, Transparent Pricing</h2>
-                <p class="text-xl text-white max-w-3xl mx-auto">Choose the plan that fits your business. No hidden fees, no long-term contracts.</p>
-              </div>
-              ${pricingHTML}
-            </div>
-          </section>`
-        )
-        console.log('✅ Replaced entire pricing section (fallback)')
-      } else {
-        console.log('✅ Replaced pricing grid within existing section')
+      // 🚀 SURGICAL FIX: Use Cheerio to target ONLY the pricing section
+      try {
+        const $ = cheerio.load(html)
+        
+        // Look for the specific pricing section by ID
+        const pricingSection = $('#pricing-section')
+        if (pricingSection.length > 0) {
+          // Find the pricing grid within the section and replace it
+          const pricingGrid = pricingSection.find('.grid.grid-cols-1.md\\:grid-cols-3.gap-8')
+          if (pricingGrid.length > 0) {
+            pricingGrid.replaceWith(pricingHTML)
+            html = $.html()
+            console.log('✅ Replaced pricing grid within #pricing-section using Cheerio')
+          } else {
+            console.log('⚠️ No pricing grid found within #pricing-section')
+          }
+        } else {
+          // Fallback: Look for any section with pricing-related content
+          const fallbackSection = $('section').filter((i, el) => {
+            const sectionHtml = $(el).html() || ''
+            return sectionHtml.includes('pricing') || sectionHtml.includes('Pricing') || 
+                   sectionHtml.includes('plans') || sectionHtml.includes('Plans')
+          }).first()
+          
+          if (fallbackSection.length > 0) {
+            fallbackSection.replaceWith(`
+              <section id="pricing-section" class="relative z-10 py-32 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+                <div class="container mx-auto">
+                  <div class="text-center mb-16">
+                    <h2 class="text-5xl font-bold text-white mb-6">Simple, Transparent Pricing</h2>
+                    <p class="text-xl text-white max-w-3xl mx-auto">Choose the plan that fits your business. No hidden fees, no long-term contracts.</p>
+                  </div>
+                  ${pricingHTML}
+                </div>
+              </section>
+            `)
+            html = $.html()
+            console.log('✅ Replaced pricing section using content-based fallback')
+          } else {
+            console.log('⚠️ No pricing section found - skipping pricing replacement')
+          }
+        }
+      } catch (cheerioError) {
+        console.error('❌ Cheerio parsing failed, skipping pricing replacement:', cheerioError)
       }
     }
     
