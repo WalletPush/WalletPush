@@ -134,21 +134,35 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const agency_id = body.agency_id || body.agency_account_id
     
-    // Create a new URL with the agency_account_id as query parameter
-    const url = new URL(req.url)
+    // Get the HTML directly with the agency_account_id
+    let raw = await getPreviewHtml(agency_id)
+    
+    // Apply agency branding if agency_id is provided
     if (agency_id) {
-      url.searchParams.set('agency_account_id', agency_id)
+      try {
+        const { processAgencySpecificHTML } = await import('@/app/api/agency/get-main-homepage/processAgencySpecificHTML')
+        raw = await processAgencySpecificHTML(raw, agency_id)
+        console.log('✅ Applied agency branding to preview HTML (POST)')
+      } catch (brandingError) {
+        console.error('⚠️ Failed to apply branding to preview (POST), using original HTML:', brandingError)
+      }
     }
     
-    // Create a new request with the modified URL
-    const newReq = new NextRequest(url, {
-      method: 'GET',
-      headers: req.headers
+    const html = sanitizePreview(raw)
+
+    return new NextResponse(html, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Security-Policy': cspHeader(),
+        'X-Robots-Tag': 'noindex, nofollow',
+      },
     })
-    
-    return GET(newReq)
   } catch (error) {
-    // If JSON parsing fails, just treat as GET
-    return GET(req)
+    console.error('❌ POST preview error:', error)
+    return new NextResponse(
+      `<!doctype html><html><body><pre>POST Preview Error: ${error instanceof Error ? error.message : 'Unknown error'}</pre></body></html>`,
+      { status: 200, headers: { 'Content-Type': 'text/html' } }
+    )
   }
 }
