@@ -173,11 +173,18 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
       '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Get Started Free</button>'
     )
     
-    // 🚀 COMPREHENSIVE FIX: Target ALL "Launch Free Trial" buttons (hero + bottom)
-    // This single pattern will catch both buttons regardless of their classes or content
+    // 🔥 EXACT CLASS TARGETING: Hit the specific buttons by their EXACT class signatures
+    
+    // 🎯 BOTTOM BUTTON: px-12 py-5 text-xl
     html = html.replace(
-      /<button([^>]*?)>\s*Launch Free Trial\s*([^<]*?)<\/button>/gi,
-      '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
+      /<button class="inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-primary\/90 h-9 bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white px-12 py-5 rounded-full text-xl font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-gray-600\/30">Launch Free Trial([^<]*?)<\/button>/gi,
+      '<button class="inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-9 bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white px-12 py-5 rounded-full text-xl font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-gray-600/30" onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$1</button>'
+    )
+    
+    // 🎯 HERO BUTTON: px-10 py-4 text-lg
+    html = html.replace(
+      /<button class="inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-primary\/90 h-9 bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white px-10 py-4 rounded-full text-lg font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-gray-600\/30">Launch Free Trial([^<]*?)<\/button>/gi,
+      '<button class="inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 h-9 bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white px-10 py-4 rounded-full text-lg font-bold shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 border border-gray-600/30" onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$1</button>'
     )
     
     console.log('✅ Processed agency-specific HTML')
