@@ -178,6 +178,18 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
       '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
     )
     
+    // 🚀 CATCH ALL VARIATIONS: Also target buttons that might have different spacing or content
+    html = html.replace(
+      /<button([^>]*?)>\s*Launch Free Trial\s*([^<]*?)<\/button>/gi,
+      '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
+    )
+    
+    // 🚀 BOTTOM CTA BUTTON: Target the specific bottom "Launch Free Trial" button with px-12 py-5 styling
+    html = html.replace(
+      /<button([^>]*?px-12 py-5[^>]*?)>Launch Free Trial([^<]*?)<\/button>/gi,
+      '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
+    )
+    
     console.log('✅ Processed agency-specific HTML')
     return html
     
