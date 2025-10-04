@@ -186,7 +186,13 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
     
     // 🚀 BOTTOM CTA BUTTON: Target the specific bottom "Launch Free Trial" button with px-12 py-5 styling
     html = html.replace(
-      /<button([^>]*?px-12 py-5[^>]*?)>Launch Free Trial([^<]*?)<\/button>/gi,
+      /<button([^>]*?px-12[^>]*?py-5[^>]*?)>Launch Free Trial([^<]*?)<\/button>/gi,
+      '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
+    )
+    
+    // 🚀 ALTERNATIVE PATTERN: Try different order (py-5 before px-12)
+    html = html.replace(
+      /<button([^>]*?py-5[^>]*?px-12[^>]*?)>Launch Free Trial([^<]*?)<\/button>/gi,
       '<button$1 onclick="document.getElementById(\'pricing-section\').scrollIntoView({behavior: \'smooth\'})">Launch Free Trial$2</button>'
     )
     
