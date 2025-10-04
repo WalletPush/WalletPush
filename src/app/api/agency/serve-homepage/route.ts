@@ -87,8 +87,20 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Found custom agency homepage:', salesPage.page_name)
     
-    // Return the HTML content with proper headers
-    return new NextResponse(salesPage.html_content, {
+    // 🚀 STEP 2: Apply agency branding to saved HTML before serving
+    let html = salesPage.html_content || salesPage.html_full_preview || ''
+    
+    try {
+      // Import and use the same processAgencySpecificHTML from get-main-homepage
+      const { processAgencySpecificHTML } = await import('./get-main-homepage/processAgencySpecificHTML')
+      html = await processAgencySpecificHTML(html, agencyId)
+      console.log('✅ Applied agency branding to saved homepage')
+    } catch (brandingError) {
+      console.error('⚠️ Failed to apply branding, serving original HTML:', brandingError)
+    }
+    
+    // Return the branded HTML content
+    return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html',
         'Cache-Control': 'public, max-age=300', // Cache for 5 minutes

@@ -96,7 +96,19 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const agency_account_id = searchParams.get('agency_account_id')
 
-    const raw = await getPreviewHtml(agency_account_id)
+    let raw = await getPreviewHtml(agency_account_id)
+    
+    // 🚀 STEP 2: Apply agency branding to preview HTML
+    if (agency_account_id) {
+      try {
+        const { processAgencySpecificHTML } = await import('../agency/get-main-homepage/processAgencySpecificHTML')
+        raw = await processAgencySpecificHTML(raw, agency_account_id)
+        console.log('✅ Applied agency branding to preview HTML')
+      } catch (brandingError) {
+        console.error('⚠️ Failed to apply branding to preview, using original HTML:', brandingError)
+      }
+    }
+    
     const html = sanitizePreview(raw)
 
     const res = new NextResponse(html, {

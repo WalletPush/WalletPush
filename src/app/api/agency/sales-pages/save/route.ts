@@ -84,16 +84,15 @@ export async function POST(req: Request) {
       defaultRow?.content_model ??
       {}
 
-    // 2) Merge edited HTML -> html_static + content_model
-    const { html_static, content_model } = mergeFromEditedHtml(edited_html, baseline_model)
-
-    // 3) Compose full, sanitized preview (inline CSS, no scripts)
-    const html_full_preview = composeFullPreview({
-      html_static,
-      content_model,
-      assets_base: assets_base ?? existing?.assets_base ?? defaultRow?.assets_base ?? null,
-      inlineCss: defaultInlineCss || null
-    })
+    // 🚀 STEP 1: STOP SHREDDING HTML! Store Claude's edited HTML directly
+    console.log('🎯 Preserving Tailwind markup - storing edited HTML as-is')
+    
+    // Store Claude's edited HTML directly (preserves beautiful Tailwind styling)
+    const html_static = edited_html
+    const html_full_preview = edited_html
+    
+    // Keep the baseline content model (we'll inject branding at serve time)
+    const content_model = baseline_model
 
     // 4) Upsert into agency_sales_pages (respect not-null columns)
     const page_title = body.page_title ?? existing?.page_title ?? 'WalletPush'
@@ -109,11 +108,12 @@ export async function POST(req: Request) {
       headline,
       call_to_action,
       html_static,
+      html_content: edited_html, // 🚀 STEP 2: Store for serve-homepage
       content_model,
       html_full_preview,
       assets_base: assets_base ?? existing?.assets_base ?? defaultRow?.assets_base ?? 'https://walletpush.io',
       is_active: existing?.is_active ?? true,
-      is_published: existing?.is_published ?? false,
+      is_published: true, // 🚀 Auto-publish saved pages
       updated_at: new Date().toISOString()
     }
 
