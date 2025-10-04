@@ -439,8 +439,20 @@ export default function SalesPageDesignerPage() {
       
       alert('Home page saved and published successfully!')
       
-      // Refresh the home page data
-      await loadHomePage()
+      // 🚀 CRITICAL FIX: Load the SAVED agency template, not the main template
+      console.log('🔄 Loading saved agency template after successful save...')
+      
+      // Load the saved agency homepage (not the main template)
+      const previewUrl = `/api/preview/get?agency_account_id=${encodeURIComponent(agencyAccountId || '')}&_=${Date.now()}`
+      const previewRes = await fetch(previewUrl)
+      const savedHtml = await previewRes.text()
+      
+      setCurrentHtml(savedHtml)
+      console.log('✅ Loaded saved agency template in preview:', {
+        htmlLength: savedHtml.length,
+        containsBlueKarma: savedHtml.includes('Blue Karma'),
+        containsWalletPush: savedHtml.includes('WalletPush')
+      })
       
     } catch (error) {
       console.error('Error saving home page:', error)

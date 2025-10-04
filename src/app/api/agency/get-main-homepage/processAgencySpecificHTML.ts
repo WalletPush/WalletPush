@@ -129,6 +129,39 @@ export async function processAgencySpecificHTML(html: string, agencyAccountId?: 
       }
     }
     
+    // 🚀 CRITICAL FIX: Replace ALL button URLs to point to agency domain
+    if (agencyAccountId) {
+      try {
+        // Get the agency's custom domain
+        const { data: agencyAccount } = await supabase
+          .from('agency_accounts')
+          .select('custom_domain, name')
+          .eq('id', agencyAccountId)
+          .single()
+        
+        if (agencyAccount?.custom_domain) {
+          const agencyDomain = `https://${agencyAccount.custom_domain}`
+          console.log('🔗 Replacing button URLs with agency domain:', agencyDomain)
+          
+          // Replace all walletpush.io URLs with agency domain
+          html = html.replace(/https:\/\/walletpush\.io/g, agencyDomain)
+          html = html.replace(/https:\/\/www\.walletpush\.io/g, agencyDomain)
+          
+          // Replace any relative URLs that should point to agency domain
+          html = html.replace(/href="\/business\/auth\/sign-up/g, `href="${agencyDomain}/business/auth/sign-up`)
+          html = html.replace(/href="\/auth\/sign-up/g, `href="${agencyDomain}/auth/sign-up`)
+          html = html.replace(/href="\/pricing/g, `href="${agencyDomain}/pricing`)
+          html = html.replace(/href="\/contact/g, `href="${agencyDomain}/contact`)
+          
+          console.log('✅ Replaced all button URLs with agency domain')
+        } else {
+          console.log('⚠️ No custom domain found for agency, keeping original URLs')
+        }
+      } catch (urlError) {
+        console.error('⚠️ Failed to replace URLs with agency domain:', urlError)
+      }
+    }
+    
     console.log('✅ Processed agency-specific HTML')
     return html
     
