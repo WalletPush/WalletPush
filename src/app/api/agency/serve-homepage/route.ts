@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     
     try {
       // Import and use the same processAgencySpecificHTML from get-main-homepage
-      const { processAgencySpecificHTML } = await import('./get-main-homepage/processAgencySpecificHTML')
+      const { processAgencySpecificHTML } = await import('@/app/api/agency/get-main-homepage/processAgencySpecificHTML')
       html = await processAgencySpecificHTML(html, agencyId)
       console.log('✅ Applied agency branding to saved homepage')
     } catch (brandingError) {
